@@ -49,8 +49,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let options_clone = leptos_options.clone();
     let leptos_handler = move |req: axum::extract::Request| async move {
         let handler = leptos_axum::render_app_to_stream_with_context(
-             options_clone.clone(),
-             move || {},
+             move || {
+                 provide_context(options_clone.clone());
+             },
              App
         );
         handler(req).await.into_response()
@@ -95,8 +96,9 @@ async fn file_and_error_handler(
         res.into_response()
     } else {
         let handler = leptos_axum::render_app_to_stream_with_context(
-            options,
-            move || {},
+            move || {
+                provide_context(options.clone());
+            },
             App
         );
         handler(req).await.into_response()
