@@ -1,15 +1,15 @@
-use leptos::*; use leptos::prelude::*;
+use crate::components::footer::Footer;
+use crate::components::navbar::Navbar;
+use crate::pages::about::AboutPage;
+use crate::pages::admin::composer::AdminComposer;
+use crate::pages::admin::dashboard::AdminDashboard;
+use crate::pages::admin::login::AdminLoginPage;
+use crate::pages::admin::sync_manager::AdminSyncManager;
+use crate::pages::contact::ContactPage;
+use crate::pages::sections::*;
+use leptos::prelude::*;
 use leptos_meta::*;
 use leptos_router::*;
-use crate::components::navbar::Navbar;
-use crate::components::footer::Footer;
-use crate::pages::about::AboutPage;
-use crate::pages::contact::ContactPage;
-use crate::pages::admin::login::AdminLoginPage;
-use crate::pages::admin::dashboard::AdminDashboard;
-use crate::pages::admin::composer::AdminComposer;
-use crate::pages::admin::sync_manager::AdminSyncManager;
-use crate::pages::sections::*;
 
 #[component]
 pub fn App() -> impl IntoView {

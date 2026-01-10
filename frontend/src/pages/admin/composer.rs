@@ -1,16 +1,18 @@
-use leptos::*; use leptos::prelude::*;
+use leptos::prelude::*;
+use leptos::*;
 
 #[component]
 pub fn AdminComposer() -> impl IntoView {
-    let (content, set_content) = create_signal("# New Post\n\nStart writing...".to_string());
+    let (content, set_content) = signal("# New Post\n\nStart writing...".to_string());
 
     // Simple mock markdown parsing (replace newlines) for now.
     // In real impl, we'd use a crate like `pulldown-cmark` (on server) or JS lib.
     let preview = move || {
-        content.get()
+        content
+            .get()
             .replace("\n", "<br/>")
             .replace("# ", "<h1 class='text-2xl font-bold'>")
-            // Very naive, just for scaffolding visual
+        // Very naive, just for scaffolding visual
     };
 
     view! {

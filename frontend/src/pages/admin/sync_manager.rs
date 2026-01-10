@@ -1,9 +1,10 @@
-use leptos::*; use leptos::prelude::*;
+use leptos::prelude::*;
+use leptos::*;
 
 #[component]
 pub fn AdminSyncManager() -> impl IntoView {
-    let (sync_status, set_sync_status) = create_signal("Idle".to_string());
-    let (last_sync, set_last_sync) = create_signal("Never".to_string());
+    let (sync_status, set_sync_status) = signal("Idle".to_string());
+    let (last_sync, set_last_sync) = signal("Never".to_string());
 
     let trigger_sync = move |_| {
         set_sync_status.set("Syncing...".to_string());
@@ -12,10 +13,13 @@ pub fn AdminSyncManager() -> impl IntoView {
         let set_sync_status = set_sync_status.clone();
         let set_last_sync = set_last_sync.clone();
         // Mock completion
-        set_timeout(move || {
-            set_sync_status.set("Idle".to_string());
-            set_last_sync.set("Just now".to_string());
-        }, std::time::Duration::from_secs(2));
+        set_timeout(
+            move || {
+                set_sync_status.set("Idle".to_string());
+                set_last_sync.set("Just now".to_string());
+            },
+            std::time::Duration::from_secs(2),
+        );
     };
 
     view! {
