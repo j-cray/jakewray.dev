@@ -63,8 +63,19 @@ gcloud compute scp --recurse \
 echo "Starting services on VM..."
 gcloud compute ssh jake-user@$INSTANCE_NAME --zone=$ZONE --command="
     cd ~/app
-    # Ensure env vars are set (you might want to edit .env on server)
-    sudo docker-compose -f docker-compose.prod.yml up -d --build
+
+    # Generate .env file with defaults for production
+    cat <<EOF > .env
+POSTGRES_USER=admin
+POSTGRES_PASSWORD=password
+POSTGRES_DB=portfolio
+DOMAIN_NAME=jakewray.ca
+LEPTOS_SITE_ADDR=0.0.0.0:3000
+RUST_LOG=info
+DATABASE_URL=postgres://admin:password@db:5432/portfolio
+EOF
+
+    sudo docker-compose -f docker-compose.prod.yml up -d --build --remove-orphans
 "
 
 echo "Deployment complete! Visit https://jakewray.ca (after DNS propagation)."

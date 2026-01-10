@@ -52,8 +52,13 @@ services:
 
 volumes:
   db_data:
+  npm_data:
+  npm_letsencrypt:
 # No named volumes needed for local folders mapping above, or we can use named volumes.
 # Using local folders via relative path as defined. But wait, named volumes are cleaner for Docker.
 # Let's stick to the previous pattern of named volumes if appropriate, or just map as the user expects.
 # The user script scps everything. Mapping `./npm_data` might be tricky if the folder doesn't exist on host, docker creates it.
 # Let's use named volumes for consistency with db_data.
+
+networks:
+  jake_net:
