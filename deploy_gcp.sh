@@ -75,7 +75,7 @@ RUST_LOG=info
 DATABASE_URL=postgres://admin:password@db:5432/portfolio
 EOF
 
-    sudo docker-compose -f docker-compose.prod.yml up -d --build --remove-orphans
+    sudo docker compose -f docker-compose.prod.yml up -d --build --remove-orphans
 "
 
 echo "Deployment complete! Visit https://jakewray.ca (after DNS propagation)."
