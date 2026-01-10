@@ -20,6 +20,7 @@ async fn health_check() -> &'static str {
     "OK"
 }
 
+
 use sqlx::Row;
 
 async fn list_articles(State(pool): State<PgPool>) -> Json<Vec<Article>> {

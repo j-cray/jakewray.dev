@@ -93,6 +93,26 @@ RUST_LOG=info
 DATABASE_URL=postgres://admin:password@db:5432/portfolio
 EOF
 
+    echo "Building dependencies image..."
+    sudo docker build --target deps -t portfolio-deps .
+
+    echo "Starting database for preparation..."
+    sudo docker compose -f docker-compose.prod.yml up -d db
+    echo "Waiting for DB..."
+    sleep 10
+
+    echo "Running sqlx prepare on server..."
+    # We mount current dir to /app so sqlx-data.json is written back to host
+    sudo docker run --rm \
+        --network jake_net \
+        -v \$(pwd):/app \
+        -w /app \
+        -e DATABASE_URL=postgres://admin:password@db:5432/portfolio \
+        -e SQLX_OFFLINE=false \
+        portfolio-deps \
+        cargo sqlx prepare --workspace
+
+    echo "Building and starting application..."
     sudo docker compose -f docker-compose.prod.yml up -d --build --remove-orphans
 "
 

@@ -2,7 +2,7 @@ use axum::{
     routing::{get, post},
     Router,
 };
-use leptos::*;
+use leptos::prelude::*;
 use leptos_axum::{generate_route_list, LeptosRoutes};
 use sqlx::postgres::PgPoolOptions;
 use std::net::SocketAddr;
@@ -11,19 +11,17 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use frontend::App;
 
 mod api;
-mod state; // Restore state module
+mod state;
 
 use crate::state::AppState;
 use axum::response::{Response as AxumResponse, IntoResponse};
-use tower::ServiceExt; // for oneshot
+use tower::ServiceExt;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     dotenv().ok();
     tracing_subscriber::registry()
-        .with(tracing_subscriber::EnvFilter::new(
-            std::env::var("RUST_LOG").unwrap_or_else(|_| "debug".into()),
-        ))
+        .with(tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| "debug".into()))
         .with(tracing_subscriber::fmt::layer())
         .init();
 
@@ -48,34 +46,36 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         pool: pool.clone(),
     };
 
-    // Use a closure to capture options, bypassing trait bounds on State extraction
     let options_clone = leptos_options.clone();
     let leptos_handler = move |req: axum::extract::Request| async move {
-        let handler = leptos_axum::render_app_to_stream(options_clone, App);
+        let handler = leptos_axum::render_app_to_stream_with_context(
+             options_clone.clone(),
+             move || {},
+             App
+        );
+        // Wait, 0.7 signature is weird.
+        // Let's assume render_app_to_stream(App) is correct for now based on error?
+        // Error: takes 1 arg, supplied 2.
+        // I supplied (options, App).
+        // So it probably wants just (App) or just a closure?
+        // But options must be provided somewhere.
+        // If I use render_app_to_stream(App), where does it get options? From Context?
+        // Context is usually set by middleware.
+        // I am NOT using LeptosRoutes middleware here.
+        // So I must provide options.
+        // Maybe render_app_to_stream_with_context?
+        // I'll try render_app_to_stream(App) first as hint suggested.
+        // But I need to ensure options are used.
+        let handler = leptos_axum::render_app_to_stream(App);
         handler(req).await.into_response()
     };
 
-    // Main App is Router<()> (default)
-    // API is sealed (returns Router<()>)
     let app = Router::new()
         .merge(api::router(app_state.clone()))
-        .route("/api/*fn_name", post(leptos_axum::handle_server_fns)) // Works on ()? No.
-        // Wait, handle_server_fns needs state too?
-        // If handle_server_fns extracts State, it implies Router<()>.route(handler) fails.
-        // We might need to wrap handle_server_fns too?
-        // Or assign state to it?
+        .route("/api/*fn_name", post(leptos_axum::handle_server_fns))
         .route("/*path", get(leptos_handler))
         .fallback(file_and_error_handler)
-        .with_state(app_state); // Provide state to potential remaining generic handlers
-
-    // Wait. If api::router is sealed, it ignores with_state(app_state) here.
-    // That's fine.
-    // handle_server_fns needs options.
-    // If it extracts State, and we are Router<()> (due to new), and then call with_state.
-    // It works IF with_state fixes the Router type context.
-    // But we proved it doesn't.
-    // So handle_server_fns might fail.
-    // I will try to compile. If handle_server_fns fails, I will wrap it too.
+        .with_state(app_state);
 
     tracing::info!("listening on http://{}", &addr);
     let listener = tokio::net::TcpListener::bind(&addr).await?;

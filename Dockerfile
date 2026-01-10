@@ -1,4 +1,4 @@
-FROM rust:bookworm as builder
+FROM rust:bookworm as deps
 # Install build dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     nodejs \
@@ -20,8 +20,11 @@ RUN cargo binstall sqlx-cli -y --force
 # Add WASM target
 RUN rustup target add wasm32-unknown-unknown
 
+FROM deps as builder
 WORKDIR /app
 COPY . .
+
+ENV SQLX_OFFLINE=true
 
 # Debug: Build backend and frontend explicitly to see errors
 RUN cargo build --release --bin backend -vv
