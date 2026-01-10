@@ -23,6 +23,7 @@ pub fn App() -> impl IntoView {
         <Stylesheet id="leptos" href="/pkg/jakewray_ca.css"/>
         <Title text="Jake Wray"/>
         <Meta name="description" content="Journalist, Programmer, Photographer."/>
+        <MetaTags/>
 
         <Router>
             <div class="min-h-screen flex flex-col">
