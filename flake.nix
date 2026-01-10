@@ -7,28 +7,36 @@
     flake-utils.url = "github:numtide/flake-utils";
   };
 
-  outputs = { self, nixpkgs, rust-overlay, flake-utils, ... }:
-    flake-utils.lib.eachDefaultSystem (system:
-      let
-        overlays = [ (import rust-overlay) ];
+  outputs = {
+    self,
+    nixpkgs,
+    rust-overlay,
+    flake-utils,
+    ...
+  }:
+    flake-utils.lib.eachDefaultSystem (
+      system: let
+        overlays = [(import rust-overlay)];
         pkgs = import nixpkgs {
           inherit system overlays;
         };
 
         rustToolchain = pkgs.rust-bin.stable.latest.default.override {
-          extensions = [ "rust-src" "rust-analyzer" ];
-          targets = [ "wasm32-unknown-unknown" ];
+          extensions = ["rust-src" "rust-analyzer"];
+          targets = ["wasm32-unknown-unknown"];
         };
-      in
-      {
+      in {
         devShells.default = pkgs.mkShell {
           buildInputs = with pkgs; [
             rustToolchain
             pkg-config
             openssl
             postgresql # for libpq and psql
+            sqlx-cli
             cargo-leptos
             sass
+            docker
+            docker-compose
             trunk # alternative to cargo-leptos, good to have
             nodejs # for npm/npx if needed for tailwind or other js tools (though avoided per user request)
           ];

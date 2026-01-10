@@ -1,0 +1,23 @@
+[package]
+name = "migration_tool"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+reqwest = { version = "0.11", features = ["json"] }
+tokio = { version = "1.0", features = ["full"] }
+sqlx = { version = "0.8", features = [
+  "postgres",
+  "runtime-tokio-rustls",
+  "uuid",
+  "chrono",
+  "macros",
+] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+dotenvy = "0.15"
+shared = { path = "../shared" }
+slug = "0.1"
+bat = "0.24"
+# bat is likely not needed, maybe 'html2text' or 'reverse_markdown' for converting content if we want markdown?
+# Plan says we keep HTML for imported articles, so standard string is fine.
