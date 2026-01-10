@@ -10,6 +10,8 @@ services:
       - db
     networks:
       - jake_net
+    volumes:
+      - ./media_mount:/app/media
 
   db:
     image: postgres:15-alpine
