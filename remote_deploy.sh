@@ -44,7 +44,7 @@ sleep 15
 echo "Running sqlx prepare on server..."
 # We mount current dir to /app so sqlx-data.json is written back to host
 sudo docker run --rm \
-    --network jake_net \
+    --network app_jake_net \
     -v $(pwd):/app \
     -w /app \
     -e DATABASE_URL=postgres://admin:password@db:5432/portfolio \
