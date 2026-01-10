@@ -6,11 +6,14 @@ use crate::pages::admin::dashboard::AdminDashboard;
 use crate::pages::admin::login::AdminLoginPage;
 use crate::pages::admin::sync_manager::AdminSyncManager;
 use crate::pages::contact::ContactPage;
-use crate::pages::sections::*;
+use crate::pages::sections::{
+    CreativeWritingPage, JournalismPage, MusicPage, PersonalPage, ProgrammingPage, VisualArtPage,
+};
 use leptos::prelude::*;
 use leptos_meta::*;
 use leptos_router::components::*;
 use leptos_router::hooks::*;
+use leptos_router::*;
 
 #[component]
 pub fn App() -> impl IntoView {
@@ -27,30 +30,35 @@ pub fn App() -> impl IntoView {
                 <main class="flex-grow">
                     <Routes fallback=|| view! { <NotFound/> }>
                         // Public Routes
-                        <Route path="/" view=HomePage/>
-                        <Route path="/about" view=AboutPage/>
-                        <Route path="/contact" view=ContactPage/>
-                        <Route path="/journalism" view=JournalismPage/>
-                        <Route path="/personal" view=PersonalPage/>
-                        <Route path="/creative-writing" view=CreativeWritingPage/>
-                        <Route path="/music" view=MusicPage/>
-                        <Route path="/visual-art" view=VisualArtPage/>
-                        <Route path="/programming" view=ProgrammingPage/>
+                        <Route path=path!("/") view=HomePage/>
+                        <Route path=path!("/about") view=AboutPage/>
+                        <Route path=path!("/contact") view=ContactPage/>
+
+                        // Portfolio
+                        <Route path=path!("/journalism") view=JournalismPage/>
+                        <Route path=path!("/personal") view=PersonalPage/>
+                        <Route path=path!("/creative-writing") view=CreativeWritingPage/>
+                        <Route path=path!("/music") view=MusicPage/>
+                        <Route path=path!("/visual-art") view=VisualArtPage/>
+                        <Route path=path!("/programming") view=ProgrammingPage/>
 
                         // Admin Routes
-                        <Route path="/admin" view=Outlet>
-                            <Route path="" view=AdminDashboard/>
-                            <Route path="login" view=AdminLoginPage/>
-                            <Route path="compose" view=AdminComposer/>
-                            <Route path="sync" view=AdminSyncManager/>
-                            <Route path="media" view=MediaLibraryPlaceholder/>
-                        </Route>
+                        <Route path=path!("/admin") view=AdminDashboard/>
+                        <Route path=path!("/admin/login") view=AdminLoginPage/>
+                        <Route path=path!("/admin/compose") view=AdminComposer/>
+                        <Route path=path!("/admin/sync") view=AdminSyncManager/>
+                        <Route path=path!("/admin/media") view=MediaLibraryPlaceholder/>
                     </Routes>
                 </main>
                 <Footer/>
             </div>
         </Router>
     }
+}
+
+#[component]
+fn SectionLayout() -> impl IntoView {
+    view! { <Outlet/> }
 }
 
 #[component]
@@ -95,4 +103,9 @@ fn NotFound() -> impl IntoView {
             <p>"Page not found."</p>
         </div>
     }
+}
+
+#[component]
+fn DummyPage() -> impl IntoView {
+    view! { "Dummy" }
 }

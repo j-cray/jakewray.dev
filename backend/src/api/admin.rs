@@ -4,10 +4,14 @@ use axum::{
 };
 use sqlx::PgPool;
 
-pub fn router() -> Router<PgPool> {
+pub fn router<S>(state: S) -> Router
+where
+    S: Clone + Send + Sync + 'static,
+{
     Router::new()
         .route("/login", post(login))
         .route("/me", get(me))
+        .with_state(state)
 }
 
 async fn login() -> &'static str {

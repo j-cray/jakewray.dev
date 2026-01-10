@@ -1,11 +1,15 @@
 use axum::Router;
 use sqlx::PgPool;
 
-mod public;
 mod admin;
+mod public;
 
-pub fn router() -> Router<PgPool> {
+pub fn router<S>(state: S) -> Router
+where
+    S: Clone + Send + Sync + 'static,
+    PgPool: axum::extract::FromRef<S>,
+{
     Router::new()
-        .merge(public::router())
-        .nest("/admin", admin::router())
+        .merge(public::router(state.clone()))
+        .nest("/admin", admin::router(state.clone()))
 }

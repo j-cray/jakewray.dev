@@ -11,6 +11,10 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use frontend::App;
 
 mod api;
+mod state;
+
+use axum::extract::FromRef;
+use crate::state::AppState;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -38,13 +42,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let addr = leptos_options.site_addr;
     let routes = generate_route_list(App);
 
+    let app_state = AppState {
+        leptos_options: leptos_options.clone(),
+        pool: pool.clone(),
+    };
+
     let app = Router::new()
-        .merge(api::router()) // Mount API routes
+        .merge(api::router(app_state.clone())) // Mount API routes
         .route("/api/*fn_name", post(leptos_axum::handle_server_fns)) // Server Functions integration
-        .leptos_routes(&leptos_options, routes, App)
+        .leptos_routes(&app_state, routes, App)
         .fallback(file_and_error_handler)
-        .with_state(pool)
-        .with_state(leptos_options);
+        .with_state(app_state);
 
     tracing::info!("listening on http://{}", &addr);
     let listener = tokio::net::TcpListener::bind(&addr).await?;
