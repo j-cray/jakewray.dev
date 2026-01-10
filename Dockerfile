@@ -14,8 +14,8 @@ RUN curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/ca
 RUN cargo binstall cargo-leptos -y
 RUN npm install -g sass
 
-# Install sqlx-cli (compile from source for reliability)
-RUN cargo install sqlx-cli --no-default-features --features postgres,rustls
+# Install sqlx-cli (binary install for speed)
+RUN cargo binstall sqlx-cli -y --force
 
 # Add WASM target
 RUN rustup target add wasm32-unknown-unknown

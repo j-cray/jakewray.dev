@@ -55,7 +55,6 @@ gcloud compute scp --recurse \
     ./migration \
     ./style \
     ./assets \
-    .env \
     jake-user@$INSTANCE_NAME:~/app \
     --zone=$ZONE
 
