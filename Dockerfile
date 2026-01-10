@@ -3,14 +3,19 @@ FROM rust:1.80-bookworm as builder
 RUN apt-get update && apt-get install -y --no-install-recommends \
     nodejs \
     npm \
+    pkg-config \
+    libssl-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Install cargo-binstall for faster tool installation
 RUN curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash
 
-# Install cargo-leptos, sass, and sqlx-cli
-RUN cargo binstall cargo-leptos sqlx-cli -y
+# Install cargo-leptos and sass
+RUN cargo binstall cargo-leptos -y
 RUN npm install -g sass
+
+# Install sqlx-cli (compile from source for reliability)
+RUN cargo install sqlx-cli --no-default-features --features postgres,rustls
 
 # Add WASM target
 RUN rustup target add wasm32-unknown-unknown
