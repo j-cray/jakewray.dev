@@ -1,5 +1,5 @@
 use leptos::prelude::*;
-use leptos_router::*;
+use leptos_router::hooks::*;
 
 #[component]
 pub fn AdminLoginPage() -> impl IntoView {
