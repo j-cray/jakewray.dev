@@ -4,9 +4,9 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-leptos = { workspace = true, features = ["csr"] }
-leptos_router = { workspace = true, features = ["csr"] }
-leptos_meta = { workspace = true, features = ["csr"] }
+leptos = { workspace = true }
+leptos_router = { workspace = true }
+leptos_meta = { workspace = true }
 serde = { version = "1.0", features = ["derive"] }
 shared = { path = "../shared" }
 wasm-bindgen = { workspace = true }
@@ -14,5 +14,5 @@ console_error_panic_hook = { workspace = true }
 tracing = { workspace = true }
 
 [features]
-hydrate = ["leptos/hydrate", "leptos_meta/hydrate", "leptos_router/hydrate"]
+hydrate = ["leptos/hydrate"]
 ssr = ["leptos/ssr", "leptos_meta/ssr", "leptos_router/ssr"]

@@ -37,6 +37,8 @@
             sass
             docker
             docker-compose
+            podman
+            podman-compose
             trunk # alternative to cargo-leptos, good to have
             nodejs # for npm/npx if needed for tailwind or other js tools (though avoided per user request)
           ];

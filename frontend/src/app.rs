@@ -1,10 +1,14 @@
-use leptos::*;
+use leptos::*; use leptos::prelude::*;
 use leptos_meta::*;
 use leptos_router::*;
 use crate::components::navbar::Navbar;
 use crate::components::footer::Footer;
 use crate::pages::about::AboutPage;
 use crate::pages::contact::ContactPage;
+use crate::pages::admin::login::AdminLoginPage;
+use crate::pages::admin::dashboard::AdminDashboard;
+use crate::pages::admin::composer::AdminComposer;
+use crate::pages::admin::sync_manager::AdminSyncManager;
 use crate::pages::sections::*;
 
 #[component]
@@ -21,6 +25,7 @@ pub fn App() -> impl IntoView {
                 <Navbar/>
                 <main class="flex-grow">
                     <Routes>
+                        // Public Routes
                         <Route path="/" view=HomePage/>
                         <Route path="/about" view=AboutPage/>
                         <Route path="/contact" view=ContactPage/>
@@ -30,6 +35,14 @@ pub fn App() -> impl IntoView {
                         <Route path="/music" view=MusicPage/>
                         <Route path="/visual-art" view=VisualArtPage/>
                         <Route path="/programming" view=ProgrammingPage/>
+
+                        // Admin Routes
+                        <Route path="/admin" view=AdminDashboard/> // Should redirect to login if not auth
+                        <Route path="/admin/login" view=AdminLoginPage/>
+                        <Route path="/admin/compose" view=AdminComposer/>
+                        <Route path="/admin/sync" view=AdminSyncManager/>
+                        <Route path="/admin/media" view=move || view! { "Media Library Placeholder" }/>
+
                         <Route path="/*any" view=NotFound/>
                     </Routes>
                 </main>

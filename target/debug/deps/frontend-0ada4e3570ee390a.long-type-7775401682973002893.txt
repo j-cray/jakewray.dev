@@ -1,0 +1,1 @@
+WriteSignal<std::string::String>

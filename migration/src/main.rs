@@ -2,7 +2,6 @@ use sqlx::postgres::PgPoolOptions;
 use serde::Deserialize;
 use std::env;
 use dotenvy::dotenv;
-use slug::slugify;
 
 #[derive(Debug, Deserialize)]
 struct WpPost {
@@ -55,7 +54,7 @@ async fn import_jakewray(pool: &sqlx::PgPool) -> Result<(), Box<dyn std::error::
             .with_timezone(&chrono::Utc);
 
         // Check if exists
-        let exists = sqlx::query!("SELECT id FROM blog_posts WHERE slug = $1", slug)
+        let exists: Option<uuid::Uuid> = sqlx::query_scalar!("SELECT id FROM blog_posts WHERE slug = $1", slug)
             .fetch_optional(pool)
             .await?;
 

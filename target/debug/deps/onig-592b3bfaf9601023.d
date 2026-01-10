@@ -1,0 +1,15 @@
+/home/icarus/jakewray.ca/target/debug/deps/onig-592b3bfaf9601023.d: /home/icarus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/onig-6.5.1/src/lib.rs /home/icarus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/onig-6.5.1/src/buffers.rs /home/icarus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/onig-6.5.1/src/find.rs /home/icarus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/onig-6.5.1/src/flags.rs /home/icarus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/onig-6.5.1/src/match_param.rs /home/icarus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/onig-6.5.1/src/names.rs /home/icarus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/onig-6.5.1/src/region.rs /home/icarus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/onig-6.5.1/src/replace.rs /home/icarus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/onig-6.5.1/src/syntax.rs /home/icarus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/onig-6.5.1/src/tree.rs /home/icarus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/onig-6.5.1/src/utils.rs
+
+/home/icarus/jakewray.ca/target/debug/deps/libonig-592b3bfaf9601023.rmeta: /home/icarus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/onig-6.5.1/src/lib.rs /home/icarus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/onig-6.5.1/src/buffers.rs /home/icarus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/onig-6.5.1/src/find.rs /home/icarus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/onig-6.5.1/src/flags.rs /home/icarus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/onig-6.5.1/src/match_param.rs /home/icarus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/onig-6.5.1/src/names.rs /home/icarus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/onig-6.5.1/src/region.rs /home/icarus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/onig-6.5.1/src/replace.rs /home/icarus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/onig-6.5.1/src/syntax.rs /home/icarus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/onig-6.5.1/src/tree.rs /home/icarus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/onig-6.5.1/src/utils.rs
+
+/home/icarus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/onig-6.5.1/src/lib.rs:
+/home/icarus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/onig-6.5.1/src/buffers.rs:
+/home/icarus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/onig-6.5.1/src/find.rs:
+/home/icarus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/onig-6.5.1/src/flags.rs:
+/home/icarus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/onig-6.5.1/src/match_param.rs:
+/home/icarus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/onig-6.5.1/src/names.rs:
+/home/icarus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/onig-6.5.1/src/region.rs:
+/home/icarus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/onig-6.5.1/src/replace.rs:
+/home/icarus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/onig-6.5.1/src/syntax.rs:
+/home/icarus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/onig-6.5.1/src/tree.rs:
+/home/icarus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/onig-6.5.1/src/utils.rs:
