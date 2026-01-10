@@ -4,8 +4,8 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-axum = { version = "0.7", features = ["macros"] }
-tokio = { version = "1.0", features = ["full"] }
+axum = { workspace = true }
+tokio = { workspace = true }
 sqlx = { version = "0.8", features = [
   "postgres",
   "runtime-tokio-rustls",
@@ -16,8 +16,37 @@ sqlx = { version = "0.8", features = [
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 dotenvy = "0.15"
-tower = "0.4"
-tower-http = { version = "0.5", features = ["cors", "fs", "trace"] }
-tracing = "0.1"
+tower = { workspace = true }
+tower-http = { workspace = true }
+tracing = { workspace = true }
 tracing-subscriber = "0.3"
 shared = { path = "../shared" }
+leptos = { workspace = true, features = ["ssr"] }
+leptos_meta = { workspace = true, features = ["ssr"] }
+leptos_router = { workspace = true, features = ["ssr"] }
+leptos_axum = { workspace = true }
+wasm-bindgen = { workspace = true }
+frontend = { path = "../frontend" }
+
+[features]
+default = []
+ssr = [
+  "leptos/ssr",
+  "leptos_meta/ssr",
+  "leptos_router/ssr",
+  "frontend/ssr",
+  "frontend/hydrate",
+]
+
+[package.metadata.leptos]
+output-name = "jakewray_ca"
+site-root = "target/site"
+site-pkg-dir = "pkg"
+style-file = "../style/main.scss"
+assets-dir = "../assets"
+site-addr = "127.0.0.1:3000"
+reload-port = 3001
+bin-package = "backend"
+bin-target = "backend"
+lib-package = "frontend"
+lib-target = "frontend"
