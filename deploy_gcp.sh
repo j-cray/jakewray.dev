@@ -47,7 +47,6 @@ echo "Copying project files..."
 gcloud compute scp --recurse \
     ./Dockerfile \
     ./docker-compose.prod.yml \
-    ./Caddyfile \
     ./migrations \
     ./Cargo.toml \
     ./backend \
