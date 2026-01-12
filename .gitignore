@@ -3,3 +3,6 @@ target/
 .envrc
 dist/
 result
+npm_data/
+npm_letsencrypt/
+media_mount/

@@ -38,29 +38,33 @@ services:
       - jake_net
 
   proxy:
-    image: 'jc21/nginx-proxy-manager:latest'
+    image: nginx:alpine
     restart: unless-stopped
     ports:
       - '80:80'
-      - '81:81'
       - '443:443'
     volumes:
-      - ./npm_data:/data
-      - ./npm_letsencrypt:/etc/letsencrypt
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - certbot_conf:/etc/nginx/ssl:ro
+      - certbot_www:/var/www/certbot:ro
     depends_on:
       - portfolio
     networks:
       - jake_net
 
+  certbot:
+    image: certbot/certbot:latest
+    volumes:
+      - certbot_conf:/etc/letsencrypt
+      - certbot_www:/var/www/certbot
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 6h & wait $${!}; done;'"
+    networks:
+      - jake_net
+
 volumes:
   db_data:
-  npm_data:
-  npm_letsencrypt:
-# No named volumes needed for local folders mapping above, or we can use named volumes.
-# Using local folders via relative path as defined. But wait, named volumes are cleaner for Docker.
-# Let's stick to the previous pattern of named volumes if appropriate, or just map as the user expects.
-# The user script scps everything. Mapping `./npm_data` might be tricky if the folder doesn't exist on host, docker creates it.
-# Let's use named volumes for consistency with db_data.
+  certbot_conf:
+  certbot_www:
 
 networks:
   jake_net:
