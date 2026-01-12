@@ -4,6 +4,8 @@ use thaw::*;
 
 #[component]
 pub fn Navbar() -> impl IntoView {
+    let navigate = leptos_router::hooks::use_navigate();
+
     view! {
         <LayoutHeader class="p-4 border-b border-gray-200">
             <div class="container mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
@@ -12,26 +14,47 @@ pub fn Navbar() -> impl IntoView {
                 </a>
 
                 <div class="flex gap-2 flex-wrap justify-center">
-                    <Button on_click=move |_| { let _ = window().location().set_href("/journalism"); }>
+                    <Button on_click={
+                        let navigate = navigate.clone();
+                        move |_| { navigate("/journalism", Default::default()); }
+                    }>
                         "Journalism"
                     </Button>
-                    <Button on_click=move |_| { let _ = window().location().set_href("/personal"); }>
+                    <Button on_click={
+                        let navigate = navigate.clone();
+                        move |_| { navigate("/personal", Default::default()); }
+                    }>
                         "Personal"
                     </Button>
-                    <Button on_click=move |_| { let _ = window().location().set_href("/creative-writing"); }>
+                    <Button on_click={
+                        let navigate = navigate.clone();
+                        move |_| { navigate("/creative-writing", Default::default()); }
+                    }>
                         "Writing"
                     </Button>
-                    <Button on_click=move |_| { let _ = window().location().set_href("/music"); }>
+                    <Button on_click={
+                        let navigate = navigate.clone();
+                        move |_| { navigate("/music", Default::default()); }
+                    }>
                         "Music"
                     </Button>
-                    <Button on_click=move |_| { let _ = window().location().set_href("/visual-art"); }>
+                    <Button on_click={
+                        let navigate = navigate.clone();
+                        move |_| { navigate("/visual-art", Default::default()); }
+                    }>
                         "Art"
                     </Button>
-                    <Button on_click=move |_| { let _ = window().location().set_href("/programming"); }>
+                    <Button on_click={
+                        let navigate = navigate.clone();
+                        move |_| { navigate("/programming", Default::default()); }
+                    }>
                         "Code"
                     </Button>
                     <div class="w-px h-6 bg-gray-300 mx-2 hidden md:block"></div>
-                    <Button on_click=move |_| { let _ = window().location().set_href("/about"); }>
+                    <Button on_click={
+                        let navigate = navigate.clone();
+                        move |_| { navigate("/about", Default::default()); }
+                    }>
                         "About"
                     </Button>
                 </div>
