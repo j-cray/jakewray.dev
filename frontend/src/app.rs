@@ -20,40 +20,46 @@ pub fn App() -> impl IntoView {
     provide_meta_context();
 
     view! {
-        <Stylesheet id="leptos" href="/pkg/jakewray_ca.css"/>
-        <Title text="Jake Wray"/>
-        <Meta name="description" content="Journalist, Programmer, Photographer."/>
-        <MetaTags/>
+        <html lang="en">
+        <head>
+            <Title text="Jake Wray"/>
+            <Meta name="description" content="Journalist, Programmer, Photographer."/>
+            <Meta charset="utf-8"/>
+            <Meta name="viewport" content="width=device-width, initial-scale=1"/>
+            <Stylesheet id="leptos" href="/pkg/jakewray_ca.css"/>
+        </head>
+        <body>
+            <Router>
+                <div class="min-h-screen flex flex-col">
+                    <Navbar/>
+                    <main class="flex-grow">
+                        <Routes fallback=|| view! { <NotFound/> }>
+                            // Public Routes
+                            <Route path=path!("/") view=HomePage/>
+                            <Route path=path!("/about") view=AboutPage/>
+                            <Route path=path!("/contact") view=ContactPage/>
 
-        <Router>
-            <div class="min-h-screen flex flex-col">
-                <Navbar/>
-                <main class="flex-grow">
-                    <Routes fallback=|| view! { <NotFound/> }>
-                        // Public Routes
-                        <Route path=path!("/") view=HomePage/>
-                        <Route path=path!("/about") view=AboutPage/>
-                        <Route path=path!("/contact") view=ContactPage/>
+                            // Portfolio
+                            <Route path=path!("/journalism") view=JournalismPage/>
+                            <Route path=path!("/personal") view=PersonalPage/>
+                            <Route path=path!("/creative-writing") view=CreativeWritingPage/>
+                            <Route path=path!("/music") view=MusicPage/>
+                            <Route path=path!("/visual-art") view=VisualArtPage/>
+                            <Route path=path!("/programming") view=ProgrammingPage/>
 
-                        // Portfolio
-                        <Route path=path!("/journalism") view=JournalismPage/>
-                        <Route path=path!("/personal") view=PersonalPage/>
-                        <Route path=path!("/creative-writing") view=CreativeWritingPage/>
-                        <Route path=path!("/music") view=MusicPage/>
-                        <Route path=path!("/visual-art") view=VisualArtPage/>
-                        <Route path=path!("/programming") view=ProgrammingPage/>
-
-                        // Admin Routes
-                        <Route path=path!("/admin") view=AdminDashboard/>
-                        <Route path=path!("/admin/login") view=AdminLoginPage/>
-                        <Route path=path!("/admin/compose") view=AdminComposer/>
-                        <Route path=path!("/admin/sync") view=AdminSyncManager/>
-                        <Route path=path!("/admin/media") view=MediaLibraryPlaceholder/>
-                    </Routes>
-                </main>
-                <Footer/>
-            </div>
-        </Router>
+                            // Admin Routes
+                            <Route path=path!("/admin") view=AdminDashboard/>
+                            <Route path=path!("/admin/login") view=AdminLoginPage/>
+                            <Route path=path!("/admin/compose") view=AdminComposer/>
+                            <Route path=path!("/admin/sync") view=AdminSyncManager/>
+                            <Route path=path!("/admin/media") view=MediaLibraryPlaceholder/>
+                        </Routes>
+                    </main>
+                    <Footer/>
+                </div>
+            </Router>
+        </body>
+        </html>
     }
 }
 

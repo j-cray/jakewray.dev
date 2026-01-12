@@ -27,7 +27,7 @@ cat <<EOF > .env
 POSTGRES_USER=admin
 POSTGRES_PASSWORD=password
 POSTGRES_DB=portfolio
-DOMAIN_NAME=jakewray.ca
+DOMAIN_NAME=jakewray.dev
 LEPTOS_SITE_ADDR=0.0.0.0:3000
 RUST_LOG=info
 DATABASE_URL=postgres://admin:password@db:5432/portfolio

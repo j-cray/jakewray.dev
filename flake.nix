@@ -1,5 +1,5 @@
 {
-  description = "Jakewray.ca Personal Portfolio";
+  description = "Jakewray.dev Personal Portfolio";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
@@ -45,7 +45,7 @@
 
           shellHook = ''
             export RUST_SRC_PATH=${pkgs.rustPlatform.rustLibSrc}
-            echo "Environment prepared for jakewray.ca development"
+            echo "Environment prepared for jakewray.dev development"
           '';
         };
       }
