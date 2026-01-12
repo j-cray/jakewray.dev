@@ -43,5 +43,3 @@ sudo docker compose -f docker-compose.prod.yml up -d certbot
 echo "SSL certificates initialized successfully!"
 echo "Nginx is now running with HTTPS enabled."
 echo "Certificates will auto-renew via certbot service (checks twice daily)."
-
-
