@@ -1,0 +1,12 @@
+{
+    # Global options
+    email admin@jakewray.dev
+}
+
+jakewray.dev {
+    reverse_proxy portfolio:3000
+}
+
+www.jakewray.dev {
+    redir https://jakewray.dev{uri} permanent
+}

@@ -38,15 +38,15 @@ services:
       - jake_net
 
   proxy:
-    image: 'jc21/nginx-proxy-manager:latest'
+    image: caddy:2-alpine
     restart: unless-stopped
     ports:
       - '80:80'
-      - '81:81'
       - '443:443'
     volumes:
-      - ./npm_data:/data
-      - ./npm_letsencrypt:/etc/letsencrypt
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
     depends_on:
       - portfolio
     networks:
@@ -54,13 +54,8 @@ services:
 
 volumes:
   db_data:
-  npm_data:
-  npm_letsencrypt:
-# No named volumes needed for local folders mapping above, or we can use named volumes.
-# Using local folders via relative path as defined. But wait, named volumes are cleaner for Docker.
-# Let's stick to the previous pattern of named volumes if appropriate, or just map as the user expects.
-# The user script scps everything. Mapping `./npm_data` might be tricky if the folder doesn't exist on host, docker creates it.
-# Let's use named volumes for consistency with db_data.
+  caddy_data:
+  caddy_config:
 
 networks:
   jake_net:
