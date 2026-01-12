@@ -9,7 +9,7 @@ MACHINE_TYPE="e2-medium"
 IMAGE_FAMILY="debian-12"
 IMAGE_PROJECT="debian-cloud"
 
-echo "Deploying to Google Cloud..."
+echo "Checking Google Cloud Infrastructure..."
 
 # 1. Create VM if not exists
 if ! gcloud compute instances describe $INSTANCE_NAME --project=$PROJECT_ID --zone=$ZONE &>/dev/null; then
@@ -40,28 +40,4 @@ fi
 # 2. Get IP
 IP_ADDRESS=$(gcloud compute instances describe $INSTANCE_NAME --project=$PROJECT_ID --zone=$ZONE --format='get(networkInterfaces[0].accessConfigs[0].natIP)')
 echo "VM IP Address: $IP_ADDRESS"
-echo "IMPORTANT: Update your DNS (A Record) for jakewray.dev to point to $IP_ADDRESS"
-
-# 3. Copy files to VM
-echo "Copying project files..."
-gcloud compute scp --recurse \
-    ./Dockerfile \
-    ./docker-compose.prod.yml \
-    ./migrations \
-    ./Cargo.toml \
-    ./backend \
-    ./frontend \
-    ./shared \
-    ./migration \
-    ./style \
-    ./assets \
-    ./remote_deploy.sh \
-    jake-user@$INSTANCE_NAME:~/app \
-    --project=$PROJECT_ID \
-    --zone=$ZONE
-
-# 4. SSH and Deploy
-echo "Starting services on VM..."
-gcloud compute ssh jake-user@$INSTANCE_NAME --project=$PROJECT_ID --zone=$ZONE --command="cd ~/app && chmod +x remote_deploy.sh && ./remote_deploy.sh"
-
-echo "Deployment complete! Visit https://jakewray.dev (after DNS propagation)."
+echo "Ensure your DNS (A Record) for jakewray.dev points to $IP_ADDRESS"

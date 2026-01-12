@@ -35,5 +35,4 @@ ssr = [
   "leptos_meta/ssr",
   "leptos_router/ssr",
   "frontend/ssr",
-  "frontend/hydrate",
 ]
