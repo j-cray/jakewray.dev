@@ -56,8 +56,14 @@ pub fn App() -> impl IntoView {
                     <Footer/>
                 </div>
             </Router>
-            <Scripts/>
-        </Body>
+            <script type="module" inner_html=r#"
+                import init, { hydrate } from '/pkg/jakewray_ca.js';
+                init().then(() => {
+                    hydrate();
+                });
+            "#></script>
+        </body>
+        </html>
     }
 }
 
