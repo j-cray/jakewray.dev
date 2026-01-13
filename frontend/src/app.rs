@@ -56,7 +56,7 @@ pub fn App() -> impl IntoView {
                     <Footer/>
                 </div>
             </Router>
-            <Scripts/>
+            <script type="module" src="/pkg/jakewray_ca.js"></script>
         </body>
         </html>
     }
