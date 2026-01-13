@@ -35,10 +35,6 @@ ENV PATH="/app/node_modules/.bin:${PATH}"
 
 ENV SQLX_OFFLINE=true
 
-# Debug: Build backend and frontend explicitly to see errors
-RUN cargo build --release --bin backend -vv
-RUN cargo build --release --lib --target wasm32-unknown-unknown -p frontend -vv
-
 # Build the app (Release mode)
 RUN cargo leptos build --release -vv
 
