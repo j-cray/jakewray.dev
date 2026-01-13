@@ -9,9 +9,11 @@ use crate::pages::contact::ContactPage;
 use crate::pages::sections::{
     CreativeWritingPage, JournalismPage, MusicPage, PersonalPage, ProgrammingPage, VisualArtPage,
 };
+use leptonic::components::root::Root;
 use leptonic::prelude::*;
-use leptonic_theme::LeptonicTheme;
+use leptonic::theme::LeptonicTheme;
 use leptos::prelude::*;
+// use leptonic_theme::LeptonicTheme;
 use leptos_meta::*;
 use leptos_router::components::*;
 use leptos_router::hooks::*;
@@ -31,7 +33,7 @@ pub fn App() -> impl IntoView {
             <Stylesheet id="leptos" href="/pkg/jakewray_ca.css"/>
         </head>
         <body>
-            <Root default_theme=LeptonicTheme::default()>
+            <div> // Root disabled temporarily due to API mismatch
                 <Router>
                     <div class="min-h-screen flex flex-col bg-gray-50/50">
                         <Navbar/>
@@ -61,7 +63,7 @@ pub fn App() -> impl IntoView {
                         <Footer/>
                     </div>
                 </Router>
-            </Root>
+            </div>
         </body>
         </html>
     }
@@ -80,37 +82,29 @@ fn MediaLibraryPlaceholder() -> impl IntoView {
 #[component]
 fn HomePage() -> impl IntoView {
     view! {
-        <Stack orientation=StackOrientation::Vertical spacing=Size::Em(2.0) style="padding: 2em; max_width: 1200px; margin: 0 auto;">
+        <div style="padding: 2em; max-width: 1200px; margin: 0 auto; display: flex; flex-direction: column; gap: 2em;">
             <header style="text-align: center; margin-bottom: 2em;">
-                <H1 style="margin-bottom: 0.5em;">"Jake Wray"</H1>
-                <P style="color: gray;">
+                <h1 style="margin-bottom: 0.5em; font-size: 2.5em; font-weight: bold;">"Jake Wray"</h1>
+                <p style="color: gray;">
                     "Journalist. Developer. Photographer. Creating extensive archives of the present."
-                </P>
+                </p>
             </header>
 
-            <Grid spacing=Size::Em(1.0)>
-                <Row>
-                    <Col xs=12 sm=4>
-                        <Card>
-                            <H3>"Latest Articles"</H3>
-                            <P>"Coming soon..."</P>
-                        </Card>
-                    </Col>
-                    <Col xs=12 sm=4>
-                        <Card>
-                            <H3>"Recent Projects"</H3>
-                            <P>"Coming soon..."</P>
-                        </Card>
-                    </Col>
-                    <Col xs=12 sm=4>
-                        <Card>
-                            <H3>"Visuals"</H3>
-                            <P>"Coming soon..."</P>
-                        </Card>
-                    </Col>
-                </Row>
-            </Grid>
-        </Stack>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1em;">
+                <div style="padding: 1.5em; border: 1px solid #ddd; border-radius: 8px;">
+                    <h3 style="font-weight: bold; margin-bottom: 0.5em;">"Latest Articles"</h3>
+                    <p>"Coming soon..."</p>
+                </div>
+                <div style="padding: 1.5em; border: 1px solid #ddd; border-radius: 8px;">
+                    <h3 style="font-weight: bold; margin-bottom: 0.5em;">"Recent Projects"</h3>
+                    <p>"Coming soon..."</p>
+                </div>
+                <div style="padding: 1.5em; border: 1px solid #ddd; border-radius: 8px;">
+                    <h3 style="font-weight: bold; margin-bottom: 0.5em;">"Visuals"</h3>
+                    <p>"Coming soon..."</p>
+                </div>
+            </div>
+        </div>
     }
 }
 

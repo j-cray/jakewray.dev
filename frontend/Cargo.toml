@@ -15,8 +15,9 @@ shared = { path = "../shared" }
 wasm-bindgen = { workspace = true }
 console_error_panic_hook = { workspace = true }
 tracing = { workspace = true }
-leptonic = { version = "0.5" }
-leptonic-theme = { version = "0.5" }
+time = "0.3.36"
+leptonic = { git = "https://github.com/lpotthast/leptonic", branch = "main" }
+leptonic-theme = { git = "https://github.com/lpotthast/leptonic", branch = "main" }
 
 [features]
 hydrate = ["leptos/hydrate", "leptonic/hydrate"]
