@@ -47,7 +47,7 @@ async fn login(
                 let cookie = Cookie::build(("auth_token", id.to_string()))
                     .path("/")
                     .http_only(true)
-                    .secure(true) // Should be true in prod
+                    .secure(!cfg!(debug_assertions)) // Secure in release (prod), non-secure in debug (local)
                     .same_site(axum_extra::extract::cookie::SameSite::Lax)
                     .build();
 

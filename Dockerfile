@@ -37,6 +37,8 @@ ENV SQLX_OFFLINE=true
 
 # Build the app (Release mode)
 RUN cargo leptos build --release -vv
+# Build the admin creation tool
+RUN cargo build --release --bin create_admin
 
 # Runtime Stage
 FROM debian:bookworm-slim as runtime
@@ -52,6 +54,7 @@ RUN apt-get update -y \
 # Copy artifacts from builder
 COPY --from=builder /usr/local/cargo/bin/sqlx /usr/local/bin/sqlx
 COPY --from=builder /app/target/release/backend /app/backend
+COPY --from=builder /app/target/release/create_admin /app/create_admin
 COPY --from=builder /app/target/site /app/site
 
 # Set environment
