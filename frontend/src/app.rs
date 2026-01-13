@@ -9,17 +9,11 @@ use crate::pages::contact::ContactPage;
 use crate::pages::sections::{
     CreativeWritingPage, JournalismPage, MusicPage, PersonalPage, ProgrammingPage, VisualArtPage,
 };
-use leptonic::components::button::{Button, ButtonSize, ButtonVariant};
-use leptonic::components::card::Card;
-use leptonic::components::grid::{Col, Grid, Row};
-use leptonic::components::root::Root;
-use leptonic::components::stack::{Stack, StackOrientation};
-use leptonic::components::theme::LeptonicTheme;
-use leptonic::components::typography::{H1, H3, P};
-use leptonic::prelude::*;
+// leptonic imports removed
 use leptos::prelude::*;
 use leptos_meta::*;
 use leptos_router::components::*;
+use leptos_router::*;
 
 #[component]
 pub fn App() -> impl IntoView {
@@ -35,35 +29,33 @@ pub fn App() -> impl IntoView {
             <Stylesheet id="leptos" href="/pkg/jakewray_ca.css"/>
         </head>
         <body>
-            <Root default_theme=LeptonicTheme::Dark>
-                <Router>
-                    <div class="min-h-screen flex flex-col bg-gray-50/50">
-                        <Navbar/>
-                        <main class="flex-grow container mx-auto px-4 py-8">
-                            <Routes fallback=|| view! { <NotFound/> }>
-                                <Route path="/" view=HomePage/>
-                                <Route path="/about" view=AboutPage/>
-                                <Route path="/contact" view=ContactPage/>
-                                <Route path="/setup" view=crate::pages::setup::SetupPage/>
-                                <Route path="/admin" view=AdminLoginPage/>
-                                <ParentRoute path="/admin" view=crate::pages::admin::AdminProtectedLayout>
-                                    <Route path="dashboard" view=AdminDashboard/>
-                                    <Route path="composer" view=AdminComposer/>
-                                    <Route path="sync" view=AdminSyncManager/>
-                                    <Route path="media" view=MediaLibraryPlaceholder/>
-                                </ParentRoute>
-                                <Route path="/journalism" view=JournalismPage/>
-                                <Route path="/personal" view=PersonalPage/>
-                                <Route path="/creative-writing" view=CreativeWritingPage/>
-                                <Route path="/music" view=MusicPage/>
-                                <Route path="/visual-art" view=VisualArtPage/>
-                                <Route path="/programming" view=ProgrammingPage/>
-                            </Routes>
-                        </main>
-                        <Footer/>
-                    </div>
-                </Router>
-            </Root>
+        <Router>
+            <div class="min-h-screen flex flex-col bg-gray-900 text-white">
+                <Navbar/>
+                <main class="flex-grow container mx-auto px-4 py-8">
+                    <Routes fallback=|| view! { <NotFound/> }>
+                         <Route path=leptos_router::path!("/") view=|| view! { <HomePage/> }/>
+                         <Route path=leptos_router::path!("/about") view=|| view! { <AboutPage/> }/>
+                         <Route path=leptos_router::path!("/contact") view=|| view! { <ContactPage/> }/>
+                         <Route path=leptos_router::path!("/setup") view=|| view! { <crate::pages::setup::SetupPage/> }/>
+                         <Route path=leptos_router::path!("/admin") view=|| view! { <AdminLoginPage/> }/>
+                         <ParentRoute path=leptos_router::path!("/admin") view=|| view! { <crate::pages::admin::AdminProtectedLayout/> }>
+                            <Route path=leptos_router::path!("dashboard") view=|| view! { <AdminDashboard/> }/>
+                            <Route path=leptos_router::path!("composer") view=|| view! { <AdminComposer/> }/>
+                            <Route path=leptos_router::path!("sync") view=|| view! { <AdminSyncManager/> }/>
+                            <Route path=leptos_router::path!("media") view=|| view! { <MediaLibraryPlaceholder/> }/>
+                         </ParentRoute>
+                         <Route path=leptos_router::path!("/journalism") view=|| view! { <JournalismPage/> }/>
+                         <Route path=leptos_router::path!("/personal") view=|| view! { <PersonalPage/> }/>
+                         <Route path=leptos_router::path!("/creative-writing") view=|| view! { <CreativeWritingPage/> }/>
+                         <Route path=leptos_router::path!("/music") view=|| view! { <MusicPage/> }/>
+                         <Route path=leptos_router::path!("/visual-art") view=|| view! { <VisualArtPage/> }/>
+                         <Route path=leptos_router::path!("/programming") view=|| view! { <ProgrammingPage/> }/>
+                    </Routes>
+                </main>
+                <Footer/>
+            </div>
+        </Router>
         </body>
         </html>
     }
@@ -84,40 +76,40 @@ fn HomePage() -> impl IntoView {
     view! {
         <div class="p-8 max-w-[1400px] mx-auto flex flex-col gap-16">
             <header class="text-center py-16">
-                <H1 class="mb-2 text-6xl font-extrabold tracking-tighter">
+                <h1 class="mb-2 text-6xl font-extrabold tracking-tighter">
                     <span class="text-gradient">"JAKE WRAY"</span>
-                </H1>
-                <P class="text-2xl text-gray-400 max-w-[600px] mx-auto">
+                </h1>
+                <p class="text-2xl text-gray-400 max-w-[600px] mx-auto">
                     "Journalist. Developer. Photographer. Creating extensive archives of the present."
-                </P>
+                </p>
                 <div class="mt-8 flex gap-4 justify-center">
-                    <Button variant=ButtonVariant::Filled size=ButtonSize::Big>
+                    <button on:click=move |_| {} class="btn-filled text-lg px-8 py-3 rounded-full">
                         "Read Journal"
-                    </Button>
-                    <Button variant=ButtonVariant::Outlined size=ButtonSize::Big>
+                    </button>
+                    <button on:click=move |_| {} class="btn-outlined text-lg px-8 py-3 rounded-full border border-white/20 hover:bg-white/10 transition">
                         "View Portfolio"
-                    </Button>
+                    </button>
                 </div>
             </header>
 
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-8">
                 <div class="h-full">
-                    <Card class="glass h-full transition-transform hover:scale-105">
-                        <H3 class="font-bold text-brand">"Latest Articles"</H3>
-                        <P>"Deep dives into technology, culture, and the intersection of both."</P>
-                    </Card>
+                    <div class="glass h-full transition-transform hover:scale-105 p-6 rounded-xl border border-white/10">
+                        <h3 class="font-bold text-brand text-xl mb-2">"Latest Articles"</h3>
+                        <p class="text-gray-300">"Deep dives into technology, culture, and the intersection of both."</p>
+                    </div>
                 </div>
                 <div class="h-full">
-                    <Card class="glass h-full transition-transform hover:scale-105">
-                        <H3 class="font-bold text-brand">"Recent Projects"</H3>
-                        <P>"Software engineering experiments, open source contributions, and more."</P>
-                    </Card>
+                    <div class="glass h-full transition-transform hover:scale-105 p-6 rounded-xl border border-white/10">
+                        <h3 class="font-bold text-brand text-xl mb-2">"Recent Projects"</h3>
+                        <p class="text-gray-300">"Software engineering experiments, open source contributions, and more."</p>
+                    </div>
                 </div>
                 <div class="h-full">
-                    <Card class="glass h-full transition-transform hover:scale-105">
-                        <H3 class="font-bold text-brand">"Visuals"</H3>
-                        <P>"A collection of photography and digital art capturing moments in time."</P>
-                    </Card>
+                    <div class="glass h-full transition-transform hover:scale-105 p-6 rounded-xl border border-white/10">
+                        <h3 class="font-bold text-brand text-xl mb-2">"Visuals"</h3>
+                        <p class="text-gray-300">"A collection of photography and digital art capturing moments in time."</p>
+                    </div>
                 </div>
             </div>
         </div>

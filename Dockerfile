@@ -5,6 +5,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     npm \
     pkg-config \
     libssl-dev \
+    binaryen \
     && rm -rf /var/lib/apt/lists/*
 
 # Install cargo-binstall for faster tool installation
@@ -16,6 +17,9 @@ RUN npm install -g sass
 
 # Install sqlx-cli (binary install for speed)
 RUN cargo binstall sqlx-cli -y --force
+
+# Install wasm-bindgen-cli
+RUN cargo binstall wasm-bindgen-cli --version 0.2.106 -y
 
 # Add WASM target
 RUN rustup target add wasm32-unknown-unknown

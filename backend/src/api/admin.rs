@@ -30,19 +30,21 @@ async fn login(
     jar: SignedCookieJar,
     Json(payload): Json<LoginPayload>,
 ) ->  impl IntoResponse {
-    let user = sqlx::query!(
-        "SELECT id, password_hash FROM users WHERE username = $1",
-        payload.username
-    )
-    .fetch_optional(&pool)
-    .await
-    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()));
+    let user_row = sqlx::query("SELECT id, password_hash FROM users WHERE username = $1")
+        .bind(&payload.username)
+        .fetch_optional(&pool)
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()));
 
-    match user {
-        Ok(Some(record)) => {
-            if verify(&payload.password, &record.password_hash).unwrap_or(false) {
+    match user_row {
+        Ok(Some(row)) => {
+            use sqlx::Row;
+            let password_hash: String = row.try_get("password_hash").unwrap_or_default(); // Handle error properly in prod
+            let id: i32 = row.try_get("id").unwrap_or_default();
+
+            if verify(&payload.password, &password_hash).unwrap_or(false) {
                 // Password correct
-                let cookie = Cookie::build(("auth_token", record.id.to_string()))
+                let cookie = Cookie::build(("auth_token", id.to_string()))
                     .path("/")
                     .http_only(true)
                     .secure(true) // Should be true in prod

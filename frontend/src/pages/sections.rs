@@ -6,7 +6,7 @@ pub async fn get_articles() -> Result<Vec<Article>, ServerFnError> {
     #[cfg(feature = "ssr")]
     {
         use sqlx::{PgPool, Row};
-        let pool = use_context::<PgPool>().ok_or(ServerFnError::ServerError("Pool not found".to_string()))?;
+        let pool = use_context::<PgPool>().ok_or(ServerFnError::new("Pool not found"))?;
 
         let articles = sqlx::query("SELECT id, wp_id, slug, title, subtitle, excerpt, content, cover_image_url, author, published_at, origin FROM articles ORDER BY published_at DESC LIMIT 20")
             .map(|row: sqlx::postgres::PgRow| Article {
@@ -24,7 +24,7 @@ pub async fn get_articles() -> Result<Vec<Article>, ServerFnError> {
             })
             .fetch_all(&pool)
             .await
-            .map_err(|e| ServerFnError::ServerError(e.to_string()))?;
+            .map_err(|e| ServerFnError::new(e.to_string()))?;
 
         Ok(articles)
     }
@@ -39,7 +39,7 @@ pub async fn get_blog_posts() -> Result<Vec<BlogPost>, ServerFnError> {
     #[cfg(feature = "ssr")]
     {
         use sqlx::{PgPool, Row};
-        let pool = use_context::<PgPool>().ok_or(ServerFnError::ServerError("Pool not found".to_string()))?;
+        let pool = use_context::<PgPool>().ok_or(ServerFnError::new("Pool not found"))?;
 
         let posts = sqlx::query("SELECT id, slug, title, content, published_at, tags FROM blog_posts ORDER BY published_at DESC LIMIT 20")
             .map(|row: sqlx::postgres::PgRow| BlogPost {
@@ -52,7 +52,7 @@ pub async fn get_blog_posts() -> Result<Vec<BlogPost>, ServerFnError> {
             })
             .fetch_all(&pool)
             .await
-            .map_err(|e| ServerFnError::ServerError(e.to_string()))?;
+            .map_err(|e| ServerFnError::new(e.to_string()))?;
 
         Ok(posts)
     }

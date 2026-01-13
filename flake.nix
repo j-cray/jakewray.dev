@@ -34,7 +34,10 @@
             postgresql # for libpq and psql
             sqlx-cli
             cargo-leptos
-            sass
+            wasm-bindgen-cli
+            binaryen
+            tailwindcss
+            dart-sass
             docker
             docker-compose
             podman

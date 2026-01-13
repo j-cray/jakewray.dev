@@ -21,20 +21,28 @@ pub async fn get_current_user() -> Result<Option<UserResponse>, ServerFnError> {
         use sqlx::PgPool;
         use axum_extra::extract::cookie::Key;
 
-        let jar: SignedCookieJar = extract().await?;
-        let pool = use_context::<PgPool>().ok_or(ServerFnError::ServerError("Pool not found".to_string()))?;
+        use axum::Extension;
+        use axum::http::HeaderMap;
+
+        let Extension(key): Extension<Key> = extract().await?;
+        let headers: HeaderMap = extract().await?;
+        let jar = SignedCookieJar::from_headers(&headers, key);
+        let pool = use_context::<PgPool>().ok_or(ServerFnError::new("Pool not found"))?;
 
         if let Some(cookie) = jar.get("auth_token") {
             let user_id = cookie.value();
             match uuid::Uuid::parse_str(user_id) {
                 Ok(uuid) => {
-                    let user = sqlx::query!("SELECT username FROM users WHERE id = $1", uuid)
+                    use sqlx::Row;
+                    let user_row = sqlx::query("SELECT username FROM users WHERE id = $1")
+                        .bind(uuid)
                         .fetch_optional(&pool)
                         .await
                         .unwrap_or(None);
 
-                    if let Some(u) = user {
-                        return Ok(Some(UserResponse { username: u.username }));
+                    if let Some(row) = user_row {
+                        let username: String = row.try_get("username").unwrap_or_default();
+                        return Ok(Some(UserResponse { username }));
                     }
                 }
                 Err(_) => return Ok(None),

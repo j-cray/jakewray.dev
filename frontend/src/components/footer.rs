@@ -1,4 +1,3 @@
-use leptonic::prelude::*;
 use leptos::prelude::*;
 
 #[component]

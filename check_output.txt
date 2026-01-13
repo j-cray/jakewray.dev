@@ -1,0 +1,86 @@
+    Checking frontend v0.1.0 (/home/icarus/jakewray.ca/frontend)
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `serde_json`
+  --> frontend/src/pages/admin/login.rs:21:24
+   |
+21 |                 .json(&serde_json::json!({
+   |                        ^^^^^^^^^^ use of unresolved module or unlinked crate `serde_json`
+
+warning: unused import: `crate::components::footer::Footer`
+ --> frontend/src/app.rs:1:5
+  |
+1 | use crate::components::footer::Footer;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `crate::components::navbar::Navbar`
+ --> frontend/src/app.rs:2:5
+  |
+2 | use crate::components::navbar::Navbar;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `crate::pages::about::AboutPage`
+ --> frontend/src/app.rs:3:5
+  |
+3 | use crate::pages::about::AboutPage;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `crate::pages::admin::composer::AdminComposer`
+ --> frontend/src/app.rs:4:5
+  |
+4 | use crate::pages::admin::composer::AdminComposer;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `crate::pages::admin::dashboard::AdminDashboard`
+ --> frontend/src/app.rs:5:5
+  |
+5 | use crate::pages::admin::dashboard::AdminDashboard;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `crate::pages::admin::login::AdminLoginPage`
+ --> frontend/src/app.rs:6:5
+  |
+6 | use crate::pages::admin::login::AdminLoginPage;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `crate::pages::admin::sync_manager::AdminSyncManager`
+ --> frontend/src/app.rs:7:5
+  |
+7 | use crate::pages::admin::sync_manager::AdminSyncManager;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `crate::pages::contact::ContactPage`
+ --> frontend/src/app.rs:8:5
+  |
+8 | use crate::pages::contact::ContactPage;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused imports: `CreativeWritingPage`, `JournalismPage`, `MusicPage`, `PersonalPage`, `ProgrammingPage`, and `VisualArtPage`
+  --> frontend/src/app.rs:10:5
+   |
+10 |     CreativeWritingPage, JournalismPage, MusicPage, PersonalPage, ProgrammingPage, VisualArtPage,
+   |     ^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^  ^^^^^^^^^  ^^^^^^^^^^^^  ^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^
+
+warning: unused import: `icondata::BsList`
+ --> frontend/src/components/navbar.rs:1:5
+  |
+1 | use icondata::BsList;
+  |     ^^^^^^^^^^^^^^^^
+
+warning: unused import: `leptos::logging`
+ --> frontend/src/pages/admin/login.rs:1:5
+  |
+1 | use leptos::logging;
+  |     ^^^^^^^^^^^^^^^
+
+warning: use of deprecated function `leptos::prelude::create_signal`: This function is being renamed to `signal()` to conform to Rust idioms.
+ --> frontend/src/components/navbar.rs:9:45
+  |
+9 |     let (is_drawer_open, set_drawer_open) = create_signal(false);
+  |                                             ^^^^^^^^^^^^^
+  |
+  = note: `#[warn(deprecated)]` on by default
+
+For more information about this error, try `rustc --explain E0433`.
+warning: `frontend` (lib) generated 12 warnings
+error: could not compile `frontend` (lib) due to 1 previous error; 12 warnings emitted

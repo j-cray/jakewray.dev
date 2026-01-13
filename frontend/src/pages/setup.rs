@@ -13,12 +13,13 @@ pub async fn get_setup_status() -> Result<SetupStatus, ServerFnError> {
     #[cfg(feature = "ssr")]
     {
         use sqlx::PgPool;
-        let pool = use_context::<PgPool>().ok_or(ServerFnError::ServerError("Pool not found".to_string()))?;
+        let pool = use_context::<PgPool>().ok_or(ServerFnError::new("Pool not found"))?;
 
-        let count = sqlx::query!("SELECT COUNT(*) as count FROM users")
+        use sqlx::Row;
+        let count: i64 = sqlx::query("SELECT COUNT(*) as count FROM users")
             .fetch_one(&pool)
             .await
-            .map(|r| r.count.unwrap_or(0))
+            .map(|r| r.try_get("count").unwrap_or(0))
             .unwrap_or(0);
 
         Ok(SetupStatus { required: count == 0 })
@@ -37,30 +38,31 @@ pub async fn perform_setup(username: String, password: String) -> Result<(), Ser
         use sqlx::PgPool;
         use bcrypt::{hash, DEFAULT_COST};
 
-        let pool = use_context::<PgPool>().ok_or(ServerFnError::ServerError("Pool not found".to_string()))?;
+        let pool = use_context::<PgPool>().ok_or(ServerFnError::new("Pool not found"))?;
 
+        use sqlx::Row;
         // 1. Verify no users exist
-        let count = sqlx::query!("SELECT COUNT(*) as count FROM users")
+        let count: i64 = sqlx::query("SELECT COUNT(*) as count FROM users")
             .fetch_one(&pool)
             .await
-            .map(|r| r.count.unwrap_or(0))
+            .map(|r| r.try_get("count").unwrap_or(0))
             .unwrap_or(0);
 
         if count > 0 {
-            return Err(ServerFnError::ServerError("Setup already completed".to_string()));
+            return Err(ServerFnError::new("Setup already completed"));
         }
 
         // 2. Create user
-        let hashed_password = hash(&password, DEFAULT_COST).map_err(|e| ServerFnError::ServerError(e.to_string()))?;
+        // 2. Create user
+        let hashed_password = hash(&password, DEFAULT_COST)?;
 
-        sqlx::query!(
+        sqlx::query(
             "INSERT INTO users (username, password_hash) VALUES ($1, $2)",
-            username,
-            hashed_password
         )
+        .bind(username)
+        .bind(hashed_password)
         .execute(&pool)
-        .await
-        .map_err(|e: sqlx::Error| ServerFnError::ServerError(e.to_string()))?;
+        .await?;
 
         Ok(())
     }

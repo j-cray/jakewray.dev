@@ -1,0 +1,228 @@
+warning: unused import: `icondata::BsList`
+ --> frontend/src/components/navbar.rs:1:5
+  |
+1 | use icondata::BsList;
+  |     ^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `leptos::logging`
+ --> frontend/src/pages/admin/login.rs:1:5
+  |
+1 | use leptos::logging;
+  |     ^^^^^^^^^^^^^^^
+
+warning: use of deprecated function `leptos::prelude::create_signal`: This function is being renamed to `signal()` to conform to Rust idioms.
+ --> frontend/src/components/navbar.rs:9:45
+  |
+9 | ... = create_signal(fa...
+  |       ^^^^^^^^^^^^^
+  |
+  = note: `#[warn(deprecated)]` on by default
+
+warning: unused import: `leptos_router`
+  --> frontend/src/app.rs:16:5
+   |
+16 | use leptos_router::*;
+   |     ^^^^^^^^^^^^^
+
+warning: `frontend` (lib) generated 4 warnings (run `cargo fix --lib -p frontend` to apply 2 suggestions)
+    Checking backend v0.1.0 (/home/icarus/jakewray.ca/backend)
+error: error communicating with database: Connection refused (os error 111)
+  --> backend/src/bin/create_admin.rs:39:5
+   |
+39 | /     sqlx::query!(
+40 | |         "INSERT INTO users (username, password_hash) VALUES ($1, $2)",
+41 | |         username,
+42 | |         hashed_password
+43 | |     )
+   | |_____^
+   |
+   = note: this error originates in the macro `$crate::sqlx_macros::expand_query` which comes from the expansion of the macro `sqlx::query` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error: error communicating with database: Connection refused (os error 111)
+  --> backend/src/api/admin.rs:33:16
+   |
+33 |       let user = sqlx::query!(
+   |  ________________^
+34 | |         "SELECT id, password_hash FROM users WHERE username = $1",
+35 | |         payload.username
+36 | |     )
+   | |_____^
+   |
+   = note: this error originates in the macro `$crate::sqlx_macros::expand_query` which comes from the expansion of the macro `sqlx::query` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error: could not compile `backend` (bin "create_admin") due to 1 previous error
+warning: build failed, waiting for other jobs to finish...
+error[E0432]: unresolved import `axum_extra::extract::cookie::SignedCookieJar`
+  --> backend/src/api/admin.rs:8:43
+   |
+ 8 | use axum_extra::extract::cookie::{Cookie, SignedCookieJar};
+   |                                           ^^^^^^^^^^^^^^^ no `SignedCookieJar` in `extract::cookie`
+   |
+note: found an item that was configured out
+  --> /home/icarus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/axum-extra-0.9.6/src/extract/cookie/mod.rs:25:23
+   |
+24 | #[cfg(feature = "cookie-signed")]
+   |       ------------------------- the item is gated behind the `cookie-signed` feature
+25 | pub use self::signed::SignedCookieJar;
+   |                       ^^^^^^^^^^^^^^^
+
+error[E0432]: unresolved import `axum_extra::extract::cookie::Key`
+  --> backend/src/state.rs:2:5
+   |
+ 2 | use axum_extra::extract::cookie::Key;
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `Key` in `extract::cookie`
+   |
+note: found an item that was configured out
+  --> /home/icarus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/axum-extra-0.9.6/src/extract/cookie/mod.rs:30:17
+   |
+29 | #[cfg(any(feature = "cookie-signed", feature = "cookie-private"))]
+   |          ------------------------------------------------------- the item is gated here
+30 | pub use cookie::Key;
+   |                 ^^^
+
+error[E0433]: failed to resolve: could not find `Key` in `cookie`
+  --> backend/src/main.rs:46:44
+   |
+46 |     let key = axum_extra::extract::cookie::Key::generate();
+   |                                            ^^^ could not find `Key` in `cookie`
+   |
+note: found an item that was configured out
+  --> /home/icarus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/axum-extra-0.9.6/src/extract/cookie/mod.rs:30:17
+   |
+29 | #[cfg(any(feature = "cookie-signed", feature = "cookie-private"))]
+   |          ------------------------------------------------------- the item is gated here
+30 | pub use cookie::Key;
+   |                 ^^^
+
+error[E0412]: cannot find type `Key` in module `axum_extra::extract::cookie`
+   --> backend/src/main.rs:102:45
+    |
+102 |     key_clone: axum_extra::extract::cookie::Key,
+    |                                             ^^^ not found in `axum_extra::extract::cookie`
+    |
+note: found an item that was configured out
+   --> /home/icarus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/axum-extra-0.9.6/src/extract/cookie/mod.rs:30:17
+    |
+ 29 | #[cfg(any(feature = "cookie-signed", feature = "cookie-private"))]
+    |          ------------------------------------------------------- the item is gated here
+ 30 | pub use cookie::Key;
+    |                 ^^^
+
+warning: unused import: `LeptosRoutes`
+ --> backend/src/main.rs:7:40
+  |
+7 | use leptos_axum::{generate_route_list, LeptosRoutes};
+  |                                        ^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `std::net::SocketAddr`
+ --> backend/src/main.rs:9:5
+  |
+9 | use std::net::SocketAddr;
+  |     ^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `sqlx::PgPool`
+ --> backend/src/api/mod.rs:2:5
+  |
+2 | use sqlx::PgPool;
+  |     ^^^^^^^^^^^^
+
+warning: unused import: `get`
+ --> backend/src/api/admin.rs:2:15
+  |
+2 |     routing::{get, post},
+  |               ^^^
+
+warning: unused import: `Serialize`
+ --> backend/src/api/admin.rs:9:26
+  |
+9 | use serde::{Deserialize, Serialize};
+  |                          ^^^^^^^^^
+
+warning: unused import: `std::sync::Arc`
+  --> backend/src/api/admin.rs:12:5
+   |
+12 | use std::sync::Arc;
+   |     ^^^^^^^^^^^^^^
+
+error[E0282]: type annotations needed
+  --> backend/src/api/admin.rs:33:16
+   |
+33 |       let user = sqlx::query!(
+   |  ________________^
+34 | |         "SELECT id, password_hash FROM users WHERE username = $1",
+35 | |         payload.username
+...  |
+38 | |     .await
+   | |__________^ cannot infer type
+
+error[E0282]: type annotations needed
+  --> backend/src/api/admin.rs:39:15
+   |
+39 |     .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()));
+   |               ^                                      - type must be known at this point
+   |
+help: consider giving this closure parameter an explicit type
+   |
+39 |     .map_err(|e: /* Type */| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()));
+   |                ++++++++++++
+
+error[E0277]: the trait bound `fn(State<Pool<Postgres>>, ..., ...) -> ... {login}: Handler<_, _>` is not satisfied
+   --> backend/src/api/admin.rs:17:31
+    |
+ 17 |         .route("/login", post(login))
+    |                          ---- ^^^^^ the trait `Handler<_, _>` is not implemented for fn item `fn(State<Pool<Postgres>>, {type error}, Json<...>) -> ... {login}`
+    |                          |
+    |                          required by a bound introduced by this call
+    |
+    = note: Consider using `#[axum::debug_handler]` to improve the error message
+    = help: the following other types implement trait `Handler<T, S>`:
+              `IntoHandler<H, T, S>` implements `Handler<T, S>`
+              `MethodRouter<S>` implements `Handler<(), S>`
+              `axum::handler::Layered<L, H, T, S>` implements `Handler<T, S>`
+              `axum_extra::handler::Or<L, R, Lt, Rt, S>` implements `Handler<(M, Lt, Rt), S>`
+note: required by a bound in `post`
+   --> /home/icarus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/axum-0.7.9/src/routing/method_routing.rs:443:1
+    |
+443 | top_level_handler_fn!(post, POST);
+    | ^^^^^^^^^^^^^^^^^^^^^^----^^^^^^^
+    | |                     |
+    | |                     required by a bound in this function
+    | required by this bound in `post`
+    = note: the full name for the type has been written to '/home/icarus/jakewray.ca/target/debug/deps/backend-945d51a6682a52e2.long-type-11472963817150877574.txt'
+    = note: consider using `--verbose` to print the full type name to the console
+    = note: this error originates in the macro `top_level_handler_fn` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error[E0277]: the trait bound `fn({type error}) -> impl Future<Output = ...> {logout}: Handler<_, _>` is not satisfied
+   --> backend/src/api/admin.rs:18:32
+    |
+ 18 |         .route("/logout", post(logout))
+    |                           ---- ^^^^^^ the trait `Handler<_, _>` is not implemented for fn item `fn({type error}) -> impl Future<Output = (StatusCode, ...)> {logout}`
+    |                           |
+    |                           required by a bound introduced by this call
+    |
+    = note: Consider using `#[axum::debug_handler]` to improve the error message
+    = help: the following other types implement trait `Handler<T, S>`:
+              `IntoHandler<H, T, S>` implements `Handler<T, S>`
+              `MethodRouter<S>` implements `Handler<(), S>`
+              `axum::handler::Layered<L, H, T, S>` implements `Handler<T, S>`
+              `axum_extra::handler::Or<L, R, Lt, Rt, S>` implements `Handler<(M, Lt, Rt), S>`
+note: required by a bound in `post`
+   --> /home/icarus/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/axum-0.7.9/src/routing/method_routing.rs:443:1
+    |
+443 | top_level_handler_fn!(post, POST);
+    | ^^^^^^^^^^^^^^^^^^^^^^----^^^^^^^
+    | |                     |
+    | |                     required by a bound in this function
+    | required by this bound in `post`
+    = note: the full name for the type has been written to '/home/icarus/jakewray.ca/target/debug/deps/backend-945d51a6682a52e2.long-type-11693689145187322540.txt'
+    = note: consider using `--verbose` to print the full type name to the console
+    = note: this error originates in the macro `top_level_handler_fn` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+Some errors have detailed explanations: E0277, E0282, E0412, E0432, E0433.
+For more information about an error, try `rustc --explain E0277`.
+warning: `backend` (bin "backend") generated 6 warnings
+error: could not compile `backend` (bin "backend") due to 9 previous errors; 6 warnings emitted

@@ -13,8 +13,12 @@ dotenvy = "0.15"
 tower = { workspace = true }
 tower-http = { workspace = true }
 tracing = { workspace = true }
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 bcrypt = "0.15"
-axum-extra = { workspace = true }
+axum-extra = { workspace = true, features = [
+  "cookie-signed",
+  "cookie-private",
+] }
 shared = { path = "../shared" }
 leptos = { workspace = true, features = ["ssr"] }
 leptos_meta = { workspace = true, features = ["ssr"] }

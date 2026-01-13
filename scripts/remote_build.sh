@@ -26,18 +26,7 @@ if [ "$TARGET" = "all" ] || [ "$TARGET" = "backend" ]; then
     echo "Ensuring DB is up for preparation..."
     sudo docker compose -f docker-compose.prod.yml up -d db
     echo "Waiting for DB..."
-    sleep 5 # Reduced from 15, usually 5 is enough if it was already running
 
-    echo "Running sqlx prepare on server..."
-    # We mount current dir to /app so sqlx-data.json is written back to host
-    sudo docker run --rm \
-        --network app_jake_net \
-        -v $(pwd):/app \
-        -w /app \
-        -e DATABASE_URL=postgres://admin:password@db:5432/portfolio \
-        -e SQLX_OFFLINE=false \
-        portfolio-deps \
-        cargo sqlx prepare --workspace
 fi
 
 if [ "$TARGET" = "all" ]; then

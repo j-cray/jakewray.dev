@@ -56,4 +56,13 @@ bin-target = "backend"
 # The name of the package in the workspace to build as the frontend (WASM lib)
 lib-package = "frontend"
 # The name of the lib target in the package to build as the frontend
+# The name of the lib target in the package to build as the frontend
 lib-target = "frontend"
+
+# Features to use when compiling the bin target
+bin-features = ["ssr"]
+
+# Features to use when compiling the lib target
+#
+# Optional. Can be over-ridden with the command line parameter --lib-features
+lib-features = ["hydrate"]

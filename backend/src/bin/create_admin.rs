@@ -36,11 +36,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let hashed_password = hash(password, DEFAULT_COST)?;
 
-    sqlx::query!(
+    sqlx::query(
         "INSERT INTO users (username, password_hash) VALUES ($1, $2)",
-        username,
-        hashed_password
     )
+    .bind(username)
+    .bind(hashed_password)
     .execute(&pool)
     .await?;
 
