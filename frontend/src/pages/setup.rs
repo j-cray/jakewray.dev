@@ -8,6 +8,7 @@ pub struct SetupStatus {
 }
 
 #[server(GetSetupStatus, "/api/setup/status")]
+#[allow(unused_variables)]
 pub async fn get_setup_status() -> Result<SetupStatus, ServerFnError> {
     #[cfg(feature = "ssr")]
     {
@@ -29,6 +30,7 @@ pub async fn get_setup_status() -> Result<SetupStatus, ServerFnError> {
 }
 
 #[server(PerformSetup, "/api/setup")]
+#[allow(unused_variables)]
 pub async fn perform_setup(username: String, password: String) -> Result<(), ServerFnError> {
     #[cfg(feature = "ssr")]
     {

@@ -135,7 +135,7 @@ pub fn PersonalPage() -> impl IntoView {
                                         </p>
                                         <div class="flex items-center gap-2">
                                             {post.tags.unwrap_or_default().iter().skip(1).map(|tag| view! {
-                                                <span class="px-2 py-1 text-xs rounded-md bg-white/5 text-gray-400">{tag}</span>
+                                                <span class="px-2 py-1 text-xs rounded-md bg-white/5 text-gray-400">{tag.clone()}</span>
                                             }).collect_view()}
                                         </div>
                                     </div>
