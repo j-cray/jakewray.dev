@@ -15,13 +15,9 @@ use leptos_router::components::*;
 use leptos_router::hooks::*;
 use leptos_router::*;
 
-use thaw::*;
-
 #[component]
 pub fn App() -> impl IntoView {
     provide_meta_context();
-
-    let theme = create_rw_signal(Theme::light());
 
     view! {
         <html lang="en">
@@ -80,34 +76,28 @@ fn MediaLibraryPlaceholder() -> impl IntoView {
 #[component]
 fn HomePage() -> impl IntoView {
     view! {
-        <div class="container py-12">
+        <div class="container mx-auto py-12">
             <header class="text-center mb-16">
                 <h1 class="text-6xl mb-6 font-heading">"Jake Wray"</h1>
-                <p class="text-xl text-muted max-w-2xl mx-auto">
+                <p class="text-xl text-gray-500 max-w-2xl mx-auto">
                     "Journalist. Developer. Photographer. Creating extensive archives of the present."
                 </p>
             </header>
 
-            <Grid cols=3 x_gap=24 y_gap=24>
-                <GridItem>
-                    <Card>
-                        <h3 class="text-xl mb-2 font-bold">"Latest Articles"</h3>
-                        <p class="text-muted">"Coming soon..."</p>
-                    </Card>
-                </GridItem>
-                <GridItem>
-                    <Card>
-                        <h3 class="text-xl mb-2 font-bold">"Recent Projects"</h3>
-                        <p class="text-muted">"Coming soon..."</p>
-                    </Card>
-                </GridItem>
-                <GridItem>
-                    <Card>
-                        <h3 class="text-xl mb-2 font-bold">"Visuals"</h3>
-                        <p class="text-muted">"Coming soon..."</p>
-                    </Card>
-                </GridItem>
-            </Grid>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="p-6 bg-white rounded-xl shadow-sm border border-gray-100">
+                    <h3 class="text-xl mb-2 font-bold">"Latest Articles"</h3>
+                    <p class="text-gray-500">"Coming soon..."</p>
+                </div>
+                <div class="p-6 bg-white rounded-xl shadow-sm border border-gray-100">
+                    <h3 class="text-xl mb-2 font-bold">"Recent Projects"</h3>
+                    <p class="text-gray-500">"Coming soon..."</p>
+                </div>
+                <div class="p-6 bg-white rounded-xl shadow-sm border border-gray-100">
+                    <h3 class="text-xl mb-2 font-bold">"Visuals"</h3>
+                    <p class="text-gray-500">"Coming soon..."</p>
+                </div>
+            </div>
         </div>
     }
 }

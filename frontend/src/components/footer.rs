@@ -1,6 +1,5 @@
 use leptos::prelude::*;
 use leptos::*;
-use thaw::*;
 
 #[component]
 pub fn Footer() -> impl IntoView {
