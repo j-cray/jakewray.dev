@@ -5,7 +5,7 @@ use leptos_router::hooks::*;
 #[component]
 pub fn AdminLoginPage() -> impl IntoView {
     let (username, set_username) = signal("".to_string());
-    let (password, set_password) = signal("".to_string());
+    let (_password, set_password) = signal("".to_string());
 
     let on_submit = move |ev: leptos::ev::SubmitEvent| {
         ev.prevent_default();

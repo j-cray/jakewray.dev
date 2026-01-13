@@ -10,7 +10,7 @@ struct WpPost {
     slug: String,
     title: WpContent,
     content: WpContent,
-    excerpt: WpContent,
+
     _embedded: Option<Embedded>,
 }
 

@@ -5,12 +5,10 @@ use dotenvy::dotenv;
 
 #[derive(Debug, Deserialize)]
 struct WpPost {
-    id: i64,
     date_gmt: String,
     slug: String,
     title: WpContent,
     content: WpContent,
-    excerpt: WpContent,
 }
 
 #[derive(Debug, Deserialize)]

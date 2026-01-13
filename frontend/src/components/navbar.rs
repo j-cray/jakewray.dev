@@ -1,6 +1,5 @@
 use icondata::BsList;
 use leptos::prelude::*;
-use leptos::*;
 
 use leptonic::components::app_bar::AppBar;
 use leptonic::components::button::{Button, ButtonVariant};
