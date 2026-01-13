@@ -9,6 +9,8 @@ use crate::pages::contact::ContactPage;
 use crate::pages::sections::{
     CreativeWritingPage, JournalismPage, MusicPage, PersonalPage, ProgrammingPage, VisualArtPage,
 };
+use leptonic::prelude::*;
+use leptonic_theme::LeptonicTheme;
 use leptos::prelude::*;
 use leptos_meta::*;
 use leptos_router::components::*;
@@ -29,6 +31,7 @@ pub fn App() -> impl IntoView {
             <Stylesheet id="leptos" href="/pkg/jakewray_ca.css"/>
         </head>
         <body>
+            <Root default_theme=LeptonicTheme::default()>
                 <Router>
                     <div class="min-h-screen flex flex-col bg-gray-50/50">
                         <Navbar/>
@@ -58,6 +61,7 @@ pub fn App() -> impl IntoView {
                         <Footer/>
                     </div>
                 </Router>
+            </Root>
         </body>
         </html>
     }
@@ -76,29 +80,37 @@ fn MediaLibraryPlaceholder() -> impl IntoView {
 #[component]
 fn HomePage() -> impl IntoView {
     view! {
-        <div class="container mx-auto py-12">
-            <header class="text-center mb-16">
-                <h1 class="text-6xl mb-6 font-heading">"Jake Wray"</h1>
-                <p class="text-xl text-gray-500 max-w-2xl mx-auto">
+        <Stack orientation=StackOrientation::Vertical spacing=Size::Em(2.0) style="padding: 2em; max_width: 1200px; margin: 0 auto;">
+            <header style="text-align: center; margin-bottom: 2em;">
+                <H1 style="margin-bottom: 0.5em;">"Jake Wray"</H1>
+                <P style="color: gray;">
                     "Journalist. Developer. Photographer. Creating extensive archives of the present."
-                </p>
+                </P>
             </header>
 
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div class="p-6 bg-white rounded-xl shadow-sm border border-gray-100">
-                    <h3 class="text-xl mb-2 font-bold">"Latest Articles"</h3>
-                    <p class="text-gray-500">"Coming soon..."</p>
-                </div>
-                <div class="p-6 bg-white rounded-xl shadow-sm border border-gray-100">
-                    <h3 class="text-xl mb-2 font-bold">"Recent Projects"</h3>
-                    <p class="text-gray-500">"Coming soon..."</p>
-                </div>
-                <div class="p-6 bg-white rounded-xl shadow-sm border border-gray-100">
-                    <h3 class="text-xl mb-2 font-bold">"Visuals"</h3>
-                    <p class="text-gray-500">"Coming soon..."</p>
-                </div>
-            </div>
-        </div>
+            <Grid spacing=Size::Em(1.0)>
+                <Row>
+                    <Col xs=12 sm=4>
+                        <Card>
+                            <H3>"Latest Articles"</H3>
+                            <P>"Coming soon..."</P>
+                        </Card>
+                    </Col>
+                    <Col xs=12 sm=4>
+                        <Card>
+                            <H3>"Recent Projects"</H3>
+                            <P>"Coming soon..."</P>
+                        </Card>
+                    </Col>
+                    <Col xs=12 sm=4>
+                        <Card>
+                            <H3>"Visuals"</H3>
+                            <P>"Coming soon..."</P>
+                        </Card>
+                    </Col>
+                </Row>
+            </Grid>
+        </Stack>
     }
 }
 

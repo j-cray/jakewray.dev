@@ -15,7 +15,9 @@ shared = { path = "../shared" }
 wasm-bindgen = { workspace = true }
 console_error_panic_hook = { workspace = true }
 tracing = { workspace = true }
+leptonic = { version = "0.5" }
+leptonic-theme = { version = "0.5" }
 
 [features]
-hydrate = ["leptos/hydrate"]
-ssr = ["leptos/ssr", "leptos_meta/ssr", "leptos_router/ssr"]
+hydrate = ["leptos/hydrate", "leptonic/hydrate"]
+ssr = ["leptos/ssr", "leptos_meta/ssr", "leptos_router/ssr", "leptonic/ssr"]

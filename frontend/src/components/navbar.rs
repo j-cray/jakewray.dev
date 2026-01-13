@@ -1,3 +1,4 @@
+use leptonic::prelude::*;
 use leptos::prelude::*;
 use leptos::*;
 
@@ -5,59 +6,35 @@ use leptos::*;
 pub fn Navbar() -> impl IntoView {
     let navigate = leptos_router::hooks::use_navigate();
 
-    view! {
-        <header class="p-4 border-b border-gray-200">
-            <div class="container mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
-                <a href="/" class="text-2xl font-bold font-heading no-underline text-gray-900">
-                    "Jake Wray"
-                </a>
+    let nav_btn = move |text: &'static str, path: &'static str| {
+        let navigate = navigate.clone();
+        view! {
+            <Button on_click=move |_| navigate(path, Default::default()) variant=ButtonVariant::Flat>
+                {text}
+            </Button>
+        }
+    };
 
-                <div class="flex gap-2 flex-wrap justify-center">
-                    <button class="px-4 py-2 rounded-md hover:bg-gray-100 transition-colors" on:click={
-                        let navigate = navigate.clone();
-                        move |_| { navigate("/journalism", Default::default()); }
-                    }>
-                        "Journalism"
-                    </button>
-                    <button class="px-4 py-2 rounded-md hover:bg-gray-100 transition-colors" on:click={
-                        let navigate = navigate.clone();
-                        move |_| { navigate("/personal", Default::default()); }
-                    }>
-                        "Personal"
-                    </button>
-                    <button class="px-4 py-2 rounded-md hover:bg-gray-100 transition-colors" on:click={
-                        let navigate = navigate.clone();
-                        move |_| { navigate("/creative-writing", Default::default()); }
-                    }>
-                        "Writing"
-                    </button>
-                    <button class="px-4 py-2 rounded-md hover:bg-gray-100 transition-colors" on:click={
-                        let navigate = navigate.clone();
-                        move |_| { navigate("/music", Default::default()); }
-                    }>
-                        "Music"
-                    </button>
-                    <button class="px-4 py-2 rounded-md hover:bg-gray-100 transition-colors" on:click={
-                        let navigate = navigate.clone();
-                        move |_| { navigate("/visual-art", Default::default()); }
-                    }>
-                        "Art"
-                    </button>
-                    <button class="px-4 py-2 rounded-md hover:bg-gray-100 transition-colors" on:click={
-                        let navigate = navigate.clone();
-                        move |_| { navigate("/programming", Default::default()); }
-                    }>
-                        "Code"
-                    </button>
-                    <div class="w-px h-6 bg-gray-300 mx-2 hidden md:block"></div>
-                    <button class="px-4 py-2 rounded-md bg-black text-white hover:bg-gray-800 transition-colors" on:click={
-                        let navigate = navigate.clone();
-                        move |_| { navigate("/about", Default::default()); }
-                    }>
+    view! {
+        <AppBar>
+            <Stack orientation=StackOrientation::Horizontal spacing=Size::Em(1.0) style="width: 100%; justify-content: space-between; align-items: center; padding: 0 1em;">
+                <H3 style="margin: 0">
+                    <Link href="/">"Jake Wray"</Link>
+                </H3>
+
+                <Stack orientation=StackOrientation::Horizontal spacing=Size::Em(0.5)>
+                    {nav_btn("Journalism", "/journalism")}
+                    {nav_btn("Personal", "/personal")}
+                    {nav_btn("Writing", "/creative-writing")}
+                    {nav_btn("Music", "/music")}
+                    {nav_btn("Art", "/visual-art")}
+                    {nav_btn("Code", "/programming")}
+                    <Separator orientation=SeparatorOrientation::Vertical style="height: 1.5em; margin: 0 0.5em;"/>
+                    <Button on_click=move |_| navigate.clone()("/about", Default::default()) variant=ButtonVariant::Filled>
                         "About"
-                    </button>
-                </div>
-            </div>
-        </header>
+                    </Button>
+                </Stack>
+            </Stack>
+        </AppBar>
     }
 }

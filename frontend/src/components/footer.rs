@@ -1,17 +1,16 @@
-use leptos::prelude::*;
-use leptos::*;
+use leptonic::prelude::*;
 
 #[component]
 pub fn Footer() -> impl IntoView {
     view! {
-        <footer class="py-12 bg-gray-50 border-t border-gray-200 mt-24 text-center">
-            <div class="container text-muted text-sm">
-                <p>"© 2026 Jake Wray. All rights reserved."</p>
-                <div class="flex justify-center gap-4 mt-4">
-                    <a href="/contact" class="hover:underline">"Contact"</a>
-                    <a href="/admin" class="hover:underline">"Admin"</a>
-                </div>
-            </div>
+        <footer style="padding: 3em; margin-top: 3em; text-align: center;">
+            <Stack orientation=StackOrientation::Vertical spacing=Size::Em(1.0)>
+                <P>"© 2026 Jake Wray. All rights reserved."</P>
+                <Stack orientation=StackOrientation::Horizontal spacing=Size::Em(1.0) style="justify-content: center;">
+                    <Link href="/contact">"Contact"</Link>
+                    <Link href="/admin">"Admin"</Link>
+                </Stack>
+            </Stack>
         </footer>
     }
 }
