@@ -1105,6 +1105,7 @@ dependencies = [
 name = "frontend"
 version = "0.1.0"
 dependencies = [
+ "bcrypt",
  "console_error_panic_hook",
  "gloo-net",
  "icondata 0.4.0",
@@ -1115,6 +1116,7 @@ dependencies = [
  "leptos_router",
  "serde",
  "shared",
+ "sqlx",
  "time",
  "tracing",
  "wasm-bindgen",

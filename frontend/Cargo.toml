@@ -22,6 +22,7 @@ icondata = "0.4"
 gloo-net = "0.6"
 sqlx = { workspace = true, optional = true }
 bcrypt = { version = "0.15", optional = true }
+axum-extra = { workspace = true, optional = true }
 
 [features]
 hydrate = ["leptos/hydrate", "leptonic/hydrate"]
@@ -32,4 +33,5 @@ ssr = [
   "leptonic/ssr",
   "dep:sqlx",
   "dep:bcrypt",
+  "dep:axum-extra",
 ]

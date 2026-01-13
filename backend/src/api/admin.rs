@@ -16,7 +16,6 @@ pub fn router(state: crate::state::AppState) -> Router
     Router::new()
         .route("/login", post(login))
         .route("/logout", post(logout))
-        .route("/me", get(me))
         .with_state(state)
 }
 
@@ -24,11 +23,6 @@ pub fn router(state: crate::state::AppState) -> Router
 struct LoginPayload {
     username: String,
     password: String,
-}
-
-#[derive(Serialize)]
-struct UserResponse {
-    username: String,
 }
 
 async fn login(
@@ -67,26 +61,4 @@ async fn login(
 
 async fn logout(jar: SignedCookieJar) -> (StatusCode, SignedCookieJar) {
     (StatusCode::OK, jar.remove(Cookie::from("auth_token")))
-}
-
-async fn me(jar: SignedCookieJar, State(pool): State<PgPool>) -> impl IntoResponse {
-    if let Some(cookie) = jar.get("auth_token") {
-        let user_id = cookie.value();
-        // convert string to uuid
-        let uuid = match uuid::Uuid::parse_str(user_id) {
-            Ok(u) => u,
-            Err(_) => return (StatusCode::UNAUTHORIZED, Json(None::<UserResponse>)).into_response(),
-        };
-
-        let user = sqlx::query!("SELECT username FROM users WHERE id = $1", uuid)
-            .fetch_optional(&pool)
-            .await
-            .unwrap_or(None);
-
-        if let Some(u) = user {
-            return (StatusCode::OK, Json(Some(UserResponse { username: u.username }))).into_response();
-        }
-    }
-
-    (StatusCode::UNAUTHORIZED, Json(None::<UserResponse>)).into_response()
 }

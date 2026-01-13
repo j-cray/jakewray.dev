@@ -6,13 +6,7 @@ edition = "2021"
 [dependencies]
 axum = { workspace = true }
 tokio = { workspace = true }
-sqlx = { version = "0.8", features = [
-  "postgres",
-  "runtime-tokio-rustls",
-  "uuid",
-  "chrono",
-  "macros",
-] }
+sqlx = { workspace = true }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 dotenvy = "0.15"
@@ -20,7 +14,7 @@ tower = { workspace = true }
 tower-http = { workspace = true }
 tracing = { workspace = true }
 bcrypt = "0.15"
-axum-extra = { version = "0.9", features = ["cookie"] }
+axum-extra = { workspace = true }
 shared = { path = "../shared" }
 leptos = { workspace = true, features = ["ssr"] }
 leptos_meta = { workspace = true, features = ["ssr"] }

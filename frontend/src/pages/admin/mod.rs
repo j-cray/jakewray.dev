@@ -5,7 +5,45 @@ pub mod sync_manager;
 
 use leptos::prelude::*;
 use leptos_router::components::{Outlet, Redirect};
-use gloo_net::http::Request;
+use serde::{Deserialize, Serialize};
+
+#[derive(Clone, Serialize, Deserialize)]
+pub struct UserResponse {
+    pub username: String,
+}
+
+#[server(GetCurrentUser, "/api/admin/me")]
+pub async fn get_current_user() -> Result<Option<UserResponse>, ServerFnError> {
+    use axum_extra::extract::cookie::{Cookie, SignedCookieJar};
+    use leptos_axum::extract;
+    use sqlx::PgPool;
+    use axum_extra::extract::cookie::Key;
+
+    // We need to extract the jar manually or via leptos_axum
+    // leptos_axum::extract() allows extracting FromRequest parts
+    let jar: SignedCookieJar = extract().await?;
+    let pool = use_context::<PgPool>().ok_or(ServerFnError::ServerError("Pool not found".to_string()))?;
+
+    if let Some(cookie) = jar.get("auth_token") {
+        let user_id = cookie.value();
+        // convert string to uuid
+        let uuid = match uuid::Uuid::parse_str(user_id) {
+            Ok(u) => u,
+            Err(_) => return Ok(None),
+        };
+
+        let user = sqlx::query!("SELECT username FROM users WHERE id = $1", uuid)
+            .fetch_optional(&pool)
+            .await
+            .unwrap_or(None);
+
+        if let Some(u) = user {
+            return Ok(Some(UserResponse { username: u.username }));
+        }
+    }
+
+    Ok(None)
+}
 
 #[component]
 pub fn AdminProtectedLayout() -> impl IntoView {
@@ -13,11 +51,7 @@ pub fn AdminProtectedLayout() -> impl IntoView {
     let auth_status = Resource::new(
         || (),
         |_| async move {
-            let resp = Request::get("/api/admin/me").send().await;
-            match resp {
-                Ok(r) => r.ok(), // True if 200 OK
-                Err(_) => false,
-            }
+            get_current_user().await.ok().flatten().is_some()
         },
     );
 
