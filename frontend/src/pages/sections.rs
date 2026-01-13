@@ -3,49 +3,63 @@ use shared::{Article, BlogPost};
 
 #[server]
 pub async fn get_articles() -> Result<Vec<Article>, ServerFnError> {
-    use sqlx::{PgPool, Row};
-    let pool = use_context::<PgPool>().ok_or(ServerFnError::ServerError("Pool not found".to_string()))?;
+    #[cfg(feature = "ssr")]
+    {
+        use sqlx::{PgPool, Row};
+        let pool = use_context::<PgPool>().ok_or(ServerFnError::ServerError("Pool not found".to_string()))?;
 
-    let articles = sqlx::query("SELECT id, wp_id, slug, title, subtitle, excerpt, content, cover_image_url, author, published_at, origin FROM articles ORDER BY published_at DESC LIMIT 20")
-        .map(|row: sqlx::postgres::PgRow| Article {
-            id: row.get("id"),
-            wp_id: row.get("wp_id"),
-            slug: row.get("slug"),
-            title: row.get("title"),
-            subtitle: row.get("subtitle"),
-            excerpt: row.get("excerpt"),
-            content: row.get("content"),
-            cover_image_url: row.get("cover_image_url"),
-            author: row.get("author"),
-            published_at: row.get("published_at"),
-            origin: row.get("origin"),
-        })
-        .fetch_all(&pool)
-        .await
-        .map_err(|e| ServerFnError::ServerError(e.to_string()))?;
+        let articles = sqlx::query("SELECT id, wp_id, slug, title, subtitle, excerpt, content, cover_image_url, author, published_at, origin FROM articles ORDER BY published_at DESC LIMIT 20")
+            .map(|row: sqlx::postgres::PgRow| Article {
+                id: row.get("id"),
+                wp_id: row.get("wp_id"),
+                slug: row.get("slug"),
+                title: row.get("title"),
+                subtitle: row.get("subtitle"),
+                excerpt: row.get("excerpt"),
+                content: row.get("content"),
+                cover_image_url: row.get("cover_image_url"),
+                author: row.get("author"),
+                published_at: row.get("published_at"),
+                origin: row.get("origin"),
+            })
+            .fetch_all(&pool)
+            .await
+            .map_err(|e| ServerFnError::ServerError(e.to_string()))?;
 
-    Ok(articles)
+        Ok(articles)
+    }
+    #[cfg(not(feature = "ssr"))]
+    {
+        unreachable!()
+    }
 }
 
 #[server]
 pub async fn get_blog_posts() -> Result<Vec<BlogPost>, ServerFnError> {
-    use sqlx::{PgPool, Row};
-    let pool = use_context::<PgPool>().ok_or(ServerFnError::ServerError("Pool not found".to_string()))?;
+    #[cfg(feature = "ssr")]
+    {
+        use sqlx::{PgPool, Row};
+        let pool = use_context::<PgPool>().ok_or(ServerFnError::ServerError("Pool not found".to_string()))?;
 
-    let posts = sqlx::query("SELECT id, slug, title, content, published_at, tags FROM blog_posts ORDER BY published_at DESC LIMIT 20")
-        .map(|row: sqlx::postgres::PgRow| BlogPost {
-            id: row.get("id"),
-            slug: row.get("slug"),
-            title: row.get("title"),
-            content: row.get("content"),
-            published_at: row.get("published_at"),
-            tags: row.get("tags"),
-        })
-        .fetch_all(&pool)
-        .await
-        .map_err(|e| ServerFnError::ServerError(e.to_string()))?;
+        let posts = sqlx::query("SELECT id, slug, title, content, published_at, tags FROM blog_posts ORDER BY published_at DESC LIMIT 20")
+            .map(|row: sqlx::postgres::PgRow| BlogPost {
+                id: row.get("id"),
+                slug: row.get("slug"),
+                title: row.get("title"),
+                content: row.get("content"),
+                published_at: row.get("published_at"),
+                tags: row.get("tags"),
+            })
+            .fetch_all(&pool)
+            .await
+            .map_err(|e| ServerFnError::ServerError(e.to_string()))?;
 
-    Ok(posts)
+        Ok(posts)
+    }
+    #[cfg(not(feature = "ssr"))]
+    {
+        unreachable!()
+    }
 }
 
 #[component]

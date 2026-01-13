@@ -14,35 +14,39 @@ pub struct UserResponse {
 
 #[server(GetCurrentUser, "/api/admin/me")]
 pub async fn get_current_user() -> Result<Option<UserResponse>, ServerFnError> {
-    use axum_extra::extract::cookie::{Cookie, SignedCookieJar};
-    use leptos_axum::extract;
-    use sqlx::PgPool;
-    use axum_extra::extract::cookie::Key;
+    #[cfg(feature = "ssr")]
+    {
+        use axum_extra::extract::cookie::{Cookie, SignedCookieJar};
+        use leptos_axum::extract;
+        use sqlx::PgPool;
+        use axum_extra::extract::cookie::Key;
 
-    // We need to extract the jar manually or via leptos_axum
-    // leptos_axum::extract() allows extracting FromRequest parts
-    let jar: SignedCookieJar = extract().await?;
-    let pool = use_context::<PgPool>().ok_or(ServerFnError::ServerError("Pool not found".to_string()))?;
+        let jar: SignedCookieJar = extract().await?;
+        let pool = use_context::<PgPool>().ok_or(ServerFnError::ServerError("Pool not found".to_string()))?;
 
-    if let Some(cookie) = jar.get("auth_token") {
-        let user_id = cookie.value();
-        // convert string to uuid
-        let uuid = match uuid::Uuid::parse_str(user_id) {
-            Ok(u) => u,
-            Err(_) => return Ok(None),
-        };
+        if let Some(cookie) = jar.get("auth_token") {
+            let user_id = cookie.value();
+            match uuid::Uuid::parse_str(user_id) {
+                Ok(uuid) => {
+                    let user = sqlx::query!("SELECT username FROM users WHERE id = $1", uuid)
+                        .fetch_optional(&pool)
+                        .await
+                        .unwrap_or(None);
 
-        let user = sqlx::query!("SELECT username FROM users WHERE id = $1", uuid)
-            .fetch_optional(&pool)
-            .await
-            .unwrap_or(None);
-
-        if let Some(u) = user {
-            return Ok(Some(UserResponse { username: u.username }));
+                    if let Some(u) = user {
+                        return Ok(Some(UserResponse { username: u.username }));
+                    }
+                }
+                Err(_) => return Ok(None),
+            };
         }
-    }
 
-    Ok(None)
+        Ok(None)
+    }
+    #[cfg(not(feature = "ssr"))]
+    {
+        unreachable!()
+    }
 }
 
 #[component]

@@ -9,49 +9,63 @@ pub struct SetupStatus {
 
 #[server(GetSetupStatus, "/api/setup/status")]
 pub async fn get_setup_status() -> Result<SetupStatus, ServerFnError> {
-    use sqlx::PgPool;
-    let pool = use_context::<PgPool>().ok_or(ServerFnError::ServerError("Pool not found".to_string()))?;
+    #[cfg(feature = "ssr")]
+    {
+        use sqlx::PgPool;
+        let pool = use_context::<PgPool>().ok_or(ServerFnError::ServerError("Pool not found".to_string()))?;
 
-    let count = sqlx::query!("SELECT COUNT(*) as count FROM users")
-        .fetch_one(&pool)
-        .await
-        .map(|r| r.count.unwrap_or(0))
-        .unwrap_or(0);
+        let count = sqlx::query!("SELECT COUNT(*) as count FROM users")
+            .fetch_one(&pool)
+            .await
+            .map(|r| r.count.unwrap_or(0))
+            .unwrap_or(0);
 
-    Ok(SetupStatus { required: count == 0 })
+        Ok(SetupStatus { required: count == 0 })
+    }
+    #[cfg(not(feature = "ssr"))]
+    {
+        unreachable!()
+    }
 }
 
 #[server(PerformSetup, "/api/setup")]
 pub async fn perform_setup(username: String, password: String) -> Result<(), ServerFnError> {
-    use sqlx::PgPool;
-    use bcrypt::{hash, DEFAULT_COST};
+    #[cfg(feature = "ssr")]
+    {
+        use sqlx::PgPool;
+        use bcrypt::{hash, DEFAULT_COST};
 
-    let pool = use_context::<PgPool>().ok_or(ServerFnError::ServerError("Pool not found".to_string()))?;
+        let pool = use_context::<PgPool>().ok_or(ServerFnError::ServerError("Pool not found".to_string()))?;
 
-    // 1. Verify no users exist
-    let count = sqlx::query!("SELECT COUNT(*) as count FROM users")
-        .fetch_one(&pool)
+        // 1. Verify no users exist
+        let count = sqlx::query!("SELECT COUNT(*) as count FROM users")
+            .fetch_one(&pool)
+            .await
+            .map(|r| r.count.unwrap_or(0))
+            .unwrap_or(0);
+
+        if count > 0 {
+            return Err(ServerFnError::ServerError("Setup already completed".to_string()));
+        }
+
+        // 2. Create user
+        let hashed_password = hash(&password, DEFAULT_COST).map_err(|e| ServerFnError::ServerError(e.to_string()))?;
+
+        sqlx::query!(
+            "INSERT INTO users (username, password_hash) VALUES ($1, $2)",
+            username,
+            hashed_password
+        )
+        .execute(&pool)
         .await
-        .map(|r| r.count.unwrap_or(0))
-        .unwrap_or(0);
+        .map_err(|e: sqlx::Error| ServerFnError::ServerError(e.to_string()))?;
 
-    if count > 0 {
-        return Err(ServerFnError::ServerError("Setup already completed".to_string()));
+        Ok(())
     }
-
-    // 2. Create user
-    let hashed_password = hash(&password, DEFAULT_COST).map_err(|e| ServerFnError::ServerError(e.to_string()))?;
-
-    sqlx::query!(
-        "INSERT INTO users (username, password_hash) VALUES ($1, $2)",
-        username,
-        hashed_password
-    )
-    .execute(&pool)
-    .await
-    .map_err(|e: sqlx::Error| ServerFnError::ServerError(e.to_string()))?;
-
-    Ok(())
+    #[cfg(not(feature = "ssr"))]
+    {
+        unreachable!()
+    }
 }
 
 #[component]
