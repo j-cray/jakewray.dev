@@ -1157,6 +1157,7 @@ name = "frontend"
 version = "0.1.0"
 dependencies = [
  "console_error_panic_hook",
+ "icondata 0.4.0",
  "leptonic",
  "leptonic-theme",
  "leptos 0.7.8",
@@ -1754,6 +1755,33 @@ dependencies = [
 ]
 
 [[package]]
+name = "icondata"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "18db9eec46b6c870bf84281dd8065fb207b23a9c1c0cb367c49a919a61a38dec"
+dependencies = [
+ "icondata_ai",
+ "icondata_bi",
+ "icondata_bs",
+ "icondata_cg",
+ "icondata_ch",
+ "icondata_core",
+ "icondata_fa",
+ "icondata_fi",
+ "icondata_hi",
+ "icondata_im",
+ "icondata_io",
+ "icondata_lu",
+ "icondata_oc",
+ "icondata_ri",
+ "icondata_si",
+ "icondata_tb",
+ "icondata_ti",
+ "icondata_vs",
+ "icondata_wi",
+]
+
+[[package]]
 name = "icondata_ai"
 version = "0.0.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2156,7 +2184,7 @@ dependencies = [
  "cargo_toml",
  "cfg-if",
  "educe",
- "icondata",
+ "icondata 0.3.1",
  "indexmap",
  "indoc",
  "itertools 0.12.1",

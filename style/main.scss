@@ -1,33 +1,27 @@
-:root {
-  --bg-color: #f9f9f9;
-  --card-bg: #ffffff;
-  --text-color: #2e2e2e;
-  --text-muted: #666666;
-  --border-color: #e5e5e5;
+@import 'leptonic-theme/style.scss';
 
-  --radius-sm: 6px;
-  --radius-md: 12px;
-  --radius-lg: 24px;
-  --radius-full: 9999px;
+:root {
+  --brand-color: #00fff2;
+  /* Neon Cyan */
+  --brand-color-dim: #00cccc;
+  --bg-color: #0a0a0a;
+  /* Deep Black */
+  --surface-color: #1a1a1a;
+  --text-color: #e0e0e0;
+  --text-muted: #888888;
 
   --font-heading: 'Outfit', sans-serif;
   --font-body: 'Inter', sans-serif;
-}
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Outfit:wght@500;700&display=swap');
-
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
+  --glass-bg: rgba(26, 26, 26, 0.8);
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --glass-blur: 12px;
 }
 
 body {
   background-color: var(--bg-color);
   color: var(--text-color);
   font-family: var(--font-body);
-  line-height: 1.6;
-  -webkit-font-smoothing: antialiased;
 }
 
 h1,
@@ -37,29 +31,18 @@ h4,
 h5,
 h6 {
   font-family: var(--font-heading);
-  font-weight: 700;
-  line-height: 1.2;
+  color: white;
 }
 
-.container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 1rem;
+.glass {
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
 }
 
-/* Utilities for rounded aesthetic */
-.rounded-md {
-  border-radius: var(--radius-md);
-}
-
-.rounded-lg {
-  border-radius: var(--radius-lg);
-}
-
-.card {
-  background: var(--card-bg);
-  border-radius: var(--radius-lg);
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-  padding: 1.5rem;
-  border: 1px solid var(--border-color);
+.text-gradient {
+  background: linear-gradient(to right, #00fff2, #00b8ff);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
 }

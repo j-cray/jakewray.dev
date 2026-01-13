@@ -18,6 +18,7 @@ tracing = { workspace = true }
 time = "0.3.36"
 leptonic = { git = "https://github.com/lpotthast/leptonic", branch = "main" }
 leptonic-theme = { git = "https://github.com/lpotthast/leptonic", branch = "main" }
+icondata = "0.4"
 
 [features]
 hydrate = ["leptos/hydrate", "leptonic/hydrate"]

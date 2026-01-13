@@ -9,9 +9,15 @@ use crate::pages::contact::ContactPage;
 use crate::pages::sections::{
     CreativeWritingPage, JournalismPage, MusicPage, PersonalPage, ProgrammingPage, VisualArtPage,
 };
+use leptonic::components::button::{Button, ButtonSize, ButtonVariant};
+use leptonic::components::card::Card;
+use leptonic::components::grid::{Col, Grid, Row};
+use leptonic::components::root::Root;
+use leptonic::components::stack::{Stack, StackOrientation};
+use leptonic::components::theme::LeptonicTheme;
+use leptonic::components::typography::{H1, H3, P};
 use leptonic::prelude::*;
 use leptos::prelude::*;
-// use leptonic_theme::LeptonicTheme;
 use leptos_meta::*;
 use leptos_router::components::*;
 use leptos_router::hooks::*;
@@ -31,37 +37,32 @@ pub fn App() -> impl IntoView {
             <Stylesheet id="leptos" href="/pkg/jakewray_ca.css"/>
         </head>
         <body>
-            <div> // Root disabled temporarily due to API mismatch
+            <Root default_theme=LeptonicTheme::Dark>
                 <Router>
                     <div class="min-h-screen flex flex-col bg-gray-50/50">
                         <Navbar/>
-                        <main class="flex-grow p-4">
+                        <main class="flex-grow container mx-auto px-4 py-8">
                             <Routes fallback=|| view! { <NotFound/> }>
-                                // Public Routes
-                                <Route path=path!("/") view=HomePage/>
-                                <Route path=path!("/about") view=AboutPage/>
-                                <Route path=path!("/contact") view=ContactPage/>
-
-                                // Portfolio
-                                <Route path=path!("/journalism") view=JournalismPage/>
-                                <Route path=path!("/personal") view=PersonalPage/>
-                                <Route path=path!("/creative-writing") view=CreativeWritingPage/>
-                                <Route path=path!("/music") view=MusicPage/>
-                                <Route path=path!("/visual-art") view=VisualArtPage/>
-                                <Route path=path!("/programming") view=ProgrammingPage/>
-
-                                // Admin Routes
-                                <Route path=path!("/admin") view=AdminDashboard/>
-                                <Route path=path!("/admin/login") view=AdminLoginPage/>
-                                <Route path=path!("/admin/compose") view=AdminComposer/>
-                                <Route path=path!("/admin/sync") view=AdminSyncManager/>
-                                <Route path=path!("/admin/media") view=MediaLibraryPlaceholder/>
+                                <Route path="/" view=HomePage/>
+                                <Route path="/about" view=AboutPage/>
+                                <Route path="/contact" view=ContactPage/>
+                                <Route path="/admin" view=AdminLoginPage/>
+                                <Route path="/admin/dashboard" view=AdminDashboard/>
+                                <Route path="/admin/composer" view=AdminComposer/>
+                                <Route path="/admin/sync" view=AdminSyncManager/>
+                                <Route path="/admin/media" view=MediaLibraryPlaceholder/>
+                                <Route path="/journalism" view=JournalismPage/>
+                                <Route path="/personal" view=PersonalPage/>
+                                <Route path="/creative-writing" view=CreativeWritingPage/>
+                                <Route path="/music" view=MusicPage/>
+                                <Route path="/visual-art" view=VisualArtPage/>
+                                <Route path="/programming" view=ProgrammingPage/>
                             </Routes>
                         </main>
                         <Footer/>
                     </div>
                 </Router>
-            </div>
+            </Root>
         </body>
         </html>
     }
@@ -80,29 +81,47 @@ fn MediaLibraryPlaceholder() -> impl IntoView {
 #[component]
 fn HomePage() -> impl IntoView {
     view! {
-        <div style="padding: 2em; max-width: 1200px; margin: 0 auto; display: flex; flex-direction: column; gap: 2em;">
-            <header style="text-align: center; margin-bottom: 2em;">
-                <h1 style="margin-bottom: 0.5em; font-size: 2.5em; font-weight: bold;">"Jake Wray"</h1>
-                <p style="color: gray;">
+        <Stack orientation=StackOrientation::Vertical spacing=Size::Em(4.0) style="padding: 2em; max-width: 1400px; margin: 0 auto;">
+            <header style="text-align: center; padding: 4em 0;">
+                <H1 style="margin-bottom: 0.5em; font-size: 3.5em; font-weight: 800; letter-spacing: -0.05em;">
+                    <span class="text-gradient">"JAKE WRAY"</span>
+                </H1>
+                <P style="font-size: 1.5em; color: var(--text-muted); max-width: 600px; margin: 0 auto;">
                     "Journalist. Developer. Photographer. Creating extensive archives of the present."
-                </p>
+                </P>
+                <div style="margin-top: 2em; display: flex; gap: 1em; justify-content: center;">
+                    <Button variant=ButtonVariant::Filled size=ButtonSize::Big>
+                        "Read Journal"
+                    </Button>
+                    <Button variant=ButtonVariant::Outlined size=ButtonSize::Big>
+                        "View Portfolio"
+                    </Button>
+                </div>
             </header>
 
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1em;">
-                <div style="padding: 1.5em; border: 1px solid #ddd; border-radius: 8px;">
-                    <h3 style="font-weight: bold; margin-bottom: 0.5em;">"Latest Articles"</h3>
-                    <p>"Coming soon..."</p>
-                </div>
-                <div style="padding: 1.5em; border: 1px solid #ddd; border-radius: 8px;">
-                    <h3 style="font-weight: bold; margin-bottom: 0.5em;">"Recent Projects"</h3>
-                    <p>"Coming soon..."</p>
-                </div>
-                <div style="padding: 1.5em; border: 1px solid #ddd; border-radius: 8px;">
-                    <h3 style="font-weight: bold; margin-bottom: 0.5em;">"Visuals"</h3>
-                    <p>"Coming soon..."</p>
-                </div>
-            </div>
-        </div>
+            <Grid spacing=Size::Em(2.0)>
+                <Row>
+                    <Col xs=12 sm=4>
+                        <Card class="glass" style="height: 100%; transition: transform 0.2s;">
+                            <H3 style="font-weight: bold; color: var(--brand-color);">"Latest Articles"</H3>
+                            <P>"Deep dives into technology, culture, and the intersection of both."</P>
+                        </Card>
+                    </Col>
+                    <Col xs=12 sm=4>
+                        <Card class="glass" style="height: 100%; transition: transform 0.2s;">
+                            <H3 style="font-weight: bold; color: var(--brand-color);">"Recent Projects"</H3>
+                            <P>"Software engineering experiments, open source contributions, and more."</P>
+                        </Card>
+                    </Col>
+                    <Col xs=12 sm=4>
+                        <Card class="glass" style="height: 100%; transition: transform 0.2s;">
+                            <H3 style="font-weight: bold; color: var(--brand-color);">"Visuals"</H3>
+                            <P>"A collection of photography and digital art capturing moments in time."</P>
+                        </Card>
+                    </Col>
+                </Row>
+            </Grid>
+        </Stack>
     }
 }
 
