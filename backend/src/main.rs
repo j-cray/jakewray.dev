@@ -4,9 +4,9 @@ use axum::{
 };
 use leptos::prelude::*;
 use leptos::context::provide_context;
-use leptos_axum::{generate_route_list, LeptosRoutes};
+use leptos_axum::generate_route_list;
 use sqlx::postgres::PgPoolOptions;
-use std::net::SocketAddr;
+
 use dotenvy::dotenv;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use frontend::{App, Shell};
@@ -59,7 +59,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let conf = get_configuration(None).unwrap();
     let leptos_options = conf.leptos_options;
     let addr = leptos_options.site_addr;
-    let routes = generate_route_list(App);
+    let _routes = generate_route_list(App);
 
     // Generate a key for signing cookies. In production, this should be consistent.
     let key = axum_extra::extract::cookie::Key::generate();
@@ -73,7 +73,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let options_clone = leptos_options.clone();
     let pool_clone = pool.clone();
     let key_clone = key.clone();
-    let leptos_handler = move |req: axum::extract::Request| async move {
+    let _leptos_handler = move |req: axum::extract::Request| async move {
         let handler = leptos_axum::render_app_to_stream_with_context(
              move || {
                  provide_context(options_clone.clone());
