@@ -27,6 +27,7 @@ RUN rustup target add wasm32-unknown-unknown
 FROM deps as builder
 WORKDIR /app
 COPY . .
+RUN rm Cargo.lock
 
 # Install node dependencies (for Tailwind v4)
 RUN npm install
@@ -57,7 +58,7 @@ COPY --from=builder /app/target/release/backend /app/backend
 COPY --from=builder /app/target/release/create_admin /app/create_admin
 COPY --from=builder /app/target/site /app/target/site
 COPY --from=builder /app/Cargo.toml /app/Cargo.toml
-COPY --from=builder /app/Cargo.lock /app/Cargo.lock
+# COPY --from=builder /app/Cargo.lock /app/Cargo.lock
 
 # Set environment
 ENV LEPTOS_SITE_ADDR="0.0.0.0:3000"
