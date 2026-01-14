@@ -9,7 +9,6 @@ use crate::pages::contact::ContactPage;
 use crate::pages::sections::{
     CreativeWritingPage, JournalismPage, MusicPage, PersonalPage, ProgrammingPage, VisualArtPage,
 };
-// leptonic imports removed
 use leptos::prelude::*;
 use leptos_meta::*;
 use leptos_router::components::*;
@@ -57,7 +56,14 @@ pub fn App() -> impl IntoView {
                         <Footer/>
                     </div>
                 </Router>
-                <HydrationScripts/>
+                {
+                    #[cfg(feature = "ssr")]
+                    {
+                        use leptos::prelude::LeptosOptions;
+                        let options = use_context::<LeptosOptions>().expect("LeptosOptions missing");
+                        view! { <HydrationScripts options/> }
+                    }
+                }
             </body>
         </html>
     }
