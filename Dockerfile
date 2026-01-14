@@ -19,7 +19,7 @@ RUN npm install -g sass
 RUN cargo binstall sqlx-cli -y --force
 
 # Install wasm-bindgen-cli
-RUN cargo binstall wasm-bindgen-cli --version 0.2.106 -y
+RUN cargo binstall wasm-bindgen-cli --version 0.2.100 -y
 
 # Add WASM target
 RUN rustup target add wasm32-unknown-unknown
