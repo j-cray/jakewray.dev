@@ -67,6 +67,10 @@ pub fn Shell() -> impl IntoView {
                 <AutoReload options=options.clone() />
                 <HydrationScripts options=options.clone() />
                 <MetaTags/>
+                <script>
+                    "console.log('Shell Loaded - JS Active');"
+                    "document.body.style.border = '5px solid green';"
+                </script>
             </head>
             <body class="bg-gray-900 text-white">
                 <App/>
