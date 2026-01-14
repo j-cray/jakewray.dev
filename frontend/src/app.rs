@@ -57,6 +57,7 @@ pub fn App() -> impl IntoView {
                         <Footer/>
                     </div>
                 </Router>
+                <HydrationScripts/>
             </body>
         </html>
     }
