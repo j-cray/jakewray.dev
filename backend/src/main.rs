@@ -27,11 +27,29 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .init();
 
     let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
-    let pool = PgPoolOptions::new()
-        .max_connections(5)
-        .connect(&database_url)
-        .await
-        .expect("Failed to create pool");
+
+    let mut pool = None;
+    let mut retries = 5;
+
+    while retries > 0 {
+        match PgPoolOptions::new()
+            .max_connections(5)
+            .connect(&database_url)
+            .await
+        {
+            Ok(p) => {
+                pool = Some(p);
+                break;
+            }
+            Err(e) => {
+                tracing::warn!("Failed to connect to database: {}. Retrying in 2 seconds...", e);
+                retries -= 1;
+                tokio::time::sleep(std::time::Duration::from_secs(2)).await;
+            }
+        }
+    }
+
+    let pool = pool.expect("Failed to create pool after retries");
 
     sqlx::migrate!("../migrations")
         .run(&pool)
