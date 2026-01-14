@@ -103,8 +103,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .nest("/api", api::router(app_state.clone()))
         .route("/ping", get(|| async { "pong" }))
         .route("/api/*fn_name", post(server_fn_handler))
-        .fallback(fallback_handler);
-        // .with_state(app_state) REMOVED: Router remains Router<()>
+        .fallback(fallback_handler)
+        .layer(tower_http::trace::TraceLayer::new_for_http());
 
     tracing::info!("listening on http://{}", &addr);
     let listener = tokio::net::TcpListener::bind(&addr).await?;
