@@ -52,11 +52,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .map_err(|e| format!("Invalid LEPTOS_SITE_ADDR: {}", e))?;
     
     let leptos_options = LeptosOptions::builder()
-        .output_name("jakewray_ca")
-        .site_pkg_dir("pkg")
-        .site_root("target/site")
+        .output_name(std::env::var("LEPTOS_OUTPUT_NAME").unwrap_or_else(|_| "jakewray_ca".to_string()))
+        .site_pkg_dir(std::env::var("LEPTOS_SITE_PKG_DIR").unwrap_or_else(|_| "pkg".to_string()))
+        .site_root(std::env::var("LEPTOS_SITE_ROOT").unwrap_or_else(|_| "target/site".to_string()))
         .site_addr(site_addr)
-        .reload_port(3001)
+        .reload_port(
+            std::env::var("LEPTOS_RELOAD_PORT")
+                .ok()
+                .and_then(|p| p.parse().ok())
+                .unwrap_or(3001)
+        )
         .build();
     
     let addr = leptos_options.site_addr;
@@ -116,16 +121,20 @@ async fn file_and_error_handler(
 }
 
 async fn get_static_file(uri: axum::http::Uri, root: &str) -> AxumResponse {
+    let uri_str = uri.to_string();
     let req = axum::extract::Request::builder()
         .uri(uri)
         .body(axum::body::Body::empty())
-        .expect("Failed to build request for static file");
+        .unwrap_or_else(|e| {
+            tracing::error!("Failed to build request for static file {}: {}", uri_str, e);
+            panic!("Invalid request builder state");
+        });
     
     // `ServeDir` implements `Service`
     match tower_http::services::ServeDir::new(root).oneshot(req).await {
         Ok(res) => res.into_response(),
         Err(err) => {
-            tracing::error!("Error serving static file: {}", err);
+            tracing::error!("Error serving static file {}: {}", uri_str, err);
             (
                 axum::http::StatusCode::INTERNAL_SERVER_ERROR,
                 format!("Something went wrong: {}", err),

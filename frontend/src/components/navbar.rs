@@ -1,13 +1,14 @@
 use leptos::prelude::*;
 use leptos_router::hooks::use_navigate;
+use std::rc::Rc;
 
 #[component]
 pub fn Navbar() -> impl IntoView {
-    let navigate = use_navigate();
+    let navigate = Rc::new(use_navigate());
     
     // Helper function to create navigation handler
     let nav_to = move |path: &'static str| {
-        let navigate = navigate.clone();
+        let navigate = Rc::clone(&navigate);
         move |_| navigate(path, Default::default())
     };
 
