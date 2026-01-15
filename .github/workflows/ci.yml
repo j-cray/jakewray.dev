@@ -119,8 +119,7 @@ jobs:
         run: npm install -g sass
       
       - name: Install cargo-binstall
-        run: |
-          curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash
+        uses: cargo-bins/cargo-binstall@main
       
       - name: Install cargo-leptos
         run: cargo binstall cargo-leptos -y
