@@ -1,14 +1,8 @@
-use axum::{
-    routing::get,
-    Router,
-    Json,
-    extract::State,
-};
-use sqlx::PgPool;
+use axum::{extract::State, routing::get, Json, Router};
 use shared::{Article, BlogPost};
+use sqlx::PgPool;
 
-pub fn router(state: crate::state::AppState) -> Router
-{
+pub fn router(state: crate::state::AppState) -> Router<crate::state::AppState> {
     Router::new()
         .route("/health", get(health_check))
         .route("/articles", get(list_articles))
@@ -20,11 +14,10 @@ async fn health_check() -> &'static str {
     "OK"
 }
 
-
 use sqlx::Row;
 
 async fn list_articles(State(pool): State<PgPool>) -> Json<Vec<Article>> {
-    let articles = sqlx::query("SELECT id, wp_id, slug, title, subtitle, excerpt, content, cover_image_url, author, published_at, origin FROM articles ORDER BY published_at DESC LIMIT 20")
+    match sqlx::query("SELECT id, wp_id, slug, title, subtitle, excerpt, content, cover_image_url, author, published_at, origin FROM articles ORDER BY published_at DESC LIMIT 20")
         .map(|row: sqlx::postgres::PgRow| Article {
             id: row.get("id"),
             wp_id: row.get("wp_id"),
@@ -40,13 +33,17 @@ async fn list_articles(State(pool): State<PgPool>) -> Json<Vec<Article>> {
         })
         .fetch_all(&pool)
         .await
-        .unwrap_or_default();
-
-    Json(articles)
+    {
+        Ok(articles) => Json(articles),
+        Err(e) => {
+            tracing::error!("Failed to fetch articles: {}", e);
+            Json(Vec::new())
+        }
+    }
 }
 
 async fn list_blog_posts(State(pool): State<PgPool>) -> Json<Vec<BlogPost>> {
-    let posts = sqlx::query("SELECT id, slug, title, content, published_at, tags FROM blog_posts ORDER BY published_at DESC LIMIT 20")
+    match sqlx::query("SELECT id, slug, title, content, published_at, tags FROM blog_posts ORDER BY published_at DESC LIMIT 20")
         .map(|row: sqlx::postgres::PgRow| BlogPost {
             id: row.get("id"),
             slug: row.get("slug"),
@@ -57,7 +54,11 @@ async fn list_blog_posts(State(pool): State<PgPool>) -> Json<Vec<BlogPost>> {
         })
         .fetch_all(&pool)
         .await
-        .unwrap_or_default();
-
-    Json(posts)
+    {
+        Ok(posts) => Json(posts),
+        Err(e) => {
+            tracing::error!("Failed to fetch blog posts: {}", e);
+            Json(Vec::new())
+        }
+    }
 }

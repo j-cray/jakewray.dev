@@ -6,8 +6,12 @@ use gloo_net::http::Request;
 #[component]
 pub fn AdminLoginPage() -> impl IntoView {
     let (username, set_username) = signal("".to_string());
+<<<<<<< HEAD
     let (password, set_password) = signal("".to_string());
     let (error, set_error) = signal(Option::<String>::None);
+=======
+    let (_password, set_password) = signal("".to_string());
+>>>>>>> origin/main
 
     let on_submit = move |ev: leptos::ev::SubmitEvent| {
         ev.prevent_default();

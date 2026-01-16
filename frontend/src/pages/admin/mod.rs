@@ -1,6 +1,6 @@
-pub mod login;
-pub mod dashboard;
 pub mod composer;
+pub mod dashboard;
+pub mod login;
 pub mod sync_manager;
 
 use leptos::prelude::*;

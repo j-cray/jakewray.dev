@@ -1,4 +1,5 @@
 use leptos::prelude::*;
+<<<<<<< HEAD
 use shared::{Article, BlogPost};
 
 #[server]
@@ -61,6 +62,8 @@ pub async fn get_blog_posts() -> Result<Vec<BlogPost>, ServerFnError> {
         unreachable!()
     }
 }
+=======
+>>>>>>> origin/main
 
 #[component]
 pub fn JournalismPage() -> impl IntoView {

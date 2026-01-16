@@ -1,5 +1,6 @@
 use axum::{
     routing::{get, post},
+<<<<<<< HEAD
     Router, Json,
     http::StatusCode,
     extract::State,
@@ -11,9 +12,12 @@ use sqlx::PgPool;
 use bcrypt::verify;
 use std::sync::Arc;
 use uuid::Uuid;
+=======
+    Router,
+};
+>>>>>>> origin/main
 
-pub fn router(state: crate::state::AppState) -> Router
-{
+pub fn router(state: crate::state::AppState) -> Router<crate::state::AppState> {
     Router::new()
         .route("/login", post(login))
         .route("/logout", post(logout))

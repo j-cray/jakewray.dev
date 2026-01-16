@@ -20,6 +20,3 @@ shared = { path = "../shared" }
 slug = "0.1"
 chrono = { version = "0.4", features = ["serde"] }
 uuid = { version = "1.0", features = ["v4", "serde"] }
-bat = "0.24"
-# bat is likely not needed, maybe 'html2text' or 'reverse_markdown' for converting content if we want markdown?
-# Plan says we keep HTML for imported articles, so standard string is fine.

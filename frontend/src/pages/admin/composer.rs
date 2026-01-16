@@ -5,7 +5,9 @@ pub fn AdminComposer() -> impl IntoView {
     let (content, set_content) = signal("# New Post\n\nStart writing...".to_string());
 
     // Simple mock markdown parsing (replace newlines) for now.
-    // In real impl, we'd use a crate like `pulldown-cmark` (on server) or JS lib.
+    // TODO: Use proper markdown parser like pulldown-cmark or comrak
+    // WARNING: This uses inner_html and is vulnerable to XSS. Only safe because
+    // this is admin-only interface. Must use proper sanitization before production.
     let preview = move || {
         content
             .get()
