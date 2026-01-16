@@ -1,7 +1,7 @@
-use sqlx::postgres::PgPoolOptions;
-use serde::Deserialize;
-use std::env;
 use dotenvy::dotenv;
+use serde::Deserialize;
+use sqlx::postgres::PgPoolOptions;
+use std::env;
 
 #[derive(Debug, Deserialize)]
 struct WpPost {
@@ -33,9 +33,7 @@ struct WpAuthor {
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     dotenv().ok();
     let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
-    let pool = PgPoolOptions::new()
-        .connect(&database_url)
-        .await?;
+    let pool = PgPoolOptions::new().connect(&database_url).await?;
 
     println!("Syncing from terracestandard.com...");
     sync_terracestandard(&pool).await?;

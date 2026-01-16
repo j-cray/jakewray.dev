@@ -5,7 +5,7 @@ use std::rc::Rc;
 #[component]
 pub fn Navbar() -> impl IntoView {
     let navigate = Rc::new(use_navigate());
-    
+
     // Helper function to create navigation handler
     let nav_to = move |path: &'static str| {
         let navigate = Rc::clone(&navigate);

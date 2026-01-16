@@ -1,7 +1,7 @@
-use sqlx::postgres::PgPoolOptions;
-use serde::Deserialize;
-use std::env;
 use dotenvy::dotenv;
+use serde::Deserialize;
+use sqlx::postgres::PgPoolOptions;
+use std::env;
 
 #[derive(Debug, Deserialize)]
 struct WpPost {
@@ -22,9 +22,7 @@ struct WpContent {
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     dotenv().ok();
     let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
-    let pool = PgPoolOptions::new()
-        .connect(&database_url)
-        .await?;
+    let pool = PgPoolOptions::new().connect(&database_url).await?;
 
     println!("Importing from jakewray.ca...");
     import_jakewray(&pool).await?;
@@ -54,10 +52,11 @@ async fn import_jakewray(pool: &sqlx::PgPool) -> Result<(), Box<dyn std::error::
             .with_timezone(&chrono::Utc);
 
         // Check if exists
-        let exists: Option<uuid::Uuid> = sqlx::query_scalar("SELECT id FROM blog_posts WHERE slug = $1")
-            .bind(slug.clone())
-            .fetch_optional(pool)
-            .await?;
+        let exists: Option<uuid::Uuid> =
+            sqlx::query_scalar("SELECT id FROM blog_posts WHERE slug = $1")
+                .bind(slug.clone())
+                .fetch_optional(pool)
+                .await?;
 
         if exists.is_some() {
             println!("Skipping existing: {}", title);

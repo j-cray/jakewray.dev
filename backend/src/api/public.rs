@@ -1,14 +1,8 @@
-use axum::{
-    routing::get,
-    Router,
-    Json,
-    extract::State,
-};
-use sqlx::PgPool;
+use axum::{extract::State, routing::get, Json, Router};
 use shared::{Article, BlogPost};
+use sqlx::PgPool;
 
-pub fn router(state: crate::state::AppState) -> Router<crate::state::AppState>
-{
+pub fn router(state: crate::state::AppState) -> Router<crate::state::AppState> {
     Router::new()
         .route("/health", get(health_check))
         .route("/articles", get(list_articles))
@@ -19,7 +13,6 @@ pub fn router(state: crate::state::AppState) -> Router<crate::state::AppState>
 async fn health_check() -> &'static str {
     "OK"
 }
-
 
 use sqlx::Row;
 

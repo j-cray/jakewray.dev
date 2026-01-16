@@ -1,35 +1,35 @@
-use axum::{
-    Router,
-    extract::State,
-};
-use leptos::prelude::*;
+use axum::{extract::State, Router};
+use dotenvy::dotenv;
+use frontend::App;
 use leptos::context::provide_context;
+use leptos::prelude::*;
 use leptos_axum::{generate_route_list, LeptosRoutes};
 use sqlx::postgres::PgPoolOptions;
 use std::net::SocketAddr;
-use dotenvy::dotenv;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
-use frontend::App;
 
 mod api;
 mod state;
 
 use crate::state::AppState;
-use axum::response::{Response as AxumResponse, IntoResponse};
+use axum::response::{IntoResponse, Response as AxumResponse};
 use tower::ServiceExt;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     dotenv().ok();
     tracing_subscriber::registry()
-        .with(tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| "debug".into()))
+        .with(
+            tracing_subscriber::EnvFilter::try_from_default_env()
+                .unwrap_or_else(|_| "debug".into()),
+        )
         .with(tracing_subscriber::fmt::layer())
         .init();
 
     // Improved error handling for DATABASE_URL
     let database_url = std::env::var("DATABASE_URL")
         .map_err(|_| "DATABASE_URL environment variable must be set")?;
-    
+
     let pool = PgPoolOptions::new()
         .max_connections(5)
         .connect(&database_url)
@@ -50,9 +50,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .unwrap_or_else(|_| "0.0.0.0:3000".to_string())
         .parse()
         .map_err(|e| format!("Invalid LEPTOS_SITE_ADDR: {}", e))?;
-    
+
     let leptos_options = LeptosOptions::builder()
-        .output_name(std::env::var("LEPTOS_OUTPUT_NAME").unwrap_or_else(|_| "jakewray_ca".to_string()))
+        .output_name(
+            std::env::var("LEPTOS_OUTPUT_NAME").unwrap_or_else(|_| "jakewray_ca".to_string()),
+        )
         .site_pkg_dir(std::env::var("LEPTOS_SITE_PKG_DIR").unwrap_or_else(|_| "pkg".to_string()))
         .site_root(std::env::var("LEPTOS_SITE_ROOT").unwrap_or_else(|_| "target/site".to_string()))
         .site_addr(site_addr)
@@ -60,10 +62,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             std::env::var("LEPTOS_RELOAD_PORT")
                 .ok()
                 .and_then(|p| p.parse().ok())
-                .unwrap_or(3001)
+                .unwrap_or(3001),
         )
         .build();
-    
+
     let addr = leptos_options.site_addr;
     let routes = generate_route_list(App);
 
@@ -86,7 +88,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     provide_context(options.clone());
                 }
             },
-            App
+            App,
         )
         .fallback(file_and_error_handler)
         .with_state(app_state);
@@ -101,7 +103,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 async fn file_and_error_handler(
     State(state): State<AppState>,
     uri: axum::http::Uri,
-    req: axum::extract::Request
+    req: axum::extract::Request,
 ) -> AxumResponse {
     let root = state.leptos_options.site_root.clone();
     let res = get_static_file(uri, &root).await;
@@ -114,7 +116,7 @@ async fn file_and_error_handler(
                 provide_context(state.leptos_options.clone());
                 provide_context(state.pool.clone());
             },
-            App
+            App,
         );
         handler(req).await.into_response()
     }
@@ -129,7 +131,7 @@ async fn get_static_file(uri: axum::http::Uri, root: &str) -> AxumResponse {
             tracing::error!("Failed to build request for static file {}: {}", uri_str, e);
             panic!("Invalid request builder state");
         });
-    
+
     // `ServeDir` implements `Service`
     match tower_http::services::ServeDir::new(root).oneshot(req).await {
         Ok(res) => res.into_response(),
@@ -143,4 +145,3 @@ async fn get_static_file(uri: axum::http::Uri, root: &str) -> AxumResponse {
         }
     }
 }
-

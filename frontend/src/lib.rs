@@ -1,8 +1,9 @@
-use leptos::*; use leptos::prelude::*;
+use leptos::prelude::*;
+use leptos::*;
 
 mod app;
-pub mod pages;
 pub mod components;
+pub mod pages;
 pub use app::*;
 
 #[cfg(feature = "hydrate")]
