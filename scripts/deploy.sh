@@ -16,8 +16,9 @@ gcloud compute ssh jake-user@$INSTANCE_NAME --project=$PROJECT_ID --zone=$ZONE -
     sudo docker system prune --force && \
     mkdir -p ~/app && \
     cd ~/app && \
-    # Remove everything EXCEPT persistent data
-    find . -maxdepth 1 ! -name '.' ! -name 'certbot' ! -name 'media_mount' -exec rm -rf {} +
+    # Remove everything EXCEPT persistent data (using sudo for root-owned files like target/)
+    sudo find . -maxdepth 1 ! -name '.' ! -name 'certbot' ! -name 'media_mount' -exec rm -rf {} + && \
+    sudo chown -R $(whoami):$(whoami) ~/app
 "
 
 

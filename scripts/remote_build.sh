@@ -38,6 +38,7 @@ if [ "$TARGET" = "all" ] || [ "$TARGET" = "backend" ]; then
         -e SQLX_OFFLINE=false \
         portfolio-deps \
         cargo sqlx prepare --workspace
+    sudo chown -R $(whoami):$(whoami) .
 fi
 
 if [ "$TARGET" = "all" ]; then
