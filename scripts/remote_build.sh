@@ -29,10 +29,12 @@ if [ "$TARGET" = "all" ] || [ "$TARGET" = "backend" ]; then
     sleep 5 # Reduced from 15, usually 5 is enough if it was already running
 
     echo "Running sqlx prepare on server..."
-    sudo docker compose -f docker-compose.prod.yml run --rm \
+    DB_CONTAINER=$(sudo docker compose -f docker-compose.prod.yml ps -q db | head -n1)
+    sudo docker run --rm \
+        --network container:$DB_CONTAINER \
         -v $(pwd):/app \
         -w /app \
-        -e DATABASE_URL=postgres://admin:password@db:5432/portfolio \
+        -e DATABASE_URL=postgres://admin:password@localhost:5432/portfolio \
         -e SQLX_OFFLINE=false \
         portfolio-deps \
         cargo sqlx prepare --workspace
