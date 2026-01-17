@@ -18,8 +18,8 @@ sudo docker compose -f docker-compose.prod.yml up -d db portfolio
 echo "Waiting for backend to be ready..."
 sleep 10
 
-# Stop proxy if running
-sudo docker compose -f docker-compose.prod.yml stop proxy 2>/dev/null || true
+# Stop nginx if running
+sudo docker compose -f docker-compose.prod.yml stop nginx 2>/dev/null || true
 
 # Get certificates using certbot standalone mode (since nginx isn't running yet)
 echo "Requesting Let's Encrypt certificates using standalone mode..."
@@ -32,9 +32,9 @@ sudo docker compose -f docker-compose.prod.yml run --rm -p 80:80 certbot certonl
     -d $DOMAIN \
     -d www.$DOMAIN
 
-# Start proxy with the new certificates
+# Start nginx with the new certificates
 echo "Starting nginx with SSL certificates..."
-sudo docker compose -f docker-compose.prod.yml up -d proxy
+sudo docker compose -f docker-compose.prod.yml up -d nginx
 
 # Start certbot renewal service
 echo "Starting certbot renewal service..."
