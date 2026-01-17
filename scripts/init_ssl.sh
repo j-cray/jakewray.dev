@@ -10,7 +10,7 @@ EMAIL="admin@jakewray.dev"
 echo "Initializing SSL certificates for $DOMAIN..."
 cd ~/app
 
-# Ensure services are up (except proxy which needs certs)
+# Ensure services are up (except nginx which needs certs)
 echo "Starting backend services..."
 sudo docker compose -f docker-compose.prod.yml up -d db portfolio
 

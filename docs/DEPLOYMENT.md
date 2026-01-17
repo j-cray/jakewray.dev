@@ -65,7 +65,7 @@ Certificates will be automatically renewed by the certbot service (checks twice 
 
 - `portfolio` - Main application (internal port 3000)
 - `db` - PostgreSQL database
-- `proxy` - Nginx reverse proxy (ports 80/443)
+- `nginx` - Nginx reverse proxy (ports 80/443)
 - `certbot` - Certificate renewal service
 - `migration` - Database migration service (runs once)
 
@@ -80,7 +80,7 @@ Certificates will be automatically renewed by the certbot service (checks twice 
 
 2. View Nginx logs:
    ```bash
-   docker compose -f docker-compose.prod.yml logs proxy
+   docker compose -f docker-compose.prod.yml logs nginx
    ```
 
 3. View backend logs:
@@ -103,7 +103,7 @@ Certificates will be automatically renewed by the certbot service (checks twice 
 2. Manually renew certificates:
    ```bash
    docker compose -f docker-compose.prod.yml run --rm certbot renew
-   docker compose -f docker-compose.prod.yml exec proxy nginx -s reload
+   docker compose -f docker-compose.prod.yml exec nginx nginx -s reload
    ```
 
 3. Ensure ports 80 and 443 are accessible from the internet
@@ -119,7 +119,7 @@ If you're experiencing timeouts:
 
 2. Check Nginx can reach the backend:
    ```bash
-   docker compose -f docker-compose.prod.yml exec proxy wget -O- http://portfolio:3000/health
+   docker compose -f docker-compose.prod.yml exec nginx wget -O- http://portfolio:3000/health
    ```
 
 3. Verify firewall rules allow traffic on ports 80 and 443

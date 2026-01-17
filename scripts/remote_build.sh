@@ -44,9 +44,9 @@ if [ "$TARGET" = "all" ]; then
 elif [ "$TARGET" = "backend" ]; then
     echo "Building and restarting BACKEND (portfolio) service..."
     sudo docker compose -f docker-compose.prod.yml up -d --build --no-deps portfolio
-    # We probably want to restart proxy too in case it lost connection?
+    # We probably want to restart nginx too in case it lost connection?
     # Usually strictly not needed, but good practice if backend container IP changes.
-    # But Nginx Proxy Manager usually handles it dynamic DNS.
+    # But Nginx handles it via dynamic DNS/service names.
 elif [ "$TARGET" = "frontend" ]; then
     echo "Frontend is part of the backend binary in this setup (SSR)."
     echo "Please use 'backend' or 'all' target."
