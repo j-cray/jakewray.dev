@@ -13,6 +13,8 @@ echo "Deploying target: $TARGET"
 # 0. Clean remote directory (preserving persistent data)
 echo "Cleaning remote directory and Docker artifacts..."
 gcloud compute ssh jake-user@$INSTANCE_NAME --project=$PROJECT_ID --zone=$ZONE --command="
+    # Stop all running containers to release file locks
+    if [ -n \"\$(sudo docker ps -q)\" ]; then sudo docker stop \$(sudo docker ps -q); fi && \
     sudo docker system prune --force && \
     mkdir -p ~/app && \
     cd ~/app && \
