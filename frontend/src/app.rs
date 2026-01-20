@@ -10,7 +10,7 @@ use crate::pages::sections::{
     CreativeWritingPage, JournalismPage, MusicPage, PersonalPage, ProgrammingPage, VisualArtPage,
 };
 use leptos::prelude::*;
-use leptos_meta::{Body, Head, Html, *};
+use leptos_meta::*;
 use leptos_router::components::*;
 use leptos_router::*;
 
@@ -20,16 +20,16 @@ pub fn App() -> impl IntoView {
     let options = use_context::<leptos::config::LeptosOptions>();
 
     view! {
-        <Html lang="en">
-            <Head>
+        <html lang="en">
+            <head>
                 <Meta charset="utf-8"/>
                 <Title text="Jake Wray"/>
                 <Meta name="description" content="Journalist, Programmer, Photographer."/>
                 <Meta name="viewport" content="width=device-width, initial-scale=1"/>
                 <Stylesheet id="leptos" href="/pkg/jakewray_ca.css"/>
-            </Head>
+            </head>
 
-            <Body>
+            <body>
                 <Router>
                     <div class="min-h-screen flex flex-col bg-gray-50/50">
                         <Navbar/>
@@ -65,8 +65,8 @@ pub fn App() -> impl IntoView {
                     .as_ref()
                     .map(|opts| view! { <HydrationScripts options=opts.clone()/> })
                 }
-            </Body>
-        </Html>
+            </body>
+        </html>
     }
 }
 
