@@ -1,3 +1,4 @@
+use gloo_net::http::Request;
 use leptos::prelude::*;
 use leptos::task::spawn_local;
 use leptos_router::hooks::*;
@@ -21,6 +22,8 @@ pub fn AdminLoginPage() -> impl IntoView {
     let (error, set_error) = signal("".to_string());
     let (loading, set_loading) = signal(false);
 
+    let navigate = use_navigate();
+
     let on_submit = move |ev: leptos::ev::SubmitEvent| {
         ev.prevent_default();
         set_loading.set(true);
@@ -28,44 +31,46 @@ pub fn AdminLoginPage() -> impl IntoView {
 
         let username_val = username.get();
         let password_val = password.get();
+        let navigate = navigate.clone();
 
         spawn_local(async move {
-            let client = reqwest::Client::new();
             let req = LoginRequest {
                 username: username_val,
                 password: password_val,
             };
 
-            match client
-                .post("/admin/login")
-                .json(&req)
-                .send()
-                .await
-            {
-                Ok(resp) => {
-                    if resp.status().is_success() {
-                        match resp.json::<LoginResponse>().await {
-                            Ok(data) => {
-                                // Store token in localStorage
-                                let window = web_sys::window().unwrap();
-                                let local_storage = window.local_storage().unwrap().unwrap();
-                                let _ = local_storage.set_item("admin_token", &data.token);
-                                
-                                let navigate = use_navigate();
-                                navigate("/admin/dashboard", Default::default());
-                            }
-                            Err(_) => {
-                                set_error.set("Failed to parse response".to_string());
-                            }
-                        }
-                    } else {
-                        set_error.set("Invalid username or password".to_string());
-                    }
+            let result = async {
+                let resp = Request::post("/admin/login")
+                    .header("Content-Type", "application/json")
+                    .json(&req)
+                    .map_err(|_| "Failed to serialize request".to_string())?
+                    .send()
+                    .await
+                    .map_err(|_| "Failed to connect to server".to_string())?;
+
+                if !resp.ok() {
+                    return Err("Invalid username or password".to_string());
                 }
-                Err(_) => {
-                    set_error.set("Failed to connect to server".to_string());
-                }
+
+                let data: LoginResponse = resp
+                    .json()
+                    .await
+                    .map_err(|_| "Failed to parse response".to_string())?;
+
+                // Store token in localStorage
+                let window = web_sys::window().unwrap();
+                let local_storage = window.local_storage().unwrap().unwrap();
+                let _ = local_storage.set_item("admin_token", &data.token);
+
+                Ok(())
             }
+            .await;
+
+            match result {
+                Ok(()) => navigate("/admin/dashboard", Default::default()),
+                Err(msg) => set_error.set(msg),
+            }
+
             set_loading.set(false);
         });
     };
