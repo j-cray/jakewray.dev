@@ -26,6 +26,7 @@ pub fn AdminLoginPage() -> impl IntoView {
 
     let on_submit = move |ev: leptos::ev::SubmitEvent| {
         ev.prevent_default();
+        web_sys::console::log_1(&"[Login] Form submitted".into());
         set_loading.set(true);
         set_error.set("".to_string());
 
@@ -33,20 +34,32 @@ pub fn AdminLoginPage() -> impl IntoView {
         let password_val = password.get();
         let navigate = navigate.clone();
 
+        web_sys::console::log_1(&format!("[Login] Attempting login for user: {}", username_val).into());
+
         spawn_local(async move {
             let req = LoginRequest {
-                username: username_val,
-                password: password_val,
+                username: username_val.clone(),
+                password: password_val.clone(),
             };
+
+            web_sys::console::log_1(&"[Login] Sending POST /admin/login".into());
 
             let result = async {
                 let resp = Request::post("/admin/login")
                     .header("Content-Type", "application/json")
                     .json(&req)
-                    .map_err(|_| "Failed to serialize request".to_string())?
+                    .map_err(|e| {
+                        web_sys::console::log_1(&format!("[Login] Serialize error: {:?}", e).into());
+                        "Failed to serialize request".to_string()
+                    })?
                     .send()
                     .await
-                    .map_err(|_| "Failed to connect to server".to_string())?;
+                    .map_err(|e| {
+                        web_sys::console::log_1(&format!("[Login] Network error: {:?}", e).into());
+                        "Failed to connect to server".to_string()
+                    })?;
+
+                web_sys::console::log_1(&format!("[Login] Response status: {}", resp.status()).into());
 
                 if !resp.ok() {
                     return Err("Invalid username or password".to_string());
@@ -55,7 +68,12 @@ pub fn AdminLoginPage() -> impl IntoView {
                 let data: LoginResponse = resp
                     .json()
                     .await
-                    .map_err(|_| "Failed to parse response".to_string())?;
+                    .map_err(|e| {
+                        web_sys::console::log_1(&format!("[Login] Parse error: {:?}", e).into());
+                        "Failed to parse response".to_string()
+                    })?;
+
+                web_sys::console::log_1(&"[Login] Token received, storing in localStorage".into());
 
                 // Store token in localStorage
                 let window = web_sys::window().unwrap();
@@ -67,8 +85,14 @@ pub fn AdminLoginPage() -> impl IntoView {
             .await;
 
             match result {
-                Ok(()) => navigate("/admin/dashboard", Default::default()),
-                Err(msg) => set_error.set(msg),
+                Ok(()) => {
+                    web_sys::console::log_1(&"[Login] Success, navigating to dashboard".into());
+                    navigate("/admin/dashboard", Default::default())
+                },
+                Err(msg) => {
+                    web_sys::console::log_1(&format!("[Login] Error: {}", msg).into());
+                    set_error.set(msg);
+                }
             }
 
             set_loading.set(false);
@@ -91,8 +115,10 @@ pub fn AdminLoginPage() -> impl IntoView {
 
                 <form on:submit=on_submit class="flex flex-col gap-4">
                     <div class="flex flex-col gap-2">
-                        <label class="text-sm font-semibold text-gray-700">"Username"</label>
+                        <label for="username" class="text-sm font-semibold text-gray-700">"Username"</label>
                         <input
+                            id="username"
+                            name="username"
                             type="text"
                             placeholder="Enter username"
                             class="p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
@@ -102,8 +128,10 @@ pub fn AdminLoginPage() -> impl IntoView {
                     </div>
                     
                     <div class="flex flex-col gap-2">
-                        <label class="text-sm font-semibold text-gray-700">"Password"</label>
+                        <label for="password" class="text-sm font-semibold text-gray-700">"Password"</label>
                         <input
+                            id="password"
+                            name="password"
                             type="password"
                             placeholder="Enter password"
                             class="p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
