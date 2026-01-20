@@ -20,48 +20,53 @@ pub fn App() -> impl IntoView {
     let options = use_context::<leptos::config::LeptosOptions>();
 
     view! {
-        <Html attr:lang="en"/>
-        <Meta charset="utf-8"/>
-        <Title text="Jake Wray"/>
-        <Meta name="description" content="Journalist, Programmer, Photographer."/>
-        <Meta name="viewport" content="width=device-width, initial-scale=1"/>
-        <Stylesheet id="leptos" href="/pkg/jakewray_ca.css"/>
+        <Html attr:lang="en">
+            <Head>
+                <Meta charset="utf-8"/>
+                <Title text="Jake Wray"/>
+                <Meta name="description" content="Journalist, Programmer, Photographer."/>
+                <Meta name="viewport" content="width=device-width, initial-scale=1"/>
+                <Stylesheet id="leptos" href="/pkg/jakewray_ca.css"/>
+            </Head>
 
-        <Router>
-            <div class="min-h-screen flex flex-col bg-gray-50/50">
-                <Navbar/>
-                <main class="flex-grow p-4">
-                    <Routes fallback=|| view! { <NotFound/> }>
-                        // Public Routes
-                        <Route path=path!("/") view=HomePage/>
-                        <Route path=path!("/about") view=AboutPage/>
-                        <Route path=path!("/contact") view=ContactPage/>
+            <Body>
+                <Router>
+                    <div class="min-h-screen flex flex-col bg-gray-50/50">
+                        <Navbar/>
+                        <main class="flex-grow p-4">
+                            <Routes fallback=|| view! { <NotFound/> }>
+                                // Public Routes
+                                <Route path=path!("/") view=HomePage/>
+                                <Route path=path!("/about") view=AboutPage/>
+                                <Route path=path!("/contact") view=ContactPage/>
 
-                        // Portfolio
-                        <Route path=path!("/journalism") view=JournalismPage/>
-                        <Route path=path!("/personal") view=PersonalPage/>
-                        <Route path=path!("/creative-writing") view=CreativeWritingPage/>
-                        <Route path=path!("/music") view=MusicPage/>
-                        <Route path=path!("/visual-art") view=VisualArtPage/>
-                        <Route path=path!("/programming") view=ProgrammingPage/>
+                                // Portfolio
+                                <Route path=path!("/journalism") view=JournalismPage/>
+                                <Route path=path!("/personal") view=PersonalPage/>
+                                <Route path=path!("/creative-writing") view=CreativeWritingPage/>
+                                <Route path=path!("/music") view=MusicPage/>
+                                <Route path=path!("/visual-art") view=VisualArtPage/>
+                                <Route path=path!("/programming") view=ProgrammingPage/>
 
-                        // Admin Routes
-                        <Route path=path!("/admin") view=AdminRedirect/>
-                        <Route path=path!("/admin/dashboard") view=AdminDashboard/>
-                        <Route path=path!("/admin/login") view=AdminLoginPage/>
-                        <Route path=path!("/admin/compose") view=AdminComposer/>
-                        <Route path=path!("/admin/sync") view=AdminSyncManager/>
-                        <Route path=path!("/admin/media") view=MediaLibraryPlaceholder/>
-                    </Routes>
-                </main>
-                <Footer/>
-            </div>
-        </Router>
+                                // Admin Routes
+                                <Route path=path!("/admin") view=AdminRedirect/>
+                                <Route path=path!("/admin/dashboard") view=AdminDashboard/>
+                                <Route path=path!("/admin/login") view=AdminLoginPage/>
+                                <Route path=path!("/admin/compose") view=AdminComposer/>
+                                <Route path=path!("/admin/sync") view=AdminSyncManager/>
+                                <Route path=path!("/admin/media") view=MediaLibraryPlaceholder/>
+                            </Routes>
+                        </main>
+                        <Footer/>
+                    </div>
+                </Router>
 
-        {move || options
-            .as_ref()
-            .map(|opts| view! { <HydrationScripts options=opts.clone()/> })
-        }
+                {move || options
+                    .as_ref()
+                    .map(|opts| view! { <HydrationScripts options=opts.clone()/> })
+                }
+            </Body>
+        </Html>
     }
 }
 
