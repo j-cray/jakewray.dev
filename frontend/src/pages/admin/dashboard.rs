@@ -19,7 +19,7 @@ pub fn AdminDashboard() -> impl IntoView {
     let logout = move |_| {
         let window = web_sys::window().unwrap();
         let local_storage = window.local_storage().unwrap().unwrap();
-        let _ = local_storage.delete_item("admin_token");
+        let _ = local_storage.remove_item("admin_token");
         navigate("/admin/login", Default::default());
     };
 

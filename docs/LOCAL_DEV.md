@@ -20,7 +20,25 @@ Add to your `~/.zshrc` or `~/.bashrc`:
 eval "$(direnv hook zsh)"  # or bash
 ```
 
-### 3. Allow direnv in project
+### 3. Set up container runtime (choose one)
+
+**Option A: colima (Lightweight Docker - Recommended)**
+```bash
+brew install colima
+colima start
+```
+
+**Option B: podman (No Docker needed)**
+```bash
+brew install podman
+podman machine init
+podman machine start
+```
+
+**Option C: Docker Desktop**
+Just install and run Docker Desktop normally.
+
+### 4. Allow direnv in project
 ```bash
 cd /path/to/jakewray.dev
 direnv allow
@@ -29,14 +47,14 @@ direnv allow
 This will:
 - ✅ Load Nix flake automatically
 - ✅ Set environment variables from `.envrc`
-- ✅ Add dev tools to PATH
+- ✅ Add dev tools to PATH (including docker/podman)
 - ✅ Set database connection string
 
-### 4. Verify environment loaded
+### 5. Verify environment loaded
 ```bash
 cargo --version
 rustc --version
-docker --version
+docker --version  # or podman
 psql --version
 ```
 

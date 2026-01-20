@@ -7,15 +7,56 @@ echo "🚀 Setting up local development environment..."
 
 # Check dependencies
 command -v cargo &> /dev/null || { echo "❌ cargo not found. Install Rust from https://rustup.rs/"; exit 1; }
-command -v docker &> /dev/null || { echo "❌ docker not found. Please install Docker"; exit 1; }
-command -v docker-compose &> /dev/null || { echo "❌ docker-compose not found. Please install Docker Compose"; exit 1; }
+
+# Check for container runtime
+CONTAINER_CMD=""
+if command -v docker &> /dev/null; then
+  # Check if docker daemon is running
+  if docker ps &> /dev/null; then
+    CONTAINER_CMD="docker"
+    echo "✅ Docker found and running"
+  else
+    echo "⚠️  Docker daemon not running. Trying podman..."
+  fi
+fi
+
+if [ -z "$CONTAINER_CMD" ] && command -v podman &> /dev/null; then
+  CONTAINER_CMD="podman"
+  echo "✅ Using podman for containers"
+fi
+
+if [ -z "$CONTAINER_CMD" ]; then
+  echo "❌ No container runtime found (docker/podman)"
+  echo ""
+  echo "On macOS, you can use colima (lightweight Docker):"
+  echo "  brew install colima"
+  echo "  colima start"
+  echo ""
+  echo "Or use podman:"
+  echo "  brew install podman"
+  echo "  podman machine init && podman machine start"
+  exit 1
+fi
 
 echo "✅ All dependencies found"
 echo ""
 
+# Start container runtime if using colima
+if [ "$CONTAINER_CMD" = "docker" ] && ! docker ps &> /dev/null; then
+  echo "🐳 Starting colima (Docker daemon)..."
+  if command -v colima &> /dev/null; then
+    colima start
+  fi
+fi
+
 # Start database
 echo "📦 Starting PostgreSQL database..."
-docker-compose up -d db
+COMPOSE_CMD="docker-compose"
+if [ "$CONTAINER_CMD" = "podman" ]; then
+  COMPOSE_CMD="podman-compose"
+fi
+
+$COMPOSE_CMD up -d db
 sleep 3
 
 echo ""
@@ -32,10 +73,6 @@ echo "✅ Setup complete!"
 echo ""
 echo "🎯 To run the development server:"
 echo ""
-echo "   Install cargo-leptos if you haven't:"
-echo "   cargo install cargo-leptos"
-echo ""
-echo "   Then run:"
 echo "   cargo leptos watch"
 echo ""
 echo "📍 Access at:"
@@ -47,4 +84,4 @@ echo "   Username: admin"
 echo "   Password: admin123"
 echo ""
 echo "🛑 To stop the database:"
-echo "   docker-compose down"
+echo "   $COMPOSE_CMD down"

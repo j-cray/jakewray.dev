@@ -1,5 +1,5 @@
-use leptos::logging;
 use leptos::prelude::*;
+use leptos::task::spawn_local;
 use leptos_router::hooks::*;
 use serde::{Deserialize, Serialize};
 
@@ -77,15 +77,11 @@ pub fn AdminLoginPage() -> impl IntoView {
                 <p class="text-center text-gray-600 mb-6">"Secure dashboard login"</p>
                 
                 {move || {
-                    if !error.get().is_empty() {
-                        view! {
-                            <div class="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-md text-sm">
-                                {error.get()}
-                            </div>
-                        }.into_view()
-                    } else {
-                        view! { <></> }.into_view()
-                    }
+                    (!error.get().is_empty()).then(|| view! {
+                        <div class="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-md text-sm">
+                            {error.get()}
+                        </div>
+                    })
                 }}
 
                 <form on:submit=on_submit class="flex flex-col gap-4">

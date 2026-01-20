@@ -51,6 +51,7 @@
             docker-compose
             podman
             podman-compose
+            colima  # Lightweight Docker daemon for macOS
             
             # Web compilation (optional)
             nodejs
