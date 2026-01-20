@@ -1,6 +1,6 @@
 -- Create default admin user (should be changed immediately in production)
 INSERT INTO users (username, password_hash) 
-VALUES ('admin', 'admin123')
+VALUES ('admin', 'demo-admin-2026!')
 ON CONFLICT (username) DO NOTHING;
 
 -- You can also run this from the command line:

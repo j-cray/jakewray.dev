@@ -103,7 +103,7 @@ Navigate to `http://localhost:3000/admin/login`
 
 ### 3. Login with default credentials
 - **Username**: `admin`
-- **Password**: `admin123`
+- **Password**: `demo-admin-2026!`
 
 ### 4. Test the features
 - ✅ Verify login redirects to dashboard

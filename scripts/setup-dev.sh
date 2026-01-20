@@ -66,7 +66,7 @@ cargo sqlx migrate run -D "postgres://admin:password@127.0.0.1:5432/portfolio" |
 
 echo ""
 echo "👤 Creating default admin user..."
-PGPASSWORD=password psql -U admin -h 127.0.0.1 -d portfolio -c "INSERT INTO users (username, password_hash) VALUES ('admin', 'admin123') ON CONFLICT (username) DO NOTHING;" || echo "⚠️ Could not create user (may already exist)"
+PGPASSWORD=password psql -U admin -h 127.0.0.1 -d portfolio -c "INSERT INTO users (username, password_hash) VALUES ('admin', 'demo-admin-2026!') ON CONFLICT (username) DO NOTHING;" || echo "⚠️ Could not create user (may already exist)"
 
 echo ""
 echo "✅ Setup complete!"
@@ -81,7 +81,7 @@ echo "   - Admin login: http://localhost:3000/admin/login"
 echo ""
 echo "🔐 Default credentials:"
 echo "   Username: admin"
-echo "   Password: admin123"
+echo "   Password: demo-admin-2026!"
 echo ""
 echo "🛑 To stop the database:"
 echo "   $COMPOSE_CMD down"

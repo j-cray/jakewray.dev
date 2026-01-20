@@ -47,7 +47,7 @@ docker compose -f docker-compose.prod.yml build
 After deployment, connect to the database and run:
 ```sql
 INSERT INTO users (username, password_hash) 
-VALUES ('admin', 'admin123')
+VALUES ('admin', 'demo-admin-2026!')
 ON CONFLICT (username) DO NOTHING;
 ```
 
@@ -58,7 +58,7 @@ docker compose -f docker-compose.prod.yml exec -T db psql -U $POSTGRES_USER -d $
 
 ### 3. Access Admin Panel
 - Navigate to: https://jakewray.dev/admin/login
-- Login with credentials: `admin` / `admin123`
+- Login with credentials: `admin` / `demo-admin-2026!`
 - ⚠️ **Change password immediately after first login** (implement password change feature)
 
 ## Security Notes
