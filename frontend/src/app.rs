@@ -58,6 +58,7 @@ pub fn App() -> impl IntoView {
                         <Footer/>
                     </div>
                 </Router>
+                <HydrationScripts options=Default::default()/>
         </body>
         </html>
     }
