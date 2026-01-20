@@ -60,8 +60,8 @@ pub fn App() -> impl IntoView {
                 </Router>
                 <Script type_="module">
                     {r#"
-                        import init, { hydrate } from '/pkg/jakewray_ca.js';
-                        init('/pkg/jakewray_ca.wasm').then(() => hydrate());
+                        import init from '/pkg/jakewray_ca.js';
+                        init('/pkg/jakewray_ca.wasm');
                     "#}
                 </Script>
         </body>
