@@ -21,7 +21,7 @@ pub fn App() -> impl IntoView {
     let options = expect_context::<LeptosOptions>();
 
     view! {
-        <Html lang="en"/>
+        <Html attr:lang="en"/>
         <Meta charset="utf-8"/>
         <Title text="Jake Wray"/>
         <Meta name="description" content="Journalist, Programmer, Photographer."/>
