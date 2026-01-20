@@ -37,7 +37,7 @@ pub fn AdminLoginPage() -> impl IntoView {
             };
 
             match client
-                .post("/api/admin/login")
+                .post("/admin/login")
                 .json(&req)
                 .send()
                 .await
