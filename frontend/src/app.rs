@@ -21,15 +21,15 @@ pub fn App() -> impl IntoView {
 
     view! {
         <Html attr:lang="en">
-            <Head>
+            <head>
                 <Meta charset="utf-8"/>
                 <Title text="Jake Wray"/>
                 <Meta name="description" content="Journalist, Programmer, Photographer."/>
                 <Meta name="viewport" content="width=device-width, initial-scale=1"/>
                 <Stylesheet id="leptos" href="/pkg/jakewray_ca.css"/>
-            </Head>
+            </head>
 
-            <Body>
+            <body>
                 <Router>
                     <div class="min-h-screen flex flex-col bg-gray-50/50">
                         <Navbar/>
@@ -65,7 +65,7 @@ pub fn App() -> impl IntoView {
                     .as_ref()
                     .map(|opts| view! { <HydrationScripts options=opts.clone()/> })
                 }
-            </Body>
+            </body>
         </Html>
     }
 }
