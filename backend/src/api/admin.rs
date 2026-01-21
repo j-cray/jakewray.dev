@@ -1,9 +1,13 @@
 use axum::{
-    extract::{State, Json},
+    extract::State,
     http::{HeaderMap, StatusCode},
     routing::{get, post},
     Router,
 };
+use axum::body::to_bytes;
+use axum::http::{header, Request};
+use axum::body::Body;
+use axum::response::Json;
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 use jsonwebtoken::{encode, Header, EncodingKey};
@@ -41,8 +45,30 @@ pub fn router(state: crate::state::AppState) -> Router<crate::state::AppState> {
 
 async fn login(
     State(pool): State<PgPool>,
-    Json(req): Json<LoginRequest>,
+    req: Request<Body>,
 ) -> Result<Json<LoginResponse>, (StatusCode, String)> {
+    let (parts, body) = req.into_parts();
+    let content_type = parts
+        .headers
+        .get(header::CONTENT_TYPE)
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("");
+    let bytes = to_bytes(body, 64 * 1024)
+        .await
+        .map_err(|_| (StatusCode::BAD_REQUEST, "Invalid request body".to_string()))?;
+
+    let req: LoginRequest = if content_type.contains("application/json") {
+        serde_json::from_slice(&bytes)
+            .map_err(|_| (StatusCode::BAD_REQUEST, "Invalid JSON".to_string()))?
+    } else if content_type.contains("application/x-www-form-urlencoded")
+        || content_type.contains("multipart/form-data")
+    {
+        serde_urlencoded::from_bytes(&bytes)
+            .map_err(|_| (StatusCode::BAD_REQUEST, "Invalid form data".to_string()))?
+    } else {
+        return Err((StatusCode::UNSUPPORTED_MEDIA_TYPE, "Unsupported content type".to_string()));
+    };
+
     let user = sqlx::query!("SELECT id, password_hash FROM users WHERE username = $1", &req.username)
         .fetch_optional(&pool)
         .await

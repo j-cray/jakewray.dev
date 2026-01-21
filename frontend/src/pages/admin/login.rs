@@ -113,7 +113,7 @@ pub fn AdminLoginPage() -> impl IntoView {
                     })
                 }}
 
-                <form autocomplete="on" on:submit=on_submit>
+                <form autocomplete="on" method="post" action="/admin/login" on:submit=on_submit>
                     <div class="form-group">
                         <label for="username">"Username"</label>
                         <input
