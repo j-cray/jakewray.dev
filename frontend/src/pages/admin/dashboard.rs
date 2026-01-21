@@ -1,28 +1,37 @@
 use leptos::prelude::*;
+#[cfg(feature = "hydrate")]
 use leptos_router::hooks::*;
 
 #[component]
 pub fn AdminDashboard() -> impl IntoView {
+    #[cfg(feature = "hydrate")]
     let navigate = use_navigate();
-    
-    // Check if user is authenticated
-    let navigate_clone = navigate.clone();
-    Effect::new(move || {
-        let window = web_sys::window().unwrap();
-        let local_storage = window.local_storage().unwrap().unwrap();
-        let token = local_storage.get_item("admin_token").unwrap_or(None);
-        
-        if token.is_none() {
-            navigate_clone("/admin/login", Default::default());
-        }
-    });
 
+    #[cfg(feature = "hydrate")]
+    {
+        // Check if user is authenticated
+        let navigate_clone = navigate.clone();
+        Effect::new(move || {
+            let window = web_sys::window().unwrap();
+            let local_storage = window.local_storage().unwrap().unwrap();
+            let token = local_storage.get_item("admin_token").unwrap_or(None);
+
+            if token.is_none() {
+                navigate_clone("/admin/login", Default::default());
+            }
+        });
+    }
+
+    #[cfg(feature = "hydrate")]
     let logout = move |_| {
         let window = web_sys::window().unwrap();
         let local_storage = window.local_storage().unwrap().unwrap();
         let _ = local_storage.remove_item("admin_token");
         navigate("/admin/login", Default::default());
     };
+
+    #[cfg(not(feature = "hydrate"))]
+    let logout = move |_| {};
 
     view! {
         <div class="container py-12">

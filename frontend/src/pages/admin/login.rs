@@ -1,5 +1,7 @@
+#[cfg(feature = "hydrate")]
 use gloo_net::http::Request;
 use leptos::prelude::*;
+#[cfg(feature = "hydrate")]
 use leptos::task::spawn_local;
 use leptos_router::hooks::*;
 use serde::{Deserialize, Serialize};
@@ -22,8 +24,6 @@ pub fn AdminLoginPage() -> impl IntoView {
     let (error, set_error) = signal("".to_string());
     let (loading, set_loading) = signal(false);
 
-    let navigate = use_navigate();
-
     let location = use_location();
 
     Effect::new(move || {
@@ -34,80 +34,87 @@ pub fn AdminLoginPage() -> impl IntoView {
         }
     });
 
-    let on_submit = move |ev: leptos::ev::SubmitEvent| {
-        ev.prevent_default();
-        web_sys::console::log_1(&"[Login] Form submitted".into());
-        set_loading.set(true);
-        set_error.set("".to_string());
+    #[cfg(feature = "hydrate")]
+    let on_submit = {
+        let navigate = use_navigate();
+        move |ev: leptos::ev::SubmitEvent| {
+            ev.prevent_default();
+            web_sys::console::log_1(&"[Login] Form submitted".into());
+            set_loading.set(true);
+            set_error.set("".to_string());
 
-        let username_val = username.get();
-        let password_val = password.get();
-        let navigate = navigate.clone();
+            let username_val = username.get();
+            let password_val = password.get();
+            let navigate = navigate.clone();
 
-        web_sys::console::log_1(&format!("[Login] Attempting login for user: {}", username_val).into());
+            web_sys::console::log_1(&format!("[Login] Attempting login for user: {}", username_val).into());
 
-        spawn_local(async move {
-            let req = LoginRequest {
-                username: username_val.clone(),
-                password: password_val.clone(),
-            };
+            spawn_local(async move {
+                let req = LoginRequest {
+                    username: username_val.clone(),
+                    password: password_val.clone(),
+                };
 
-            web_sys::console::log_1(&"[Login] Sending POST /admin/login".into());
+                web_sys::console::log_1(&"[Login] Sending POST /admin/login".into());
 
-            let result = async {
-                let resp = Request::post("/admin/login")
-                    .header("Content-Type", "application/json")
-                    .json(&req)
-                    .map_err(|e| {
-                        web_sys::console::log_1(&format!("[Login] Serialize error: {:?}", e).into());
-                        "Failed to serialize request".to_string()
-                    })?
-                    .send()
-                    .await
-                    .map_err(|e| {
-                        web_sys::console::log_1(&format!("[Login] Network error: {:?}", e).into());
-                        "Failed to connect to server".to_string()
-                    })?;
+                let result = async {
+                    let resp = Request::post("/admin/login")
+                        .header("Content-Type", "application/json")
+                        .json(&req)
+                        .map_err(|e| {
+                            web_sys::console::log_1(&format!("[Login] Serialize error: {:?}", e).into());
+                            "Failed to serialize request".to_string()
+                        })?
+                        .send()
+                        .await
+                        .map_err(|e| {
+                            web_sys::console::log_1(&format!("[Login] Network error: {:?}", e).into());
+                            "Failed to connect to server".to_string()
+                        })?;
 
-                web_sys::console::log_1(&format!("[Login] Response status: {}", resp.status()).into());
+                    web_sys::console::log_1(&format!("[Login] Response status: {}", resp.status()).into());
 
-                if !resp.ok() {
-                    return Err("Invalid username or password".to_string());
+                    if !resp.ok() {
+                        return Err("Invalid username or password".to_string());
+                    }
+
+                    let data: LoginResponse = resp
+                        .json()
+                        .await
+                        .map_err(|e| {
+                            web_sys::console::log_1(&format!("[Login] Parse error: {:?}", e).into());
+                            "Failed to parse response".to_string()
+                        })?;
+
+                    web_sys::console::log_1(&"[Login] Token received, storing in localStorage".into());
+
+                    // Store token in localStorage
+                    let window = web_sys::window().unwrap();
+                    let local_storage = window.local_storage().unwrap().unwrap();
+                    let _ = local_storage.set_item("admin_token", &data.token);
+
+                    Ok(())
+                }
+                .await;
+
+                match result {
+                    Ok(()) => {
+                        web_sys::console::log_1(&"[Login] Success, navigating to dashboard".into());
+                        navigate("/admin/dashboard", Default::default())
+                    },
+                    Err(msg) => {
+                        web_sys::console::log_1(&format!("[Login] Error: {}", msg).into());
+                        set_error.set(msg);
+                    }
                 }
 
-                let data: LoginResponse = resp
-                    .json()
-                    .await
-                    .map_err(|e| {
-                        web_sys::console::log_1(&format!("[Login] Parse error: {:?}", e).into());
-                        "Failed to parse response".to_string()
-                    })?;
-
-                web_sys::console::log_1(&"[Login] Token received, storing in localStorage".into());
-
-                // Store token in localStorage
-                let window = web_sys::window().unwrap();
-                let local_storage = window.local_storage().unwrap().unwrap();
-                let _ = local_storage.set_item("admin_token", &data.token);
-
-                Ok(())
-            }
-            .await;
-
-            match result {
-                Ok(()) => {
-                    web_sys::console::log_1(&"[Login] Success, navigating to dashboard".into());
-                    navigate("/admin/dashboard", Default::default())
-                },
-                Err(msg) => {
-                    web_sys::console::log_1(&format!("[Login] Error: {}", msg).into());
-                    set_error.set(msg);
-                }
-            }
-
-            set_loading.set(false);
-        });
+                set_loading.set(false);
+            });
+        }
     };
+
+    #[cfg(not(feature = "hydrate"))]
+    let on_submit = move |_ev: leptos::ev::SubmitEvent| {};
 
     view! {
         <div class="center-page">
