@@ -178,9 +178,12 @@ name = "backend"
 version = "0.1.0"
 dependencies = [
  "axum",
+ "bytes",
  "chrono",
  "dotenvy",
  "frontend",
+ "futures-util",
+ "http-body-util",
  "jsonwebtoken",
  "leptos",
  "leptos_axum",
