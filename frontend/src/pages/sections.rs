@@ -1,7 +1,7 @@
 use crate::data::journalism;
 use leptos::prelude::*;
 use leptos_router::hooks::use_params_map;
-use leptos::prelude::Either;
+use either::Either;
 
 #[component]
 pub fn JournalismPage() -> impl IntoView {
