@@ -1,13 +1,11 @@
 use crate::components::footer::Footer;
 use crate::components::navbar::Navbar;
-use crate::pages::about::AboutPage;
 use crate::pages::admin::composer::AdminComposer;
 use crate::pages::admin::dashboard::AdminDashboard;
 use crate::pages::admin::login::AdminLoginPage;
 use crate::pages::admin::sync_manager::AdminSyncManager;
-use crate::pages::contact::ContactPage;
 use crate::pages::sections::{
-    CreativeWritingPage, JournalismPage, PersonalBlogPage, PersonalPage, ProgrammingPage,
+    JournalismPage, PersonalBlogPage, ProgrammingPage,
 };
 use leptos::prelude::*;
 use leptos_meta::*;
@@ -48,18 +46,9 @@ pub fn App() -> impl IntoView {
                             <Routes fallback=|| view! { <NotFound/> }>
                                 // Public Routes
                                 <Route path=path!("/") view=HomePage/>
-                                <Route path=path!("/about") view=AboutPage/>
-                                <Route path=path!("/contact") view=ContactPage/>
-
-                                // Portfolio
+                                <Route path=path!("/code") view=ProgrammingPage/>
                                 <Route path=path!("/journalism") view=JournalismPage/>
-                                <Route path=path!("/personal") view=PersonalPage/>
-                                <Route path=path!("/personal/blog") view=PersonalBlogPage/>
-                                <Route path=path!("/personal/writing") view=CreativeWritingPage/>
-                                // Hidden for now:
-                                // <Route path=path!("/music") view=MusicPage/>
-                                // <Route path=path!("/visual-art") view=VisualArtPage/>
-                                <Route path=path!("/programming") view=ProgrammingPage/>
+                                <Route path=path!("/blog") view=PersonalBlogPage/>
 
                                 // Admin Routes
                                 <Route path=path!("/admin") view=AdminRedirect/>
