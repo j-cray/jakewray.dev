@@ -22,6 +22,20 @@ pub fn JournalismPage() -> impl IntoView {
                         let slug = article.slug.clone();
                         let title = article.title.clone();
                         let excerpt = article.excerpt.clone();
+                        let preview_text = excerpt
+                            .lines()
+                            .map(str::trim)
+                            .filter(|l| {
+                                let lower = l.to_ascii_lowercase();
+                                !lower.is_empty()
+                                    && !lower.starts_with("photo:")
+                                    && !lower.starts_with("photo by")
+                                    && !lower.starts_with("photos:")
+                                    && !lower.starts_with("caption:")
+                            })
+                            .take(3)
+                            .collect::<Vec<_>>()
+                            .join(" ");
                         let date = article.display_date.clone();
                         let image = article.images.get(0).cloned();
                         let thumb = image
@@ -38,7 +52,7 @@ pub fn JournalismPage() -> impl IntoView {
                                 <div class="journalism-body">
                                     <p class="journalism-date">{date}</p>
                                     <h3 class="journalism-title">{title}</h3>
-                                    <p class="journalism-excerpt">{excerpt}</p>
+                                    <p class="journalism-excerpt">{preview_text}</p>
                                     <div class="journalism-link">"Read more →"</div>
                                 </div>
                             </a>
