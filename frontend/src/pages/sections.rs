@@ -26,12 +26,12 @@ pub fn JournalismPage() -> impl IntoView {
                         view! {
                             <a
                                 href=format!("/journalism/{}", slug)
-                                class="block rounded-lg border border-gray-200 bg-white p-4 shadow-sm transition hover:-translate-y-1 hover:shadow-md"
+                                class="group flex h-full flex-col overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm transition-all duration-300 hover:border-blue-300 hover:shadow-lg hover:-translate-y-1"
                             >
-                                <div class="aspect-[4/3] w-full overflow-hidden rounded-md bg-gray-100">
+                                <div class="aspect-[4/3] w-full overflow-hidden bg-gray-100">
                                     {if let Some(src) = image {
                                         Either::Left(view! { 
-                                            <img src=src class="h-full w-full object-cover" alt="article thumbnail"/>
+                                            <img src=src class="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" alt="article thumbnail"/>
                                         })
                                     } else {
                                         Either::Right(view! {
@@ -41,12 +41,17 @@ pub fn JournalismPage() -> impl IntoView {
                                         })
                                     }}
                                 </div>
-                                <div class="mt-4 space-y-2">
-                                    <p class="text-sm text-gray-500">{date}</p>
-                                    <h3 class="text-xl font-semibold text-gray-900">{title}</h3>
-                                    <p class="text-gray-700 line-clamp-3">
+                                <div class="flex flex-1 flex-col p-5">
+                                    <p class="text-xs font-medium uppercase tracking-wide text-gray-500">{date}</p>
+                                    <h3 class="mt-2 mb-3 text-lg font-semibold text-gray-900 line-clamp-2 group-hover:text-blue-600 transition-colors">
+                                        {title}
+                                    </h3>
+                                    <p class="text-sm text-gray-600 line-clamp-3 flex-1">
                                         {excerpt}
                                     </p>
+                                    <div class="mt-4 text-sm font-medium text-blue-600 group-hover:text-blue-700 transition-colors">
+                                        "Read more →"
+                                    </div>
                                 </div>
                             </a>
                         }
