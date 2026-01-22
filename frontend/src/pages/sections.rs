@@ -33,7 +33,7 @@ pub fn JournalismPage() -> impl IntoView {
                                             <>
                                                 <img src=src class="h-full w-full object-cover" alt="article thumbnail"/>
                                             </>
-                                        }
+                                        }.into_view()
                                     } else {
                                         view! {
                                             <>
@@ -41,7 +41,7 @@ pub fn JournalismPage() -> impl IntoView {
                                                     "Image coming soon"
                                                 </div>
                                             </>
-                                        }
+                                        }.into_view()
                                     }}
                                 </div>
                                 <div class="mt-4 space-y-2">
@@ -99,13 +99,13 @@ pub fn JournalismArticlePage() -> impl IntoView {
                                 })}
                                 <div class="article-content prose max-w-none" inner_html=content_html></div>
                             </>
-                        }
+                        }.into_view()
                     }
                     None => view! { 
                         <>
                             <p>"Article not found."</p>
                         </>
-                    },
+                    }.into_view(),
                 }
             }}
         </div>
