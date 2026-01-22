@@ -1,4 +1,5 @@
 use leptos::prelude::*;
+use leptos_router::components::A;
 
 #[component]
 pub fn JournalismPage() -> impl IntoView {
@@ -25,15 +26,15 @@ pub fn PersonalPage() -> impl IntoView {
             <p class="text-gray-600 mb-8">"Blog, Creative Writing, Photography, and Videography."</p>
             
             <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                <a href="/personal/blog" class="card hover:shadow-lg transition-shadow">
+                <A href="/personal/blog" class="card hover:shadow-lg transition-shadow">
                     <h3 class="text-xl font-bold mb-2">"Blog"</h3>
                     <p class="text-muted">"Personal thoughts and musings"</p>
-                </a>
+                </A>
                 
-                <a href="/personal/writing" class="card hover:shadow-lg transition-shadow">
+                <A href="/personal/writing" class="card hover:shadow-lg transition-shadow">
                     <h3 class="text-xl font-bold mb-2">"Creative Writing"</h3>
                     <p class="text-muted">"Stories, novels, and poetry"</p>
-                </a>
+                </A>
                 
                 <div class="card opacity-50">
                     <h3 class="text-xl font-bold mb-2">"Photography"</h3>

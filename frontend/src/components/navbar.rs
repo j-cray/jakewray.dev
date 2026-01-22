@@ -1,20 +1,21 @@
 use leptos::prelude::*;
+use leptos_router::components::A;
 
 #[component]
 pub fn Navbar() -> impl IntoView {
     view! {
         <header class="site-header">
             <div class="container nav-container">
-                <a href="/" class="site-brand">
+                <A href="/" class="site-brand">
                     "Jake Wray"
-                </a>
+                </A>
 
                 <nav class="nav-links">
-                    <a class="nav-link" href="/journalism">"Journalism"</a>
-                    <a class="nav-link" href="/personal">"Personal"</a>
-                    <a class="nav-link" href="/personal/blog">"Blog"</a>
-                    <a class="nav-link" href="/programming">"Code"</a>
-                    <a class="nav-link nav-link-primary" href="/about">"About"</a>
+                    <A class="nav-link" href="/journalism">"Journalism"</A>
+                    <A class="nav-link" href="/personal">"Personal"</A>
+                    <A class="nav-link" href="/personal/blog">"Blog"</A>
+                    <A class="nav-link" href="/programming">"Code"</A>
+                    <A class="nav-link nav-link-primary" href="/about">"About"</A>
                 </nav>
             </div>
         </header>
