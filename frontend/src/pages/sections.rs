@@ -52,7 +52,8 @@ pub fn JournalismPage() -> impl IntoView {
                                     <div class="mt-3 text-xs font-medium text-blue-600 group-hover:text-blue-700 transition-colors">
                                         "Read more →"
                                     </div>
-                                </a>
+                                </div>
+                            </a>
                         }
                     })
                     .collect_view()}
