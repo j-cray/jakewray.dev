@@ -29,13 +29,13 @@ pub fn JournalismPage() -> impl IntoView {
                             >
                                 <div class="aspect-[4/3] w-full overflow-hidden rounded-md bg-gray-100">
                                     {if let Some(src) = image {
-                                        view! { <img src=src class="h-full w-full object-cover" alt="article thumbnail"/> }
+                                        view! { <img src=src class="h-full w-full object-cover" alt="article thumbnail"/> }.into_view()
                                     } else {
                                         view! {
                                             <div class="flex h-full items-center justify-center text-sm text-gray-500">
                                                 "Image coming soon"
                                             </div>
-                                        }
+                                        }.into_view()
                                     }}
                                 </div>
                                 <div class="mt-4 space-y-2">
@@ -93,13 +93,13 @@ pub fn JournalismArticlePage() -> impl IntoView {
                                 })}
                                 <div class="article-content prose max-w-none" inner_html=content_html></div>
                             </>
-                        }
+                        }.into_view()
                     }
                     None => view! { 
                         <>
-                            <p>"Article not found."</p> 
+                            <p>"Article not found."</p>
                         </>
-                    },
+                    }.into_view(),
                 }
             }}
         </div>
