@@ -290,9 +290,31 @@ pub fn JournalismArticlePage() -> impl IntoView {
                              let s = italicize_origin_line(&s);
                              linkify_images(&s)
                         };
+                        let is_terrace = source_url.contains("terracestandard.com");
+
                         view! {
                             <div class="article-container">
-                                <h1 class="mb-4 text-4xl font-bold text-gray-900">{title}</h1>
+                                <h1 class="mb-4 text-4xl font-bold text-gray-900">{title.clone()}</h1>
+                                
+                                {if is_terrace {
+                                    Some(view! {
+                                        <div class="mb-8">
+                                            {images.first().map(|url| view! {
+                                                <figure class="mb-4">
+                                                    <img src=url.clone() class="w-full h-auto rounded-lg" alt=title.clone() />
+                                                </figure>
+                                            })}
+                                            <div class="flex items-center text-gray-600 text-sm">
+                                                <span class="font-bold mr-2">"By Jake Wray"</span>
+                                                <span class="mr-2">"•"</span>
+                                                <span>{display_date.clone()}</span>
+                                            </div>
+                                        </div>
+                                    })
+                                } else {
+                                    None
+                                }}
+
                                 <div class="article-content prose" inner_html=content_html></div>
                             </div>
                         }
