@@ -301,7 +301,9 @@ pub fn JournalismArticlePage() -> impl IntoView {
                                         <div class="mb-8">
                                             {images.first().map(|url| view! {
                                                 <figure class="mb-4">
-                                                    <img src=url.clone() class="w-full h-auto rounded-lg" alt=title.clone() />
+                                                    <a href=url.clone() target="_blank" class="article-image-link">
+                                                        <img src=url.clone() class="w-full h-auto rounded-lg" alt=title.clone() />
+                                                    </a>
                                                 </figure>
                                             })}
                                             <div class="flex items-center text-gray-600 text-sm">
