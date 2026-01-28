@@ -304,12 +304,16 @@ pub fn JournalismArticlePage() -> impl IntoView {
                                                     <a href=url.clone() target="_blank" class="article-image-link">
                                                         <img src=url.clone() class="w-full h-auto rounded-lg" alt=title.clone() />
                                                     </a>
+                                                    {article.captions.first().map(|cap| view! {
+                                                        <figcaption class="mt-2 text-sm text-gray-500 italic">
+                                                            {cap.clone()}
+                                                        </figcaption>
+                                                    })}
                                                 </figure>
                                             })}
-                                            <div class="flex items-center text-gray-600 text-sm">
-                                                <span class="font-bold mr-2">"By Jake Wray"</span>
-                                                <span class="mr-2">"•"</span>
-                                                <span>{display_date.clone()}</span>
+                                            <div class="flex flex-col text-gray-600 text-sm">
+                                                <span class="mb-1">{display_date.clone()}</span>
+                                                <span class="font-bold">"By Jake Wray"</span>
                                             </div>
                                         </div>
                                     })

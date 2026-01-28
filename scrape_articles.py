@@ -104,16 +104,33 @@ def parse_article(url):
         content_div = soup.find('article')
 
     images = []
+    captions = []
     
     # Extract images from carousel
-    carousel_imgs = soup.select('.slides-container .slide img')
-    for img in carousel_imgs:
-        src = img.get('src') or img.get('data-src')
-        if src:
-            if '?' in src:
-                src = src.split('?')[0]
-            if src not in images:
-                images.append(src)
+    # Terrace Standard uses .slide which contains img and optionally .caption
+    slides = soup.select('.slides-container .slide')
+    for slide in slides:
+        img = slide.find('img')
+        if img:
+            src = img.get('src') or img.get('data-src')
+            if src:
+                if '?' in src:
+                    src = src.split('?')[0]
+                
+                # Check for duplicate images
+                if src not in images:
+                    images.append(src)
+                    
+                    # Try to find caption in this slide
+                    caption_text = ""
+                    caption_div = slide.find(class_='caption')
+                    if caption_div:
+                        caption_text = caption_div.get_text(strip=True)
+                    else:
+                        # Fallback: check data-image-caption attr on img
+                        caption_text = img.get('data-image-caption', '').strip()
+                    
+                    captions.append(caption_text)
 
     content_html = ""
     excerpt = ""
@@ -168,6 +185,7 @@ def parse_article(url):
         "source_url": url,
         "content_html": content_html,
         "images": images,
+        "captions": captions,
         "excerpt": excerpt
     }
 
