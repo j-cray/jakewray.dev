@@ -344,6 +344,7 @@ a {
   margin: 0;
   /* Reset margin, handled by figure */
   border: 1px solid black;
+  border-radius: var(--radius-md);
   transition: transform 0.3s ease;
   display: block;
 }
