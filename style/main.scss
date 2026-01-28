@@ -307,12 +307,22 @@ a {
   text-overflow: ellipsis;
 }
 
+.article-content {
+  max-width: 720px;
+  /* Constrain width */
+  margin: 0 auto;
+  /* Center column */
+}
+
 .article-content img {
-    max-height: 50vh;
-    width: auto;
-    margin: 1.5rem auto;
-    display: block;
-    border-radius: var(--radius-md);
+  width: 100%;
+  /* Fill the column */
+  height: auto;
+  /* Maintain aspect ratio */
+  display: block;
+  border-radius: var(--radius-md);
+  margin: 1.5rem 0;
+  /* Vertical spacing */
 }
 
 .journalism-link {

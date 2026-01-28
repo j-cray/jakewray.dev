@@ -71,6 +71,45 @@ fn extract_body_preview(html: &str) -> Option<String> {
     None
 }
 
+fn remove_date_paragraph(html: &str) -> String {
+    // Reuse extract logic to find the range, then cut it out
+     let after_h4 = html.find("</h4>").map(|idx| idx + 5).unwrap_or(0);
+    let mut pos = after_h4;
+    for _ in 0..5 {
+        if let Some((p_inner, next)) = extract_between(html, "<p", "</p>", pos) {
+            let open_end = p_inner.find('>').map(|i| i + 1).unwrap_or(0);
+            let text = strip_tags(&p_inner[open_end..]);
+            if starts_with_month(&text) {
+                // Found it. Reconstruct string without this paragraph.
+                // We need the ACTUAL start index of the <p...
+                // extract_between returns (substring, next_index)
+                // We know next is the index AFTER </p>
+                // So the removal range is [pos..next] IF extract_between starts searching at pos
+                // Wait, extract_between finds the first occurrence starting at pos.
+                // Let's verify the index logic.
+                // start_idx = haystack[from..].find(start_pat)? + from;
+                // end_idx ...
+                // So the range to remove is indeed what we need. However, extract_between doesn't return the start index.
+                // Let's implement this logic locally here.
+                if let Some(start_rel) = html[pos..].find("<p") {
+                    let start_abs = pos + start_rel;
+                     let after_start = start_abs + 2; // <p len
+                    if let Some(end_rel) = html[after_start..].find("</p>") {
+                         let end_abs = after_start + end_rel + 4; // </p> len
+                         // Verify it matches what we checked
+                         // (We re-did the search, so it should match the first one found)
+                          let mut out = html.to_string();
+                          out.replace_range(start_abs..end_abs, "");
+                          return out;
+                    }
+                }
+            }
+            pos = next;
+        } else { break; }
+    }
+    html.to_string()
+}
+
 #[component]
 pub fn JournalismPage() -> impl IntoView {
     let articles = journalism::all_articles();
@@ -134,17 +173,19 @@ pub fn JournalismArticlePage() -> impl IntoView {
                         let content_html = article.content_html.clone();
                         // remove first subhead h4 from article content
                         let content_html = {
-                            if let Some((_, end)) = extract_between(&content_html, "<h4", "</h4>", 0) {
+
+                            let s = if let Some((_, end)) = extract_between(&content_html, "<h4", "</h4>", 0) {
                                 let start = content_html.find("<h4").unwrap_or(0);
                                 let mut s = content_html.clone();
                                 s.replace_range(start..end, "");
                                 s
-                            } else { content_html }
+                            } else { content_html };
+                             remove_date_paragraph(&s)
                         };
                         view! {
                             <div>
-                                <p class="text-sm text-gray-500 mb-2">{display_date}</p>
                                 <h1 class="mb-4 text-4xl font-bold text-gray-900">{title}</h1>
+                                <p class="text-sm text-gray-500 mb-6">{display_date}</p>
 
 
 
