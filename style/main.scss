@@ -307,6 +307,14 @@ a {
   text-overflow: ellipsis;
 }
 
+.article-content img {
+    max-height: 50vh;
+    width: auto;
+    margin: 1.5rem auto;
+    display: block;
+    border-radius: var(--radius-md);
+}
+
 .journalism-link {
   margin-top: auto;
   font-size: 0.85rem;

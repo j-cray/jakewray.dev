@@ -145,24 +145,10 @@ pub fn JournalismArticlePage() -> impl IntoView {
                             <div>
                                 <p class="text-sm text-gray-500 mb-2">{display_date}</p>
                                 <h1 class="mb-4 text-4xl font-bold text-gray-900">{title}</h1>
-                                <div class="mb-6 flex flex-wrap items-center gap-3 text-sm text-gray-600">
-                                    <a class="underline" href="/journalism">"Back to journalism"</a>
-                                    <span class="text-gray-400">"•"</span>
-                                    <a class="underline" href=source_url target="_blank" rel="noreferrer">
-                                        "Original publication"
-                                    </a>
-                                </div>
-                                {(!images.is_empty()).then(|| {
-                                    view! {
-                                        <div class="mb-8 flex flex-wrap gap-3">
-                                            {images
-                                                .iter()
-                                                .map(|src| view! { <img src=src class="h-32 w-auto rounded" alt="article image"/> })
-                                                .collect_view()}
-                                        </div>
-                                    }
-                                })}
-                                <div class="article-content prose max-w-none" inner_html=content_html></div>
+
+
+
+                                <div class="article-content prose" inner_html=content_html></div>
                             </div>
                         }
                         .into_any()
