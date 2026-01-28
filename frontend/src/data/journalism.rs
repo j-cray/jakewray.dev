@@ -1,3 +1,4 @@
+// Force rebuild to include updated JSON
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 
