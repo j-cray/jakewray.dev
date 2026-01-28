@@ -71,8 +71,8 @@ fn extract_body_preview(html: &str) -> Option<String> {
     None
 }
 
-fn remove_date_paragraph(html: &str) -> String {
-    // Reuse extract logic to find the range, then cut it out
+fn replace_date_paragraph(html: &str, new_date: &str) -> String {
+    // Reuse extract logic to find the range, then replace it
      let after_h4 = html.find("</h4>").map(|idx| idx + 5).unwrap_or(0);
     let mut pos = after_h4;
     for _ in 0..5 {
@@ -80,26 +80,15 @@ fn remove_date_paragraph(html: &str) -> String {
             let open_end = p_inner.find('>').map(|i| i + 1).unwrap_or(0);
             let text = strip_tags(&p_inner[open_end..]);
             if starts_with_month(&text) {
-                // Found it. Reconstruct string without this paragraph.
-                // We need the ACTUAL start index of the <p...
-                // extract_between returns (substring, next_index)
-                // We know next is the index AFTER </p>
-                // So the removal range is [pos..next] IF extract_between starts searching at pos
-                // Wait, extract_between finds the first occurrence starting at pos.
-                // Let's verify the index logic.
-                // start_idx = haystack[from..].find(start_pat)? + from;
-                // end_idx ...
-                // So the range to remove is indeed what we need. However, extract_between doesn't return the start index.
-                // Let's implement this logic locally here.
                 if let Some(start_rel) = html[pos..].find("<p") {
                     let start_abs = pos + start_rel;
                      let after_start = start_abs + 2; // <p len
                     if let Some(end_rel) = html[after_start..].find("</p>") {
                          let end_abs = after_start + end_rel + 4; // </p> len
-                         // Verify it matches what we checked
-                         // (We re-did the search, so it should match the first one found)
                           let mut out = html.to_string();
-                          out.replace_range(start_abs..end_abs, "");
+                          // Construct replacement paragraph
+                          let replacement = format!("<p class=\"text-sm text-gray-500 mb-6\">{}</p>", new_date);
+                          out.replace_range(start_abs..end_abs, &replacement);
                           return out;
                     }
                 }
@@ -180,15 +169,11 @@ pub fn JournalismArticlePage() -> impl IntoView {
                                 s.replace_range(start..end, "");
                                 s
                             } else { content_html };
-                             remove_date_paragraph(&s)
+                             replace_date_paragraph(&s, &display_date)
                         };
                         view! {
-                            <div>
+                            <div class="article-container">
                                 <h1 class="mb-4 text-4xl font-bold text-gray-900">{title}</h1>
-                                <p class="text-sm text-gray-500 mb-6">{display_date}</p>
-
-
-
                                 <div class="article-content prose" inner_html=content_html></div>
                             </div>
                         }

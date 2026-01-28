@@ -307,7 +307,7 @@ a {
   text-overflow: ellipsis;
 }
 
-.article-content {
+.article-container {
   max-width: 720px;
   /* Constrain width */
   margin: 0 auto;
@@ -315,6 +315,7 @@ a {
 }
 
 .article-content img {
+
   width: 100%;
   /* Fill the column */
   height: auto;
