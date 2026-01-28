@@ -313,6 +313,17 @@ a {
   margin: 0 auto;
   /* Center column */
   color: black;
+
+  p,
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  li {
+    color: black;
+  }
 }
 
 .article-content img {
@@ -483,6 +494,11 @@ textarea {
 .mt-4 {
   margin-top: 1rem;
 }
+
+.mt-12 {
+  margin-top: 3rem;
+}
+
 
 /* Layout helpers for auth pages */
 .center-page {
