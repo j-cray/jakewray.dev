@@ -123,7 +123,7 @@ def parse_article(url):
                     
                     # Try to find caption in this slide
                     caption_text = ""
-                    caption_div = slide.find(class_='caption')
+                    caption_div = slide.find(class_='slide-caption')
                     if caption_div:
                         caption_text = caption_div.get_text(strip=True)
                     else:
