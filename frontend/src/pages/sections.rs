@@ -274,19 +274,18 @@ pub fn JournalismArticlePage() -> impl IntoView {
                         let title = article.title.clone();
                         let source_url = article.source_url.clone();
                         let images = article.images.clone();
+                        let captions = article.captions.clone();
                         let content_html = article.content_html.clone();
                         // remove first subhead h4 from article content
                         let content_html = {
-
-                            let s = if let Some((_, end)) = extract_between(&content_html, "<h4", "</h4>", 0) {
-                                let start = content_html.find("<h4").unwrap_or(0);
-                                let mut s = content_html.clone();
-                                s.replace_range(start..end, "");
-                                s
-                            } else { content_html };
-                             let s = replace_date_paragraph(&s, &display_date);
-                             let s = bold_byline(&s);
-                             let s = bold_byline(&s);
+                             let mut s = content_html;
+                             // remove the H4
+                             if let Some(start) = s.find("<h4") {
+                                 if let Some(end) = s[start..].find("</h4>") {
+                                     s.replace_range(start..start + end + 5, "");
+                                 }
+                             }
+                             let s = strip_tags(&s);
                              let s = italicize_origin_line(&s);
                              linkify_images(&s)
                         };
@@ -304,7 +303,7 @@ pub fn JournalismArticlePage() -> impl IntoView {
                                                     <a href=url.clone() target="_blank" class="article-image-link">
                                                         <img src=url.clone() class="w-full h-auto rounded-lg" alt=title.clone() />
                                                     </a>
-                                                    {article.captions.first().map(|cap| view! {
+                                                    {captions.first().map(|cap| view! {
                                                         <figcaption class="mt-2 text-sm text-gray-500 italic">
                                                             {cap.clone()}
                                                         </figcaption>
