@@ -87,7 +87,7 @@ fn replace_date_paragraph(html: &str, new_date: &str) -> String {
                          let end_abs = after_start + end_rel + 4; // </p> len
                           let mut out = html.to_string();
                           // Construct replacement paragraph
-                          let replacement = format!("<p class=\"text-sm text-gray-500 mb-6\">{}</p>", new_date);
+                          let replacement = format!("<p class=\"text-sm text-gray-500 mb-6 mt-12\">{}</p>", new_date);
                           out.replace_range(start_abs..end_abs, &replacement);
                           return out;
                     }
