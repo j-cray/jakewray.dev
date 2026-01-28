@@ -339,6 +339,11 @@ a {
   }
 }
 
+.article-content> :last-child {
+  margin-bottom: 0;
+}
+}
+
 .article-content img {
   width: 100%;
   height: auto;
