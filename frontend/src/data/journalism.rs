@@ -11,6 +11,7 @@ pub struct JournalismArticle {
     pub source_url: String,
     pub content_html: String,
     pub images: Vec<String>,
+    #[serde(default)]
     pub captions: Vec<String>,
     pub excerpt: String,
 }
