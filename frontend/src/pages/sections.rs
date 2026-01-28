@@ -143,6 +143,47 @@ fn bold_byline(html: &str) -> String {
     out
 }
 
+fn linkify_images(html: &str) -> String {
+    // Find <img ... src="..." ...> and wrap in <a href="..." target="_blank" class="article-image-link">...</a>
+    let mut out = html.to_string();
+    let mut search_pos = 0;
+
+    while let Some(open_rel) = out[search_pos..].find("<img") {
+        let abs_open = search_pos + open_rel;
+        
+        // find end of tag
+        if let Some(close_rel) = out[abs_open..].find('>') {
+            let abs_close = abs_open + close_rel + 1;
+            let img_tag = &out[abs_open..abs_close];
+            
+            // Extract src
+            let src = if let Some(src_start_rel) = img_tag.find("src=\"") {
+                let after_src = src_start_rel + 5;
+                if let Some(src_end_rel) = img_tag[after_src..].find('"') {
+                    Some(&img_tag[after_src..after_src + src_end_rel])
+                } else { None }
+            } else { None };
+            
+            if let Some(src_url) = src {
+                 let wrapper_start = format!("<a href=\"{}\" target=\"_blank\" class=\"article-image-link\">", src_url);
+                 let wrapper_end = "</a>";
+                 
+                 // Replace strict range
+                 let new_content = format!("{}{}{}", wrapper_start, img_tag, wrapper_end);
+                 out.replace_range(abs_open..abs_close, &new_content);
+                 
+                 search_pos = abs_open + new_content.len();
+                 continue;
+            }
+             search_pos = abs_close;
+
+        } else {
+             search_pos = abs_open + 4;
+        }
+    }
+    out
+}
+
 #[component]
 pub fn JournalismPage() -> impl IntoView {
     let articles = journalism::all_articles();
@@ -214,7 +255,8 @@ pub fn JournalismArticlePage() -> impl IntoView {
                                 s
                             } else { content_html };
                              let s = replace_date_paragraph(&s, &display_date);
-                             bold_byline(&s)
+                             let s = bold_byline(&s);
+                             linkify_images(&s)
                         };
                         view! {
                             <div class="article-container">

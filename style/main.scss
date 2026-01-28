@@ -339,20 +339,29 @@ a {
 }
 
 .article-content img {
-
   width: 100%;
-  /* Fill the column */
   height: auto;
-  /* Maintain aspect ratio */
+  margin: 0;
+  /* Reset margin, handled by figure */
+  border: 1px solid black;
+  transition: transform 0.3s ease;
   display: block;
-  border-radius: var(--radius-md);
-  margin: 1.5rem 0;
-  /* Vertical spacing */
 }
 
-/* Reduce caption spacing */
+.article-content img:hover {
+  transform: scale(1.02);
+  cursor: pointer;
+}
+
+.article-image-link {
+  display: block;
+  width: 100%;
+}
+
 .article-container figure {
-  margin-bottom: 1.5rem;
+  margin: 1.5rem 0;
+  margin-bottom: 2rem;
+  /* Space between figure group and text */
 }
 
 .article-container figcaption {
