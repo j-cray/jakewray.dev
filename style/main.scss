@@ -29,24 +29,24 @@
 
 /* Themes */
 .theme-code {
-  --primary: #10b981;
-  /* Emerald 500 */
-  --primary-dark: #059669;
+  --primary: #059669;
   /* Emerald 600 */
+  --primary-dark: #047857;
+  /* Emerald 700 */
 }
 
 .theme-blog {
-  --primary: #3b82f6;
-  /* Blue 500 */
-  --primary-dark: #2563eb;
+  --primary: #2563eb;
   /* Blue 600 */
+  --primary-dark: #1d4ed8;
+  /* Blue 700 */
 }
 
 .theme-journalism {
-  --primary: #ef4444;
-  /* Red 500 */
-  --primary-dark: #dc2626;
+  --primary: #dc2626;
   /* Red 600 */
+  --primary-dark: #b91c1c;
+  /* Red 700 */
 }
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;600;700&display=swap');
@@ -389,6 +389,7 @@ a {
 .article-content img:hover {
   transform: scale(1.02);
   cursor: pointer;
+  border-color: var(--primary);
 }
 
 .article-image-link {

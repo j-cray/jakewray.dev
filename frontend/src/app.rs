@@ -55,7 +55,6 @@ fn MainLayout() -> impl IntoView {
     let location = use_location();
     let theme_class = move || {
         let path = location.pathname.get();
-        leptos::logging::log!("Current path: {}, applying theme...", path);
         if path.starts_with("/code") {
             "theme-code"
         } else if path.starts_with("/blog") {
