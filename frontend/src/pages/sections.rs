@@ -285,7 +285,7 @@ pub fn JournalismArticlePage() -> impl IntoView {
                                      s.replace_range(start..start + end + 5, "");
                                  }
                              }
-                             let s = strip_tags(&s);
+                             // Removed strip_tags to preserve paragraph structure
                              let s = italicize_origin_line(&s);
                              linkify_images(&s)
                         };
@@ -310,9 +310,9 @@ pub fn JournalismArticlePage() -> impl IntoView {
                                                     })}
                                                 </figure>
                                             })}
-                                            <div class="flex flex-col text-gray-600 text-sm">
-                                                <span class="mb-1">{display_date.clone()}</span>
-                                                <span class="font-bold">"By Jake Wray"</span>
+                                            <div class="flex flex-col text-gray-500 text-sm">
+                                                <div class="mb-4">{display_date.clone()}</div>
+                                                <div class="font-bold">"By Jake Wray"</div>
                                             </div>
                                         </div>
                                     })
