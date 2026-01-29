@@ -287,6 +287,7 @@ pub fn JournalismArticlePage() -> impl IntoView {
                              }
                              // Removed strip_tags to preserve paragraph structure
                              let s = italicize_origin_line(&s);
+                             let s = bold_byline(&s);
                              linkify_images(&s)
                         };
                         let is_terrace = source_url.contains("terracestandard.com");
@@ -297,7 +298,7 @@ pub fn JournalismArticlePage() -> impl IntoView {
                                 
                                 {if is_terrace {
                                     Some(view! {
-                                        <div class="mb-8">
+                                        <div class="mb-6">
                                             {images.first().map(|url| view! {
                                                 <figure class="mb-4">
                                                     <a href=url.clone() target="_blank" class="article-image-link">
@@ -310,9 +311,9 @@ pub fn JournalismArticlePage() -> impl IntoView {
                                                     })}
                                                 </figure>
                                             })}
-                                            <div class="flex flex-col text-gray-500 text-sm">
+                                            <div class="flex flex-col text-gray-900">
                                                 <div class="mb-4">{display_date.clone()}</div>
-                                                <div class="font-bold">"By Jake Wray"</div>
+                                                <div class="font-bold mb-4">"By Jake Wray"</div>
                                             </div>
                                         </div>
                                     })
