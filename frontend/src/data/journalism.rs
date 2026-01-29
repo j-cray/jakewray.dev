@@ -16,6 +16,7 @@ pub struct JournalismArticle {
     pub excerpt: String,
 }
 
+static ARTICLES: Lazy<Vec<JournalismArticle>> = Lazy::new(|| {
     let mut parsed: Vec<JournalismArticle> = serde_json::from_str(include_str!("journalism.json"))
         .expect("journalism.json should parse");
 
