@@ -22,7 +22,15 @@ fn starts_with_month(s: &str) -> bool {
         "May", "June", "July", "Aug.", "August", "Sept.", "September", "Oct.",
         "October", "Nov.", "November", "Dec.", "December",
     ];
-    MONTHS.iter().any(|m| sm.starts_with(m))
+    MONTHS.iter().any(|m| {
+        if sm.starts_with(m) {
+            let after = &sm[m.len()..];
+            // Match if it's the end of string or next char is not a letter
+            after.chars().next().map_or(true, |c| !c.is_alphabetic())
+        } else {
+            false
+        }
+    })
 }
 
 fn extract_between(haystack: &str, start_pat: &str, end_pat: &str, from: usize) -> Option<(String, usize)> {
