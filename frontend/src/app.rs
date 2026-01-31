@@ -4,6 +4,7 @@ use crate::pages::admin::composer::AdminComposer;
 use crate::pages::admin::dashboard::AdminDashboard;
 use crate::pages::admin::login::AdminLoginPage;
 use crate::pages::admin::sync_manager::AdminSyncManager;
+use crate::pages::about::AboutPage;
 use crate::pages::sections::{
     JournalismArticlePage, JournalismPage, PersonalBlogPage, ProgrammingPage,
 };
@@ -79,7 +80,7 @@ fn MainLayout() -> impl IntoView {
                     <Route path=path!("/journalism") view=JournalismPage/>
                     <Route path=path!("/journalism/:slug") view=JournalismArticlePage/>
                     <Route path=path!("/blog") view=PersonalBlogPage/>
-                    <Route path=path!("/about") view=DummyPage/>
+                    <Route path=path!("/about") view=AboutPage/>
 
                     // Admin Routes
                     <Route path=path!("/admin") view=AdminRedirect/>
@@ -121,7 +122,7 @@ fn HomePage() -> impl IntoView {
             <header class="hero">
                 <h1 class="hero-title">"Jake Wray"</h1>
                 <p class="hero-subtitle">
-                    "Journalist. Developer. Photographer. Creating extensive archives of the present."
+                    "A work in progress (me and the website)"
                 </p>
             </header>
 
