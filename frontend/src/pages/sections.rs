@@ -222,6 +222,17 @@ fn italicize_origin_line(html: &str) -> String {
     out
 }
 
+fn format_cp_style(date: &str) -> String {
+    let date = date.replace("January", "Jan.")
+        .replace("February", "Feb.")
+        .replace("August", "Aug.")
+        .replace("September", "Sept.")
+        .replace("October", "Oct.")
+        .replace("November", "Nov.")
+        .replace("December", "Dec.");
+    date
+}
+
 #[component]
 pub fn JournalismPage() -> impl IntoView {
     let articles = journalism::all_articles();
@@ -245,6 +256,8 @@ pub fn JournalismPage() -> impl IntoView {
                         let thumb_src = image.clone().unwrap_or_else(|| "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='400' height='300' viewBox='0 0 400 300'><rect width='400' height='300' fill='%23e5e7eb'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' fill='%239ca3af' font-size='16' font-family='Inter, sans-serif'>Image coming soon</text></svg>".to_string());
                         let date = extract_printed_date(&article.content_html)
                             .unwrap_or_else(|| article.display_date.clone());
+                        let date = format_cp_style(&date);
+
                         view! {
                             <a href=format!("/journalism/{}", slug) class="journalism-card">
                                 <div class="journalism-thumb">
@@ -279,6 +292,8 @@ pub fn JournalismArticlePage() -> impl IntoView {
                     .map(|article| {
                         let display_date = extract_printed_date(&article.content_html)
                             .unwrap_or_else(|| article.display_date.clone());
+                        let display_date = format_cp_style(&display_date);
+
                         let title = article.title.clone();
                         let source_url = article.source_url.clone();
                         let images = article.images.clone();

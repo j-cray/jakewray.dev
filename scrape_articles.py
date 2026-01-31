@@ -87,12 +87,28 @@ def parse_article(url):
         try:
             dt = datetime.strptime(iso_date, '%Y-%m-%d')
             display_date = dt.strftime('%B %d, %Y')
+            
+            # CP Style replacements
+            cp_replacements = {
+                "January": "Jan.", "February": "Feb.", "August": "Aug.", 
+                "September": "Sept.", "October": "Oct.", "November": "Nov.", "December": "Dec."
+            }
+            for full, abbrev in cp_replacements.items():
+                display_date = display_date.replace(full, abbrev)
+                
         except ValueError:
             display_date = iso_date
     else:
-        now = datetime.now()
         iso_date = now.strftime('%Y-%m-%d')
         display_date = now.strftime('%B %d, %Y')
+    
+    # CP Style replacements
+    cp_replacements = {
+        "January": "Jan.", "February": "Feb.", "August": "Aug.", 
+        "September": "Sept.", "October": "Oct.", "November": "Nov.", "December": "Dec."
+    }
+    for full, abbrev in cp_replacements.items():
+        display_date = display_date.replace(full, abbrev)
 
     # Content
     content_div = soup.select_one('#article_content')
