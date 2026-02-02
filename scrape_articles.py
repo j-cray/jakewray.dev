@@ -7,9 +7,16 @@ from datetime import datetime
 import re
 
 # Configuration
-BASE_URLS = [
-    "https://terracestandard.com/author/jakewray/",
-    "https://terracestandard.com/author/jakewray/page/2/"
+# Configuration
+TARGET_URLS = [
+    "https://terracestandard.com/2025/10/03/study-finds-131-people-living-without-homes-in-terrace-area/",
+    "https://terracestandard.com/2025/10/16/b-c-s-toxic-drug-crisis-continues-to-hit-hardest-in-the-north/",
+    "https://terracestandard.com/2025/04/23/skeena-bulkley-valley-candidates-spar-over-healthcare-at-burns-lake-forum/",
+    "https://terracestandard.com/2025/04/11/alcohol-consumption-in-b-c-drops-to-its-lowest-point-in-2-decades/",
+    "https://terracestandard.com/2020/07/22/highway-of-tears-memorial-totem-pole-to-be-raised-in-northern-b-c/",
+    "https://terracestandard.com/2020/05/21/terrace-couples-dogs-battle-wolves-while-camping/",
+    "https://terracestandard.com/2020/09/16/skeena-voices-witchcraft-nothing-like-in-hollywood-movies/",
+    "https://terracestandard.com/2020/09/03/three-covid-19-cases-confirmed-in-the-nass-valley/",
 ]
 DATA_FILE = "frontend/src/data/journalism.json"
 
@@ -217,20 +224,10 @@ def main():
         
     existing_slugs = get_existing_slugs(data)
     
-    all_article_urls = set()
-    
-    for base_url in BASE_URLS:
-        html = fetch_page(base_url)
-        if html:
-            soup = BeautifulSoup(html, 'html.parser')
-            urls = extract_article_urls(soup)
-            print(f"Found {len(urls)} articles on {base_url}")
-            all_article_urls.update(urls)
-            
-    print(f"Total unique articles found: {len(all_article_urls)}")
+    existing_slugs = get_existing_slugs(data)
     
     new_count = 0
-    for url in all_article_urls:
+    for url in TARGET_URLS:
          slug = url.strip('/').split('/')[-1]
          if slug in existing_slugs:
              print(f"Skipping existing: {slug}")
@@ -241,7 +238,10 @@ def main():
          if article_data:
              data.append(article_data)
              new_count += 1
-             time.sleep(1)
+         else:
+             print(f"Failed to scrape {url}")
+         
+         time.sleep(1)
     
     # Sort data by iso_date descending
     data.sort(key=lambda x: x['iso_date'], reverse=True)
