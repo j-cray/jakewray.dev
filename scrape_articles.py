@@ -10,10 +10,10 @@ import re
 # Configuration
 TARGET_URLS = [
     "https://terracestandard.com/2025/10/03/study-finds-131-people-living-without-homes-in-terrace-area/",
-    "https://terracestandard.com/2025/10/16/b-c-s-toxic-drug-crisis-continues-to-hit-hardest-in-the-north/",
-    "https://terracestandard.com/2025/04/23/skeena-bulkley-valley-candidates-spar-over-healthcare-at-burns-lake-forum/",
-    "https://terracestandard.com/2025/04/11/alcohol-consumption-in-b-c-drops-to-its-lowest-point-in-2-decades/",
-    "https://terracestandard.com/2020/07/22/highway-of-tears-memorial-totem-pole-to-be-raised-in-northern-b-c/",
+    "https://terracestandard.com/2025/10/16/terrace-has-second-highest-death-rate-from-toxic-drugs-out-of-all-communities-in-b-c/",
+    "https://terracestandard.com/2025/04/23/candidates-spar-over-healthcare-at-burns-lake-all-candidates-forum/",
+    "https://terracestandard.com/2025/04/10/alcohol-consumption-in-northwest-bc-soars-above-provincial-average/",
+    "https://terracestandard.com/2020/07/22/highway-of-tears-memorial-totem-pole-to-be-raised-on-kitsumkalum-territory-west-of-terrace/",
     "https://terracestandard.com/2020/05/21/terrace-couples-dogs-battle-wolves-while-camping/",
     "https://terracestandard.com/2020/09/16/skeena-voices-witchcraft-nothing-like-in-hollywood-movies/",
     "https://terracestandard.com/2020/09/03/three-covid-19-cases-confirmed-in-the-nass-valley/",
