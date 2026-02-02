@@ -208,9 +208,16 @@ def parse_article(url):
         text = content_div.get_text(separator=' ', strip=True)
         excerpt = text[:300] + "..." if len(text) > 300 else text
 
-    # Validation: Skip if filtered content is empty
+    # Validation: Skip if filtered content is empty or contains "files from Jake Wray" attribution
     if not content_html or not title or title == "Untitled":
         print(f"  -> Failed validation: Empty content or no title.")
+        return None
+        
+    # Check if article is only "with files from" Jake Wray
+    # Case insensitive check
+    lower_content = content_html.lower()
+    if 'files from jake wray' in lower_content:
+        print(f"  -> Failed validation: Article is only contributed to by Jake Wray (not primary author).")
         return None
 
     # Fallback image
