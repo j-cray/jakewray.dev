@@ -14,6 +14,8 @@ pub struct JournalismArticle {
     #[serde(default)]
     pub captions: Vec<String>,
     pub excerpt: String,
+    #[serde(default)]
+    pub byline: Option<String>,
 }
 
 static ARTICLES: Lazy<Vec<JournalismArticle>> = Lazy::new(|| {

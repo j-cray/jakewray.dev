@@ -336,7 +336,7 @@ pub fn JournalismArticlePage() -> impl IntoView {
                                             })}
                                             <div class="flex flex-col text-gray-900">
                                                 <div class="mb-4">{display_date.clone()}</div>
-                                                <div class="font-bold mb-4">"By Jake Wray"</div>
+                                                <div class="font-bold mb-4">{article.byline.clone().unwrap_or("By Jake Wray".to_string())}</div>
                                             </div>
                                         </div>
                                     })
