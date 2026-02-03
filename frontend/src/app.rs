@@ -18,7 +18,7 @@ use leptos_router::hooks::use_location;
 #[component]
 pub fn App() -> impl IntoView {
     provide_meta_context();
-    let _ = use_context::<leptos::config::LeptosOptions>().unwrap_or_else(|| {
+    let options = use_context::<leptos::config::LeptosOptions>().unwrap_or_else(|| {
         // Fallback for contexts that don't inject options (e.g., route list gen / client mount).
         // Matches defaults used in backend when env vars are absent.
         leptos::config::LeptosOptions::builder()
@@ -45,7 +45,7 @@ pub fn App() -> impl IntoView {
                     <MainLayout/>
 
                 </Router>
-                <HydrationScripts/>
+                <HydrationScripts options=options/>
             </body>
         </html>
     }
