@@ -4,6 +4,7 @@ use leptos::prelude::*;
 use leptos_router::hooks::use_params_map;
 use leptos::task::spawn_local;
 use leptos_router::components::A;
+use crate::components::media_picker::MediaPicker;
 
 fn strip_tags(s: &str) -> String {
     let mut out = String::with_capacity(s.len());
@@ -333,6 +334,8 @@ pub fn JournalismArticlePage() -> impl IntoView {
     let (edit_date, set_edit_date) = signal(String::new()); // using iso_date or display_date?
     let (edit_byline, set_edit_byline) = signal(String::new()); // using iso_date or display_date?
     let (edit_html, set_edit_html) = signal(String::new());
+    let (edit_images, set_edit_images) = signal(Vec::<String>::new());
+    let (show_media_picker, set_show_media_picker) = signal(false);
     let (save_status, set_save_status) = signal(String::new());
 
     let turn_on_edit = move |article: &Article| {
@@ -340,6 +343,7 @@ pub fn JournalismArticlePage() -> impl IntoView {
         set_edit_date.set(article.display_date.clone());
         set_edit_byline.set(article.byline.clone().unwrap_or_default());
         set_edit_html.set(article.content_html.clone());
+        set_edit_images.set(article.images.clone());
         set_is_editing.set(true);
     };
 
@@ -351,6 +355,7 @@ pub fn JournalismArticlePage() -> impl IntoView {
             new_article.title = edit_title.get();
             new_article.display_date = edit_date.get();
             new_article.byline = Some(edit_byline.get());
+            new_article.images = edit_images.get();
             new_article.content_html = edit_html.get();
             
             match save_article(t, new_article).await {
@@ -461,7 +466,14 @@ pub fn JournalismArticlePage() -> impl IntoView {
                                                             })}
                                                             <div class="flex flex-col text-gray-900">
                                                                 <div class="mb-4">{display_date.clone()}</div>
-                                                                <div class="font-bold mb-4">{article.byline.clone().unwrap_or("By Jake Wray".to_string())}</div>
+                                                                <div class="font-bold mb-4">
+                                                                    {let b = article.byline.clone().unwrap_or_else(|| "Jake Wray".to_string());
+                                                                     if b.to_lowercase().starts_with("by ") {
+                                                                         b
+                                                                     } else {
+                                                                         format!("By {}", b)
+                                                                     }}
+                                                                </div>
                                                             </div>
                                                         </div>
                                                     })
@@ -508,7 +520,53 @@ pub fn JournalismArticlePage() -> impl IntoView {
                                                         on:input=move |ev| set_edit_byline.set(event_target_value(&ev))
                                                     />
                                                 </div>
-                                                
+
+                                                <div class="form-group mb-4">
+                                                    <label class="block font-bold mb-1">"Main Image"</label>
+                                                    <div class="flex items-start gap-4 mb-2">
+                                                        {move || {
+                                                            let imgs = edit_images.get();
+                                                            if let Some(src) = imgs.first() {
+                                                                view! {
+                                                                    <div class="relative w-32 h-32 border rounded overflow-hidden">
+                                                                        <img src=src.clone() class="w-full h-full object-cover" />
+                                                                        <button 
+                                                                            type="button"
+                                                                            class="absolute top-0 right-0 bg-red-600 text-white p-1 text-xs"
+                                                                            on:click=move |_| set_edit_images.update(|i| { i.clear(); })
+                                                                        > "×" </button>
+                                                                    </div>
+                                                                }.into_any()
+                                                            } else {
+                                                                view! { <div class="w-32 h-32 border rounded bg-gray-100 flex items-center justify-center text-gray-400">"No Image"</div> }.into_any()
+                                                            }
+                                                        }}
+                                                        <button 
+                                                            type="button"
+                                                            class="btn btn-sm btn-secondary"
+                                                            on:click=move |_| set_show_media_picker.set(!show_media_picker.get())
+                                                        >
+                                                            {move || if show_media_picker.get() { "Close Picker" } else { "Change Image" }}
+                                                        </button>
+                                                    </div>
+
+                                                    {move || if show_media_picker.get() {
+                                                        let current = edit_images.get().first().cloned();
+                                                        Some(view! {
+                                                            <div class="mt-4 border rounded p-4 bg-gray-50">
+                                                                <MediaPicker 
+                                                                    token=token.into()
+                                                                    current_image=current
+                                                                    on_select=move |url| {
+                                                                        set_edit_images.set(vec![url]);
+                                                                        set_show_media_picker.set(false);
+                                                                    }
+                                                                />
+                                                            </div>
+                                                        })
+                                                    } else { None }}
+                                                </div>
+
                                                 <div class="form-group mb-4">
                                                     <label class="block font-bold mb-1">"HTML Body"</label>
                                                     <textarea class="w-full p-2 border rounded h-96 font-mono text-sm"

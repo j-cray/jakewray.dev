@@ -17,6 +17,12 @@ pub struct Article {
     pub byline: Option<String>,
 }
 
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+pub struct MediaItem {
+    pub url: String,
+    pub name: String,
+}
+
 #[cfg(feature = "ssr")]
 pub mod ssr_utils {
     use super::*;
@@ -141,4 +147,73 @@ pub async fn delete_article(token: String, slug: String) -> Result<(), ServerFnE
     }
     
     Ok(())
+}
+
+#[server(ListMedia, "/api")]
+pub async fn list_media(token: String) -> Result<Vec<MediaItem>, ServerFnError> {
+    use self::ssr_utils::verify_token;
+    use std::process::Command;
+    
+    verify_token(&token)?;
+
+    let bucket = "gs://jakewray-portfolio/media/journalism/";
+    let output = Command::new("gsutil")
+        .arg("ls")
+        .arg(bucket)
+        .output()?;
+    
+    if !output.status.success() {
+        return Err(ServerFnError::new("Failed to list GCS media"));
+    }
+    
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let mut items = Vec::new();
+    let base_url = "https://storage.googleapis.com/jakewray-portfolio";
+
+    for line in stdout.lines() {
+        let line = line.trim();
+        if line.is_empty() || line.ends_with('/') { continue; } // Skip directories
+        
+        if let Some(path) = line.strip_prefix("gs://jakewray-portfolio/") {
+            let name = path.split('/').last().unwrap_or(path).to_string();
+            items.push(MediaItem {
+                url: format!("{}/{}", base_url, path),
+                name,
+            });
+        }
+    }
+    
+    Ok(items)
+}
+
+#[server(UploadMedia, "/api")]
+pub async fn upload_media(token: String, filename: String, data: Vec<u8>) -> Result<String, ServerFnError> {
+    use self::ssr_utils::verify_token;
+    use std::process::{Command, Stdio};
+    use std::io::Write;
+    
+    verify_token(&token)?;
+
+    // We'll upload to a 'uploads' folder for manual picking or sorting later
+    let timestamp = chrono::Utc::now().timestamp();
+    let safe_name = format!("{}_{}", timestamp, filename.replace(" ", "_"));
+    let destination = format!("gs://jakewray-portfolio/media/journalism/uploads/{}", safe_name);
+    
+    let mut child = Command::new("gsutil")
+        .arg("cp")
+        .arg("-") // from stdin
+        .arg(&destination)
+        .stdin(Stdio::piped())
+        .spawn()?;
+    
+    if let Some(mut stdin) = child.stdin.take() {
+        stdin.write_all(&data)?;
+    }
+    
+    let status = child.wait()?;
+    if !status.success() {
+        return Err(ServerFnError::new("Failed to upload to GCS"));
+    }
+    
+    Ok(format!("https://storage.googleapis.com/jakewray-portfolio/media/journalism/uploads/{}", safe_name))
 }
