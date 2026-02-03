@@ -56,3 +56,6 @@ logs/
 
 # Docker
 docker-compose.override.yml
+
+# Imports
+imports/
