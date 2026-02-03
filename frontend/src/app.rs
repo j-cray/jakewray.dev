@@ -10,7 +10,6 @@ use crate::pages::sections::{
 };
 use leptos::prelude::*;
 use leptos_meta::*;
-use std::net::SocketAddr;
 use leptos_router::components::*;
 use leptos_router::*;
 use leptos_router::hooks::use_location;
@@ -18,18 +17,17 @@ use leptos_router::hooks::use_location;
 #[component]
 pub fn App() -> impl IntoView {
     provide_meta_context();
-    let options = use_context::<leptos::config::LeptosOptions>().unwrap_or_else(|| {
-        // Fallback for contexts that don't inject options (e.g., route list gen / client mount).
-        // Matches defaults used in backend when env vars are absent.
-        leptos::config::LeptosOptions::builder()
-            .output_name("jakewray_ca".to_string())
-            .site_pkg_dir("pkg".to_string())
-            .site_root("target/site".to_string())
-            .site_addr("0.0.0.0:3000".parse::<SocketAddr>().unwrap())
-            .reload_port(3001)
-            .build()
-    });
 
+    view! {
+        <Router>
+            <MainLayout/>
+        </Router>
+    }
+}
+
+#[component]
+pub fn Shell() -> impl IntoView {
+    let options = use_context::<leptos::config::LeptosOptions>().expect("LeptosOptions not found in Shell");
     view! {
         <html lang="en">
             <head>
@@ -40,14 +38,7 @@ pub fn App() -> impl IntoView {
                 <Stylesheet id="leptos" href="/pkg/jakewray_ca.css"/>
                 <MetaTags/>
             </head>
-
-            <body>
-                <Router>
-                    <MainLayout/>
-
-                </Router>
-                <HydrationScripts options=options/>
-            </body>
+            <body><App/><HydrationScripts options=options/></body>
         </html>
     }
 }

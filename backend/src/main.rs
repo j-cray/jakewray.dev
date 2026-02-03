@@ -4,7 +4,7 @@ use axum::http::Request;
 use axum::middleware::{self, Next};
 use bytes::Bytes;
 use dotenvy::dotenv;
-use frontend::App;
+use frontend::{App, Shell};
 use futures_util::stream;
 use futures_util::StreamExt;
 use leptos::context::provide_context;
@@ -95,7 +95,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     provide_context(options.clone());
                 }
             },
-            App,
+            Shell,
         )
         .fallback(file_and_error_handler)
         .layer(ServiceBuilder::new().layer(middleware::from_fn(inject_doctype)))
@@ -108,28 +108,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-async fn inject_doctype(
-    req: Request<Body>,
-    next: Next,
-) -> Result<AxumResponse, axum::http::StatusCode> {
-    let res = next.run(req).await;
 
-    if let Some(content_type) = res.headers().get(axum::http::header::CONTENT_TYPE) {
-        if let Ok(ct_str) = content_type.to_str() {
-            if ct_str.contains("text/html") {
-                let (parts, body) = res.into_parts();
-                let prefix = stream::once(async {
-                    Ok::<Bytes, axum::Error>(Bytes::from_static(b"<!DOCTYPE html>"))
-                });
-                let new_body = Body::from_stream(prefix.chain(body.into_data_stream()));
-                let new_res = axum::http::Response::from_parts(parts, new_body);
-                return Ok(new_res.into_response());
-            }
-        }
-    }
-
-    Ok(res.into_response())
-}
 
 async fn file_and_error_handler(
     State(state): State<AppState>,
@@ -147,7 +126,7 @@ async fn file_and_error_handler(
                 provide_context(state.leptos_options.clone());
                 provide_context(state.pool.clone());
             },
-            App,
+            Shell,
         );
         handler(req).await.into_response()
     }
