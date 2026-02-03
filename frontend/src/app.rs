@@ -45,6 +45,7 @@ pub fn App() -> impl IntoView {
                     <MainLayout/>
 
                 </Router>
+                <Scripts/>
             </body>
         </html>
     }
