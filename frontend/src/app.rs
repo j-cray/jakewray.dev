@@ -16,8 +16,6 @@ use leptos_router::hooks::use_location;
 
 #[component]
 pub fn App() -> impl IntoView {
-    provide_meta_context();
-
     view! {
         <Router>
             <MainLayout/>
@@ -27,6 +25,7 @@ pub fn App() -> impl IntoView {
 
 #[component]
 pub fn Shell() -> impl IntoView {
+    provide_meta_context();
     let options = use_context::<leptos::config::LeptosOptions>().expect("LeptosOptions not found in Shell");
     view! {
         <html lang="en">
