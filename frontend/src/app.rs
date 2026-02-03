@@ -38,6 +38,7 @@ pub fn App() -> impl IntoView {
                 <Meta name="description" content="Journalist, Programmer, Photographer."/>
                 <Title text="Jake Wray"/>
                 <Stylesheet id="leptos" href="/pkg/jakewray_ca.css"/>
+                <MetaTags/>
             </head>
 
             <body>
