@@ -5,6 +5,7 @@ use leptos_router::hooks::use_params_map;
 use leptos::task::spawn_local;
 use leptos_router::components::A;
 use crate::components::media_picker::MediaPicker;
+use wasm_bindgen::JsCast;
 
 fn strip_tags(s: &str) -> String {
     let mut out = String::with_capacity(s.len());
@@ -541,7 +542,7 @@ pub fn JournalismArticlePage() -> impl IntoView {
                                                                         </div>
                                                                     }.into_any()
                                                                 } else {
-                                                                    None
+                                                                    view! { <span class="hidden" /> }.into_any()
                                                                 }
                                                             }}
                                                             <button 
@@ -606,7 +607,11 @@ pub fn JournalismArticlePage() -> impl IntoView {
                                                                 <div class="flex bg-gray-100 rounded-lg border overflow-hidden mr-4">
                                                                     <button type="button" class="p-2 hover:bg-gray-200 text-gray-700 font-bold" title="Bold"
                                                                         on:mousedown=move |ev| { ev.prevent_default(); }
-                                                                        on:click=move |_| { let _ = web_sys::window().unwrap().document().unwrap().exec_command("bold"); }
+                                                                        on:click=move |_| { 
+                                                                            if let Ok(doc) = web_sys::window().unwrap().document().unwrap().dyn_into::<web_sys::HtmlDocument>() {
+                                                                                let _ = doc.exec_command("bold"); 
+                                                                            }
+                                                                        }
                                                                     >
                                                                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                                                                             <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" /> 
@@ -616,7 +621,11 @@ pub fn JournalismArticlePage() -> impl IntoView {
                                                                     </button>
                                                                     <button type="button" class="p-2 hover:bg-gray-200 text-gray-700 italic font-serif" title="Italic"
                                                                         on:mousedown=move |ev| { ev.prevent_default(); }
-                                                                        on:click=move |_| { let _ = web_sys::window().unwrap().document().unwrap().exec_command("italic"); }
+                                                                        on:click=move |_| { 
+                                                                            if let Ok(doc) = web_sys::window().unwrap().document().unwrap().dyn_into::<web_sys::HtmlDocument>() {
+                                                                                let _ = doc.exec_command("italic"); 
+                                                                            }
+                                                                        }
                                                                     >
                                                                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                                                                             <path fill-rule="evenodd" d="M6 4a1 1 0 011-1h.22a1 1 0 01.993.883l3.5 13.5a1 1 0 01-1.926.66l-.667-2.543H6.77l-1.332 2.664A1 1 0 014.544 18H4a1 1 0 01-1-1v-2a1 1 0 011-1h1.11l1.89-3.78L6 4z" clip-rule="evenodd" /> 
@@ -628,7 +637,9 @@ pub fn JournalismArticlePage() -> impl IntoView {
                                                                         on:mousedown=move |ev| { ev.prevent_default(); }
                                                                         on:click=move |_| { 
                                                                             if let Ok(Some(url)) = web_sys::window().unwrap().prompt_with_message("Enter URL:") {
-                                                                                let _ = web_sys::window().unwrap().document().unwrap().exec_command_with_string("createLink", false, &url);
+                                                                                if let Ok(doc) = web_sys::window().unwrap().document().unwrap().dyn_into::<web_sys::HtmlDocument>() {
+                                                                                    let _ = doc.exec_command_with_show_ui_and_value("createLink", false, &url);
+                                                                                }
                                                                             }
                                                                         }
                                                                     >
@@ -697,6 +708,7 @@ pub fn JournalismArticlePage() -> impl IntoView {
                                                     </button>
                                                 </div>
                                                 <p class="mt-2 text-sm text-gray-600">{save_status.get()}</p>
+                                                </div>
                                             </div>
                                         }.into_any()
                                     }
