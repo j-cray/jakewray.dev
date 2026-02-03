@@ -329,19 +329,22 @@ pub fn JournalismArticlePage() -> impl IntoView {
     // Edit State
     let (is_editing, set_is_editing) = signal(false);
     
-    // Form Signals (initialized when entering edit mode or loading article)
+    // Form Signals
     let (edit_title, set_edit_title) = signal(String::new());
-    let (edit_date, set_edit_date) = signal(String::new()); // using iso_date or display_date?
-    let (edit_byline, set_edit_byline) = signal(String::new()); // using iso_date or display_date?
+    let (edit_date, set_edit_date) = signal(String::new()); 
+    let (edit_byline, set_edit_byline) = signal(String::new());
+    let (edit_caption, set_edit_caption) = signal(String::new()); // New caption signal
     let (edit_html, set_edit_html) = signal(String::new());
     let (edit_images, set_edit_images) = signal(Vec::<String>::new());
     let (show_media_picker, set_show_media_picker) = signal(false);
+    let (show_html_code, set_show_html_code) = signal(false); // Toggle for RTE
     let (save_status, set_save_status) = signal(String::new());
 
     let turn_on_edit = move |article: &Article| {
         set_edit_title.set(article.title.clone());
         set_edit_date.set(article.display_date.clone());
         set_edit_byline.set(article.byline.clone().unwrap_or_default());
+        set_edit_caption.set(article.captions.first().cloned().unwrap_or_default());
         set_edit_html.set(article.content_html.clone());
         set_edit_images.set(article.images.clone());
         set_is_editing.set(true);
@@ -355,6 +358,7 @@ pub fn JournalismArticlePage() -> impl IntoView {
             new_article.title = edit_title.get();
             new_article.display_date = edit_date.get();
             new_article.byline = Some(edit_byline.get());
+            new_article.captions = if edit_caption.get().trim().is_empty() { vec![] } else { vec![edit_caption.get()] };
             new_article.images = edit_images.get();
             new_article.content_html = edit_html.get();
             
@@ -504,25 +508,9 @@ pub fn JournalismArticlePage() -> impl IntoView {
                                                         on:input=move |ev| set_edit_title.set(event_target_value(&ev))
                                                     />
                                                 </div>
-                                                
-                                                <div class="form-group mb-4">
-                                                    <label class="block font-bold mb-1">"Display Date"</label>
-                                                    <input type="text" class="w-full p-2 border rounded" 
-                                                        prop:value=edit_date.get()
-                                                        on:input=move |ev| set_edit_date.set(event_target_value(&ev))
-                                                    />
-                                                </div>
 
                                                 <div class="form-group mb-4">
-                                                    <label class="block font-bold mb-1">"Byline"</label>
-                                                    <input type="text" class="w-full p-2 border rounded" 
-                                                        prop:value=edit_byline.get()
-                                                        on:input=move |ev| set_edit_byline.set(event_target_value(&ev))
-                                                    />
-                                                </div>
-
-                                                <div class="form-group mb-4">
-                                                    <label class="block font-bold mb-1">"Main Image"</label>
+                                                    <label class="block font-bold mb-1">"Photo"</label>
                                                     <div class="flex items-start gap-4 mb-2">
                                                         {move || {
                                                             let imgs = edit_images.get();
@@ -568,11 +556,67 @@ pub fn JournalismArticlePage() -> impl IntoView {
                                                 </div>
 
                                                 <div class="form-group mb-4">
-                                                    <label class="block font-bold mb-1">"HTML Body"</label>
-                                                    <textarea class="w-full p-2 border rounded h-96 font-mono text-sm"
-                                                        prop:value=edit_html.get()
-                                                        on:input=move |ev| set_edit_html.set(event_target_value(&ev))
-                                                    ></textarea>
+                                                    <label class="block font-bold mb-1">"Caption"</label>
+                                                    <input type="text" class="w-full p-2 border rounded" 
+                                                        prop:value=edit_caption.get()
+                                                        on:input=move |ev| set_edit_caption.set(event_target_value(&ev))
+                                                    />
+                                                </div>
+                                                
+                                                <div class="form-group mb-4">
+                                                    <label class="block font-bold mb-1">"Display Date"</label>
+                                                    <input type="text" class="w-full p-2 border rounded" 
+                                                        prop:value=edit_date.get()
+                                                        on:input=move |ev| set_edit_date.set(event_target_value(&ev))
+                                                    />
+                                                </div>
+
+                                                <div class="form-group mb-4">
+                                                    <label class="block font-bold mb-1">"Byline"</label>
+                                                    <input type="text" class="w-full p-2 border rounded" 
+                                                        prop:value=edit_byline.get()
+                                                        on:input=move |ev| set_edit_byline.set(event_target_value(&ev))
+                                                    />
+                                                </div>
+
+                                                <div class="form-group mb-4">
+                                                    <div class="flex justify-between items-end mb-1">
+                                                        <label class="block font-bold mb-0">"Article Text"</label>
+                                                        <div class="text-xs bg-gray-100 rounded border flex overflow-hidden">
+                                                            <button 
+                                                                class=move || format!("px-3 py-1 {}", if !show_html_code.get() { "bg-white font-bold shadow-sm" } else { "text-gray-500 hover:bg-gray-50" })
+                                                                on:click=move |_| set_show_html_code.set(false)
+                                                            >
+                                                                "Visual Preview"
+                                                            </button>
+                                                            <button 
+                                                                class=move || format!("px-3 py-1 {}", if show_html_code.get() { "bg-white font-bold shadow-sm" } else { "text-gray-500 hover:bg-gray-50" })
+                                                                on:click=move |_| set_show_html_code.set(true)
+                                                            >
+                                                                "HTML Code"
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    {move || if show_html_code.get() {
+                                                        view! {
+                                                            <textarea class="w-full p-2 border rounded h-[500px] font-mono text-sm"
+                                                                prop:value=edit_html.get()
+                                                                on:input=move |ev| set_edit_html.set(event_target_value(&ev))
+                                                            ></textarea>
+                                                        }.into_any()
+                                                    } else {
+                                                        view! {
+                                                            <div 
+                                                                class="w-full p-4 border rounded h-[500px] overflow-y-auto prose max-w-none bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                                                                contenteditable="true"
+                                                                inner_html=edit_html.get_untracked()
+                                                                on:input=move |ev| {
+                                                                    set_edit_html.set(event_target::<web_sys::HtmlElement>(&ev).inner_html());
+                                                                }
+                                                            ></div>
+                                                        }.into_any()
+                                                    }}
                                                 </div>
                                                 
                                                 <div class="flex gap-4 items-center">
