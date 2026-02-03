@@ -3,6 +3,7 @@ use crate::api::articles::{get_articles, Article};
 use leptos::prelude::*;
 use leptos_router::hooks::use_params_map;
 use leptos::task::spawn_local;
+use leptos_router::components::A;
 
 fn strip_tags(s: &str) -> String {
     let mut out = String::with_capacity(s.len());
