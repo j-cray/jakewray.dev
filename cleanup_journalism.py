@@ -18,7 +18,7 @@ def main():
 
     for article in data:
         content = article.get('content_html', '')
-        if 'files from Jake Wray' in content or 'files from Jake wray' in content:
+        if re.search(r'files from.*Jake Wray', content, re.IGNORECASE):
             removed_slugs.append(article['slug'])
         else:
             clean_data.append(article)

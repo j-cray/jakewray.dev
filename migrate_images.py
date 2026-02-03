@@ -1,6 +1,6 @@
 import json
 import os
-import requests
+import urllib.request
 import subprocess
 import shutil
 import time
@@ -55,19 +55,15 @@ def main():
             
             print(f"Migrating image for {slug}: {img_url}")
             
+            # ... (migration logic) ...
             try:
-                response = requests.get(img_url, stream=True, timeout=10)
-                response.raise_for_status()
-                
-                filename = get_filename_from_url(img_url)
-                # Sanitize filename if needed, but usually basename is okay
-                # Ensure filename is unique within the article context to avoid collisions?
-                # Using the original basename should be fine for now.
-                
-                local_path = os.path.join(temp_dir, filename)
-                with open(local_path, 'wb') as f:
-                    response.raw.decode_content = True
-                    shutil.copyfileobj(response.raw, f)
+                # Use urllib instead of requests
+                with urllib.request.urlopen(img_url, timeout=10) as response:
+                    filename = get_filename_from_url(img_url)
+                    local_path = os.path.join(temp_dir, filename)
+                    
+                    with open(local_path, 'wb') as f:
+                        shutil.copyfileobj(response, f)
                 
                 destination = f"{MEDIA_PREFIX}/{slug}/{filename}"
                 new_url = upload_to_gcs(local_path, destination)
@@ -87,6 +83,42 @@ def main():
             except Exception as e:
                 print(f"Failed to migrate {img_url}: {e}")
                 new_images.append(img_url)
+
+        # Scan content_html for any remaining legacy URLs (e.g. in data attributes)
+        # Regex to find wp-content/uploads URLs
+        import re
+        legacy_urls = re.findall(r'(https://jakewrayportfolio\.wordpress\.com/wp-content/uploads/[^"\']+\.(?:jpg|jpeg|png|gif))', content_html)
+        
+        # Deduplicate
+        legacy_urls = list(set(legacy_urls))
+        
+        for legacy_url in legacy_urls:
+             # Skip if we just migrated it (though replace would have handled it, this covers cases not in 'images')
+             if "storage.googleapis.com" in legacy_url: 
+                 continue
+                 
+             print(f"Migrating embedded image for {slug}: {legacy_url}")
+             try:
+                with urllib.request.urlopen(legacy_url, timeout=10) as response:
+                    filename = get_filename_from_url(legacy_url)
+                    # Avoid overwriting processing
+                    local_path = os.path.join(temp_dir, f"embedded_{filename}")
+                    
+                    with open(local_path, 'wb') as f:
+                        shutil.copyfileobj(response, f)
+                
+                destination = f"{MEDIA_PREFIX}/{slug}/{filename}"
+                new_url = upload_to_gcs(local_path, destination)
+                
+                if new_url:
+                    content_html = content_html.replace(legacy_url, new_url)
+                    modified = True
+                    updated_count += 1
+                
+                if os.path.exists(local_path):
+                    os.remove(local_path)
+             except Exception as e:
+                 print(f"Failed to migrate embedded {legacy_url}: {e}")
 
         if modified:
             article['images'] = new_images
