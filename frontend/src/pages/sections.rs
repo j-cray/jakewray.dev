@@ -264,7 +264,7 @@ pub fn JournalismPage() -> impl IntoView {
                                         let date = format_cp_style(&date);
 
                                         view! {
-                                            <a href=format!("/journalism/{}", slug) class="journalism-card">
+                                            <A href=format!("/journalism/{}", slug) attr:class="journalism-card">
                                                 <div class="journalism-thumb">
                                                     <img src=thumb_src class="journalism-img" alt="article thumbnail"/>
                                                     {image.is_none().then(|| view! { <div class="journalism-placeholder-text">"Image coming soon"</div> })}
@@ -275,7 +275,7 @@ pub fn JournalismPage() -> impl IntoView {
                                                     <p class="journalism-excerpt">{preview_text}</p>
                                                     <div class="journalism-link">"Read more →"</div>
                                                 </div>
-                                            </a>
+                                            </A>
                                         }
                                     }).collect_view()}
                                 </div>
