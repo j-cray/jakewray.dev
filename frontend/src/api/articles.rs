@@ -159,6 +159,7 @@ pub async fn list_media(token: String) -> Result<Vec<MediaItem>, ServerFnError> 
     let bucket = "gs://jakewray-portfolio/media/journalism/";
     let output = Command::new("gsutil")
         .arg("ls")
+        .arg("-r") // Recursive
         .arg(bucket)
         .output()?;
     

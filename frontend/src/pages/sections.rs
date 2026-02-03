@@ -471,11 +471,15 @@ pub fn JournalismArticlePage() -> impl IntoView {
                                                             <div class="flex flex-col text-gray-900">
                                                                 <div class="mb-4">{display_date.clone()}</div>
                                                                 <div class="font-bold mb-4">
-                                                                    {let b = article.byline.clone().unwrap_or_else(|| "Jake Wray".to_string());
-                                                                     if b.to_lowercase().starts_with("by ") {
-                                                                         b
+                                                                    {let b = article.byline.clone().unwrap_or_default();
+                                                                     if !b.is_empty() {
+                                                                         if b.to_lowercase().starts_with("by ") {
+                                                                             Some(b)
+                                                                         } else {
+                                                                             Some(format!("By {}", b))
+                                                                         }
                                                                      } else {
-                                                                         format!("By {}", b)
+                                                                         None
                                                                      }}
                                                                 </div>
                                                             </div>
@@ -498,143 +502,187 @@ pub fn JournalismArticlePage() -> impl IntoView {
                                         let article_delete = article.clone();
 
                                         view! {
-                                            <div class="edit-container max-w-2xl mx-auto p-6 bg-white border border-blue-200 rounded shadow-lg">
-                                                <h2 class="text-2xl font-bold mb-6 pb-2 border-b">"Editing Article"</h2>
-                                                
-                                                <div class="form-group mb-4">
-                                                    <label class="block font-bold mb-1">"Headline"</label>
-                                                    <input type="text" class="w-full p-2 border rounded" 
-                                                        prop:value=edit_title.get()
-                                                        on:input=move |ev| set_edit_title.set(event_target_value(&ev))
-                                                    />
-                                                </div>
-
-                                                <div class="form-group mb-4">
-                                                    <label class="block font-bold mb-1">"Photo"</label>
-                                                    <div class="flex flex-col gap-4 mb-2">
-                                                        {move || {
-                                                            let imgs = edit_images.get();
-                                                            if let Some(src) = imgs.first() {
-                                                                view! {
-                                                                    <div class="relative group w-full max-w-md mt-2 mx-auto">
-                                                                        <div class="border-2 border-gray-200 rounded-lg overflow-hidden shadow-sm">
-                                                                            <img 
-                                                                                src=src.clone() 
-                                                                                class="w-full h-auto object-cover transition-transform duration-500 group-hover:scale-110" 
-                                                                            />
-                                                                        </div>
-                                                                        <button 
-                                                                            type="button"
-                                                                            class="absolute -top-3 -right-3 bg-red-600 text-white rounded-full w-8 h-8 flex items-center justify-center shadow-md hover:bg-red-700 transition-colors z-10"
-                                                                            on:click=move |_| set_edit_images.update(|i| { i.clear(); })
-                                                                            title="Remove Image"
-                                                                        >
-                                                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                                                                <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
-                                                                            </svg>
-                                                                        </button>
-                                                                    </div>
-                                                                }.into_any()
-                                                            } else {
-                                                                view! { 
-                                                                    <div class="w-full h-48 border-2 border-dashed border-gray-300 rounded-lg bg-gray-50 flex flex-col items-center justify-center text-gray-400 gap-2">
-                                                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                                                        </svg>
-                                                                        "No image selected"
-                                                                    </div> 
-                                                                }.into_any()
-                                                            }
-                                                        }}
-                                                        <button 
-                                                            type="button"
-                                                            class="btn btn-sm btn-secondary"
-                                                            on:click=move |_| set_show_media_picker.set(!show_media_picker.get())
-                                                        >
-                                                            {move || if show_media_picker.get() { "Close Picker" } else { "Change Image" }}
-                                                        </button>
+                                            <div class="edit-container w-full max-w-5xl mx-auto p-8 bg-white border border-blue-200 rounded-xl shadow-2xl">
+                                                <div class="max-w-2xl mx-auto">
+                                                    <h2 class="text-3xl font-bold mb-8 pb-4 border-b text-center">"Editing Article"</h2>
+                                                    
+                                                    <div class="form-group mb-6">
+                                                        <label class="block font-bold mb-2 text-gray-700">"Headline"</label>
+                                                        <textarea class="w-full p-3 border rounded-lg text-2xl font-bold resize-none" rows="2"
+                                                            prop:value=edit_title.get()
+                                                            on:input=move |ev| set_edit_title.set(event_target_value(&ev))
+                                                        ></textarea>
                                                     </div>
 
-                                                    {move || if show_media_picker.get() {
-                                                        let current = edit_images.get().first().cloned();
-                                                        Some(view! {
-                                                            <div class="mt-4 border rounded p-4 bg-gray-50">
-                                                                <MediaPicker 
-                                                                    token=token.into()
-                                                                    current_image=current
-                                                                    on_select=move |url| {
-                                                                        set_edit_images.set(vec![url]);
-                                                                        set_show_media_picker.set(false);
-                                                                    }
-                                                                />
-                                                            </div>
-                                                        })
-                                                    } else { None }}
-                                                </div>
-
-                                                <div class="form-group mb-4">
-                                                    <label class="block font-bold mb-1">"Caption"</label>
-                                                    <input type="text" class="w-full p-2 border rounded" 
-                                                        prop:value=edit_caption.get()
-                                                        on:input=move |ev| set_edit_caption.set(event_target_value(&ev))
-                                                    />
-                                                </div>
-                                                
-                                                <div class="form-group mb-4">
-                                                    <label class="block font-bold mb-1">"Display Date"</label>
-                                                    <input type="text" class="w-full p-2 border rounded" 
-                                                        prop:value=edit_date.get()
-                                                        on:input=move |ev| set_edit_date.set(event_target_value(&ev))
-                                                    />
-                                                </div>
-
-                                                <div class="form-group mb-4">
-                                                    <label class="block font-bold mb-1">"Byline"</label>
-                                                    <input type="text" class="w-full p-2 border rounded" 
-                                                        prop:value=edit_byline.get()
-                                                        on:input=move |ev| set_edit_byline.set(event_target_value(&ev))
-                                                    />
-                                                </div>
-
-                                                <div class="form-group mb-4">
-                                                    <div class="flex justify-between items-end mb-1">
-                                                        <label class="block font-bold mb-0">"Article Text"</label>
-                                                        <div class="text-xs bg-gray-100 rounded border flex overflow-hidden">
+                                                    <div class="form-group mb-6">
+                                                        <label class="block font-bold mb-2 text-gray-700">"Photo"</label>
+                                                        <div class="flex flex-col gap-4 mb-2">
+                                                            {move || {
+                                                                let imgs = edit_images.get();
+                                                                if let Some(src) = imgs.first() {
+                                                                    view! {
+                                                                        <div class="relative group w-full mt-2">
+                                                                            <div class="border-2 border-gray-200 rounded-lg overflow-hidden shadow-sm">
+                                                                                <img 
+                                                                                    src=src.clone() 
+                                                                                    class="w-full h-auto object-cover transition-transform duration-500 group-hover:scale-105" 
+                                                                                />
+                                                                            </div>
+                                                                            <button 
+                                                                                type="button"
+                                                                                class="absolute -top-3 -right-3 bg-red-600 text-white rounded-full w-8 h-8 flex items-center justify-center shadow-md hover:bg-red-700 transition-colors z-10"
+                                                                                on:click=move |_| set_edit_images.update(|i| { i.clear(); })
+                                                                                title="Remove Image"
+                                                                            >
+                                                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                                                                    <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                                                                </svg>
+                                                                            </button>
+                                                                        </div>
+                                                                    }.into_any()
+                                                                } else {
+                                                                    None
+                                                                }
+                                                            }}
                                                             <button 
-                                                                class=move || format!("px-3 py-1 {}", if !show_html_code.get() { "bg-white font-bold shadow-sm" } else { "text-gray-500 hover:bg-gray-50" })
-                                                                on:click=move |_| set_show_html_code.set(false)
+                                                                type="button"
+                                                                class="btn btn-sm btn-secondary w-auto self-start flex items-center gap-2"
+                                                                on:click=move |_| set_show_media_picker.set(!show_media_picker.get())
                                                             >
-                                                                "Visual Preview"
-                                                            </button>
-                                                            <button 
-                                                                class=move || format!("px-3 py-1 {}", if show_html_code.get() { "bg-white font-bold shadow-sm" } else { "text-gray-500 hover:bg-gray-50" })
-                                                                on:click=move |_| set_show_html_code.set(true)
-                                                            >
-                                                                "HTML Code"
+                                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                                                </svg>
+                                                                {move || if show_media_picker.get() { "Close Picker" } else { "Add Image" }}
                                                             </button>
                                                         </div>
+
+                                                        {move || if show_media_picker.get() {
+                                                            let current = edit_images.get().first().cloned();
+                                                            Some(view! {
+                                                                <div class="mt-4 border rounded p-4 bg-gray-50">
+                                                                    <MediaPicker 
+                                                                        token=token.into()
+                                                                        current_image=current
+                                                                        on_select=move |url| {
+                                                                            set_edit_images.set(vec![url]);
+                                                                            set_show_media_picker.set(false);
+                                                                        }
+                                                                    />
+                                                                </div>
+                                                            })
+                                                        } else { None }}
+                                                    </div>
+
+                                                    <div class="form-group mb-6">
+                                                        <label class="block font-bold mb-2 text-gray-700">"Caption"</label>
+                                                        <textarea class="w-full p-3 border rounded-lg resize-y" rows="2"
+                                                            prop:value=edit_caption.get()
+                                                            on:input=move |ev| set_edit_caption.set(event_target_value(&ev))
+                                                        ></textarea>
                                                     </div>
                                                     
-                                                    {move || if show_html_code.get() {
-                                                        view! {
-                                                            <textarea class="w-full p-2 border rounded h-[500px] font-mono text-sm"
-                                                                prop:value=edit_html.get()
-                                                                on:input=move |ev| set_edit_html.set(event_target_value(&ev))
-                                                            ></textarea>
-                                                        }.into_any()
-                                                    } else {
-                                                        view! {
-                                                            <div 
-                                                                class="w-full p-4 border rounded h-[500px] overflow-y-auto prose max-w-none bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                                                                contenteditable="true"
-                                                                inner_html=edit_html.get_untracked()
-                                                                on:input=move |ev| {
-                                                                    set_edit_html.set(event_target::<web_sys::HtmlElement>(&ev).inner_html());
-                                                                }
-                                                            ></div>
-                                                        }.into_any()
-                                                    }}
-                                                </div>
+                                                    <div class="form-group mb-6">
+                                                        <label class="block font-bold mb-2 text-gray-700">"Display Date"</label>
+                                                        <textarea class="w-full p-3 border rounded-lg resize-none" rows="1"
+                                                            prop:value=edit_date.get()
+                                                            on:input=move |ev| set_edit_date.set(event_target_value(&ev))
+                                                        ></textarea>
+                                                    </div>
+
+                                                    <div class="form-group mb-6">
+                                                        <label class="block font-bold mb-2 text-gray-700">"Byline"</label>
+                                                        <textarea class="w-full p-3 border rounded-lg resize-none font-bold" rows="1"
+                                                            prop:value=edit_byline.get()
+                                                            on:input=move |ev| set_edit_byline.set(event_target_value(&ev))
+                                                        ></textarea>
+                                                    </div>
+
+                                                    <div class="form-group mb-6">
+                                                        <div class="flex justify-between items-end mb-2">
+                                                            <label class="block font-bold mb-0 text-gray-700">"Article Text"</label>
+                                                            
+                                                            <div class="flex gap-2 items-center">
+                                                                // Toolbar
+                                                                <div class="flex bg-gray-100 rounded-lg border overflow-hidden mr-4">
+                                                                    <button type="button" class="p-2 hover:bg-gray-200 text-gray-700 font-bold" title="Bold"
+                                                                        on:mousedown=move |ev| { ev.prevent_default(); }
+                                                                        on:click=move |_| { let _ = web_sys::window().unwrap().document().unwrap().exec_command("bold"); }
+                                                                    >
+                                                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                                                            <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" /> 
+                                                                            // Actually let's use a "B" icon or generic
+                                                                            <path fill-rule="evenodd" d="M6 4a1 1 0 011-1h4a3 3 0 011.69 5.483 3 3 0 01-1.258.468A3 3 0 0113 14h-6a1 1 0 01-1-1V4zm2 2v2h3a1 1 0 100-2H8zm0 4v2h4a1 1 0 100-2H8z" clip-rule="evenodd" />
+                                                                        </svg>
+                                                                    </button>
+                                                                    <button type="button" class="p-2 hover:bg-gray-200 text-gray-700 italic font-serif" title="Italic"
+                                                                        on:mousedown=move |ev| { ev.prevent_default(); }
+                                                                        on:click=move |_| { let _ = web_sys::window().unwrap().document().unwrap().exec_command("italic"); }
+                                                                    >
+                                                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                                                            <path fill-rule="evenodd" d="M6 4a1 1 0 011-1h.22a1 1 0 01.993.883l3.5 13.5a1 1 0 01-1.926.66l-.667-2.543H6.77l-1.332 2.664A1 1 0 014.544 18H4a1 1 0 01-1-1v-2a1 1 0 011-1h1.11l1.89-3.78L6 4z" clip-rule="evenodd" /> 
+                                                                             // This is Font... let's just use text "I"
+                                                                             <text x="6" y="15" font-family="serif" font-style="italic" font-weight="bold" font-size="14">"I"</text>
+                                                                        </svg>
+                                                                    </button>
+                                                                    <button type="button" class="p-2 hover:bg-gray-200 text-gray-700" title="Link"
+                                                                        on:mousedown=move |ev| { ev.prevent_default(); }
+                                                                        on:click=move |_| { 
+                                                                            if let Ok(Some(url)) = web_sys::window().unwrap().prompt_with_message("Enter URL:") {
+                                                                                let _ = web_sys::window().unwrap().document().unwrap().exec_command_with_string("createLink", false, &url);
+                                                                            }
+                                                                        }
+                                                                    >
+                                                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                                                            <path fill-rule="evenodd" d="M12.586 4.586a2 2 0 112.828 2.828l-3 3a2 2 0 01-2.828 0 1 1 0 00-1.414 1.414 4 4 0 005.656 0l3-3a4 4 0 00-5.656-5.656l-1.5 1.5a1 1 0 101.414 1.414l1.5-1.5zm-5 5a2 2 0 012.828 0 1 1 0 101.414-1.414 4 4 0 00-5.656 0l-3 3a4 4 0 105.656 5.656l1.5-1.5a1 1 0 10-1.414-1.414l-1.5 1.5a2 2 0 11-2.828-2.828l3-3z" clip-rule="evenodd" />
+                                                                        </svg>
+                                                                    </button>
+                                                                </div>
+
+                                                                // View Toggles
+                                                                <div class="flex bg-gray-100 rounded-lg border overflow-hidden">
+                                                                    <button 
+                                                                        class=move || format!("p-2 {}", if !show_html_code.get() { "bg-white shadow-sm text-blue-600" } else { "text-gray-500 hover:bg-gray-50" })
+                                                                        on:click=move |_| set_show_html_code.set(false)
+                                                                        title="Visual Preview"
+                                                                    >
+                                                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                                                        </svg>
+                                                                    </button>
+                                                                    <button 
+                                                                        class=move || format!("p-2 {}", if show_html_code.get() { "bg-white shadow-sm text-blue-600" } else { "text-gray-500 hover:bg-gray-50" })
+                                                                        on:click=move |_| set_show_html_code.set(true)
+                                                                        title="HTML Code"
+                                                                    >
+                                                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                                                                        </svg>
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        {move || if show_html_code.get() {
+                                                            view! {
+                                                                <textarea class="w-full p-4 border rounded-lg h-[600px] font-mono text-sm bg-gray-50 text-gray-900"
+                                                                    prop:value=edit_html.get()
+                                                                    on:input=move |ev| set_edit_html.set(event_target_value(&ev))
+                                                                ></textarea>
+                                                            }.into_any()
+                                                        } else {
+                                                            view! {
+                                                                <div 
+                                                                    class="w-full p-6 border rounded-lg h-[600px] overflow-y-auto prose max-w-none bg-white text-black focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                                                                    contenteditable="true"
+                                                                    inner_html=edit_html.get_untracked()
+                                                                    on:input=move |ev| {
+                                                                        set_edit_html.set(event_target::<web_sys::HtmlElement>(&ev).inner_html());
+                                                                    }
+                                                                ></div>
+                                                            }.into_any()
+                                                        }}
+                                                    </div>
                                                 
                                                 <div class="flex gap-4 items-center">
                                                     <button class="btn btn-primary" on:click=move |_| on_save(article_save.clone())>
