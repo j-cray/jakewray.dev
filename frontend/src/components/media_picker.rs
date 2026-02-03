@@ -1,15 +1,15 @@
 use leptos::prelude::*;
 use crate::api::articles::{list_media, upload_media, MediaItem};
 use leptos::task::spawn_local;
-use web_sys::{HtmlInputElement, File};
-use wasm_bindgen::JsCast;
-use gloo_net::http::Request;
+use leptos::ev;
+use web_sys::HtmlInputElement;
+use wasm_bindgen_futures::JsFuture;
 
 #[component]
 pub fn MediaPicker<F>(
     token: Signal<String>,
     on_select: F,
-    #[prop(optional)] current_image: Option<String>
+    current_image: Option<String>
 ) -> impl IntoView 
 where F: Fn(String) + 'static + Send + Sync + Clone
 {
@@ -49,14 +49,20 @@ where F: Fn(String) + 'static + Send + Sync + Clone
                 if let Some(file) = files.get(0) {
                     let t = token.get();
                     let f_clone = fetch.clone();
+                    let filename = file.name();
+                    let file_clone = file.clone(); // web_sys::File is Clone (JsValue wrapper)
                     set_uploading.set(true);
                     
                     spawn_local(async move {
-                        // Read file as bytes
-                        match gloo_file::futures::read_as_bytes(&gloo_file::File::from(file.clone())).await {
-                            Ok(bytes) => {
-                                match upload_media(t, file.name(), bytes).await {
-                                    Ok(url) => {
+                        // Read file as bytes via web_sys
+                        let array_buffer_promise = file_clone.array_buffer();
+                        match JsFuture::from(array_buffer_promise).await {
+                            Ok(array_buffer) => {
+                                let uint8_array = js_sys::Uint8Array::new(&array_buffer);
+                                let bytes = uint8_array.to_vec();
+                                
+                                match upload_media(t, filename, bytes).await {
+                                    Ok(_url) => {
                                         f_clone(); // Refresh list
                                     },
                                     Err(e) => set_error_msg.set(format!("Upload failed: {}", e)),
@@ -70,6 +76,8 @@ where F: Fn(String) + 'static + Send + Sync + Clone
             }
         }
     };
+
+
 
     view! {
         <div class="media-picker bg-gray-50 border rounded-lg p-4">
@@ -97,35 +105,34 @@ where F: Fn(String) + 'static + Send + Sync + Clone
                 } else if items.get().is_empty() {
                     view! { <div class="col-span-full py-8 text-center text-gray-400">"No images found."</div> }.into_any()
                 } else {
-                    items.get().into_iter().map({
-                        let on_select = on_select.clone();
-                        let current_image = current_image.clone();
-                        move |item| {
-                            let url = item.url.clone();
-                            let is_selected = current_image.as_ref() == Some(&url);
-                            let os = on_select.clone();
-                            let u = url.clone();
-                            
-                            view! {
-                                <div 
-                                    class=move || format!(
-                                        "relative aspect-square border-2 rounded-lg overflow-hidden cursor-pointer hover:border-blue-400 transition-colors {}",
-                                        if is_selected { "border-blue-600 ring-2 ring-blue-200" } else { "border-transparent" }
-                                    )
-                                    on:click=move |_| os(u.clone())
-                                >
-                                    <img src=url.clone() alt=item.name class="w-full h-full object-cover" />
-                                    {if is_selected {
-                                        Some(view! {
-                                            <div class="absolute top-1 right-1 bg-blue-600 text-white rounded-full p-1">
-                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
-                                                </svg>
-                                            </div>
-                                        })
-                                    } else { None }}
-                                </div>
-                            }
+                    let on_select = on_select.clone();
+                    let current_img = current_image.clone();
+                    
+                    items.get().into_iter().map(move |item| {
+                        let url = item.url.clone();
+                        let is_selected = current_img.as_ref() == Some(&url);
+                        let os = on_select.clone();
+                        let u = url.clone();
+                        
+                        view! {
+                            <div 
+                                class=move || format!(
+                                    "relative aspect-square border-2 rounded-lg overflow-hidden cursor-pointer hover:border-blue-400 transition-colors {}",
+                                    if is_selected { "border-blue-600 ring-2 ring-blue-200" } else { "border-transparent" }
+                                )
+                                on:click=move |_| os(u.clone())
+                            >
+                                <img src=url.clone() alt=item.name.clone() class="w-full h-full object-cover" />
+                                {if is_selected {
+                                    Some(view! {
+                                        <div class="absolute top-1 right-1 bg-blue-600 text-white rounded-full p-1">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                                            </svg>
+                                        </div>
+                                    })
+                                } else { None }}
+                            </div>
                         }
                     }).collect_view().into_any()
                 }}

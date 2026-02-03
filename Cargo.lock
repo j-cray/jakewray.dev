@@ -692,9 +692,11 @@ dependencies = [
 name = "frontend"
 version = "0.1.0"
 dependencies = [
+ "chrono",
  "console_error_panic_hook",
  "gloo-file",
  "gloo-net",
+ "js-sys",
  "jsonwebtoken",
  "leptos",
  "leptos_meta",
@@ -706,6 +708,7 @@ dependencies = [
  "tracing",
  "walkdir",
  "wasm-bindgen",
+ "wasm-bindgen-futures",
  "web-sys",
 ]
 
