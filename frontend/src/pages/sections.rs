@@ -291,6 +291,9 @@ pub fn JournalismPage() -> impl IntoView {
 
 #[component]
 pub fn JournalismArticlePage() -> impl IntoView {
+    #[cfg(target_arch = "wasm32")]
+    web_sys::console::log_1(&"Rendering JournalismArticlePage".into());
+
     use crate::api::articles::{get_article, save_article, delete_article};
     
     let params = use_params_map();
