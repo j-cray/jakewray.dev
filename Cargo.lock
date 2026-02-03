@@ -694,6 +694,7 @@ version = "0.1.0"
 dependencies = [
  "console_error_panic_hook",
  "gloo-net",
+ "jsonwebtoken",
  "leptos",
  "leptos_meta",
  "leptos_router",
@@ -702,6 +703,7 @@ dependencies = [
  "serde_json",
  "shared",
  "tracing",
+ "walkdir",
  "wasm-bindgen",
  "web-sys",
 ]

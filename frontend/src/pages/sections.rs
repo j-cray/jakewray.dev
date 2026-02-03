@@ -1,6 +1,8 @@
-use crate::data::journalism;
+// use crate::data::journalism; // Deprecated
+use crate::api::articles::{get_articles, Article};
 use leptos::prelude::*;
 use leptos_router::hooks::use_params_map;
+use leptos::task::spawn_local;
 
 fn strip_tags(s: &str) -> String {
     let mut out = String::with_capacity(s.len());
@@ -235,7 +237,7 @@ fn format_cp_style(date: &str) -> String {
 
 #[component]
 pub fn JournalismPage() -> impl IntoView {
-    let articles = journalism::all_articles();
+    let articles_resource = Resource::new(|| (), |_| get_articles());
 
     view! {
         <div class="container py-12">
@@ -244,113 +246,299 @@ pub fn JournalismPage() -> impl IntoView {
                 "Reporting on northern communities, Indigenous culture, and public interest stories."
             </p>
 
-            <div class="journalism-grid">
-                {articles
-                    .iter()
-                    .map(|article| {
-                        let slug = article.slug.clone();
-                        let title = article.title.clone();
-                        let preview_text = extract_body_preview(&article.content_html)
-                            .unwrap_or_else(|| article.excerpt.clone());
-                        let image = article.images.get(0).cloned();
-                        let thumb_src = image.clone().unwrap_or_else(|| "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='400' height='300' viewBox='0 0 400 300'><rect width='400' height='300' fill='%23e5e7eb'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' fill='%239ca3af' font-size='16' font-family='Inter, sans-serif'>Image coming soon</text></svg>".to_string());
-                        let date = extract_printed_date(&article.content_html)
-                            .unwrap_or_else(|| article.display_date.clone());
-                        let date = format_cp_style(&date);
+            <Suspense fallback=move || view! { <p>"Loading articles..."</p> }>
+                {move || {
+                    articles_resource.get().map(|res| {
+                        match res {
+                            Ok(articles) => view! {
+                                <div class="journalism-grid">
+                                    {articles.into_iter().map(|article| {
+                                        let slug = article.slug.clone();
+                                        let title = article.title.clone();
+                                        let preview_text = extract_body_preview(&article.content_html)
+                                            .unwrap_or_else(|| article.excerpt.clone());
+                                        let image = article.images.get(0).cloned();
+                                        let thumb_src = image.clone().unwrap_or_else(|| "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='400' height='300' viewBox='0 0 400 300'><rect width='400' height='300' fill='%23e5e7eb'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' fill='%239ca3af' font-size='16' font-family='Inter, sans-serif'>Image coming soon</text></svg>".to_string());
+                                        let date = extract_printed_date(&article.content_html)
+                                            .unwrap_or_else(|| article.display_date.clone());
+                                        let date = format_cp_style(&date);
 
-                        view! {
-                            <a href=format!("/journalism/{}", slug) class="journalism-card">
-                                <div class="journalism-thumb">
-                                    <img src=thumb_src class="journalism-img" alt="article thumbnail"/>
-                                    {image.is_none().then(|| view! { <div class="journalism-placeholder-text">"Image coming soon"</div> })}
+                                        view! {
+                                            <a href=format!("/journalism/{}", slug) class="journalism-card">
+                                                <div class="journalism-thumb">
+                                                    <img src=thumb_src class="journalism-img" alt="article thumbnail"/>
+                                                    {image.is_none().then(|| view! { <div class="journalism-placeholder-text">"Image coming soon"</div> })}
+                                                </div>
+                                                <div class="journalism-body">
+                                                    <p class="journalism-date">{date}</p>
+                                                    <h3 class="journalism-title">{title}</h3>
+                                                    <p class="journalism-excerpt">{preview_text}</p>
+                                                    <div class="journalism-link">"Read more →"</div>
+                                                </div>
+                                            </a>
+                                        }
+                                    }).collect_view()}
                                 </div>
-                                <div class="journalism-body">
-                                    <p class="journalism-date">{date}</p>
-                                    <h3 class="journalism-title">{title}</h3>
-                                    <p class="journalism-excerpt">{preview_text}</p>
-                                    <div class="journalism-link">"Read more →"</div>
-                                </div>
-                            </a>
+                            }.into_any(),
+                            Err(e) => view! { <p class="text-red-500">"Error loading articles: " {e.to_string()}</p> }.into_any()
                         }
                     })
-                    .collect_view()}
-            </div>
+                }}
+            </Suspense>
         </div>
     }
 }
 
 #[component]
 pub fn JournalismArticlePage() -> impl IntoView {
+    use crate::api::articles::{get_article, save_article, delete_article};
+    
     let params = use_params_map();
     let slug = move || params.with(|p| p.get("slug").map(|s| s.to_string()).unwrap_or_default());
-    let article = move || journalism::find_article(&slug());
+    
+    let article_resource = Resource::new(slug, |s| get_article(s));
+    
+    // Auth State
+    let (is_admin, set_is_admin) = signal(false);
+    let (token, set_token) = signal(String::new());
+
+    Effect::new(move || {
+        #[cfg(target_arch = "wasm32")]
+        {
+            if let Ok(Some(storage)) = web_sys::window().unwrap().local_storage() {
+                if let Ok(Some(t)) = storage.get_item("admin_token") {
+                     if !t.is_empty() {
+                        set_token.set(t);
+                        set_is_admin.set(true);
+                     }
+                }
+            }
+        }
+    });
+
+    // Edit State
+    let (is_editing, set_is_editing) = signal(false);
+    
+    // Form Signals (initialized when entering edit mode or loading article)
+    let (edit_title, set_edit_title) = signal(String::new());
+    let (edit_date, set_edit_date) = signal(String::new()); // using iso_date or display_date?
+    let (edit_byline, set_edit_byline) = signal(String::new()); // using iso_date or display_date?
+    let (edit_html, set_edit_html) = signal(String::new());
+    let (save_status, set_save_status) = signal(String::new());
+
+    let turn_on_edit = move |article: &Article| {
+        set_edit_title.set(article.title.clone());
+        set_edit_date.set(article.display_date.clone());
+        set_edit_byline.set(article.byline.clone().unwrap_or_default());
+        set_edit_html.set(article.content_html.clone());
+        set_is_editing.set(true);
+    };
+
+    let on_save = move |original_article: Article| {
+        let t = token.get();
+        spawn_local(async move {
+            set_save_status.set("Saving...".to_string());
+            let mut new_article = original_article.clone();
+            new_article.title = edit_title.get();
+            new_article.display_date = edit_date.get();
+            new_article.byline = Some(edit_byline.get());
+            new_article.content_html = edit_html.get();
+            
+            match save_article(t, new_article).await {
+                Ok(_) => {
+                    set_save_status.set("Saved!".to_string());
+                    set_is_editing.set(false);
+                    article_resource.refetch();
+                },
+                Err(e) => set_save_status.set(format!("Error: {}", e)),
+            }
+        });
+    };
+
+    let on_delete = move |slug: String| {
+        #[cfg(target_arch = "wasm32")]
+        {
+            if !web_sys::window().unwrap().confirm_with_message("Are you sure you want to delete this article?").unwrap() {
+                return;
+            }
+        }
+        
+        let t = token.get();
+        spawn_local(async move {
+            match delete_article(t, slug).await {
+                Ok(_) => {
+                    let navigate = leptos_router::hooks::use_navigate();
+                    navigate("/journalism", Default::default());
+                },
+                Err(e) => {
+                    #[cfg(target_arch = "wasm32")]
+                    let _ = web_sys::window().unwrap().alert_with_message(&format!("Error deleting: {}", e));
+                    #[cfg(not(target_arch = "wasm32"))]
+                    leptos::logging::error!("Error deleting: {}", e);
+                }
+            }
+        });
+    };
 
     view! {
         <div class="container py-12 max-w-4xl">
-            {move || {
-                article()
-                    .map(|article| {
-                        let display_date = extract_printed_date(&article.content_html)
-                            .unwrap_or_else(|| article.display_date.clone());
-                        let display_date = format_cp_style(&display_date);
-
-                        let title = article.title.clone();
-                        let source_url = article.source_url.clone();
-                        let images = article.images.clone();
-                        let captions = article.captions.clone();
-                        let content_html = article.content_html.clone();
-                        // remove first subhead h4 from article content
-                        let content_html = {
-                             let mut s = content_html;
-                             // remove the H4
-                             if let Some(start) = s.find("<h4") {
-                                 if let Some(end) = s[start..].find("</h4>") {
-                                     s.replace_range(start..start + end + 5, "");
-                                 }
-                             }
-                             // Removed strip_tags to preserve paragraph structure
-                             let s = italicize_origin_line(&s);
-                             let s = bold_byline(&s);
-                             linkify_images(&s)
-                        };
-                        let is_terrace = source_url.contains("terracestandard.com");
-
-                        view! {
-                            <div class="article-container">
-                                <h1 class="mb-4 text-4xl font-bold text-gray-900">{title.clone()}</h1>
+             <Suspense fallback=move || view! { <p>"Loading article..."</p> }>
+                {move || {
+                    article_resource.get().map(|res| {
+                        match res {
+                            Ok(Some(article)) => {
+                                let display_date = extract_printed_date(&article.content_html)
+                                    .unwrap_or_else(|| article.display_date.clone());
+                                let display_date = format_cp_style(&display_date);
+                                let title = article.title.clone();
+                                let source_url = article.source_url.clone();
+                                let images = article.images.clone();
+                                let captions = article.captions.clone();
+                                let is_terrace = source_url.contains("terracestandard.com"); // Check logic
                                 
-                                {if is_terrace {
-                                    Some(view! {
-                                        <div class="mb-6">
-                                            {images.first().map(|url| view! {
-                                                <figure class="mb-4">
-                                                    <a href=url.clone() target="_blank" class="article-image-link">
-                                                        <img src=url.clone() class="w-full h-auto rounded-lg" alt=title.clone() />
-                                                    </a>
-                                                    {captions.first().map(|cap| view! {
-                                                        <figcaption class="mt-2 text-sm text-gray-500 italic">
-                                                            {cap.clone()}
-                                                        </figcaption>
-                                                    })}
-                                                </figure>
-                                            })}
-                                            <div class="flex flex-col text-gray-900">
-                                                <div class="mb-4">{display_date.clone()}</div>
-                                                <div class="font-bold mb-4">{article.byline.clone().unwrap_or("By Jake Wray".to_string())}</div>
-                                            </div>
-                                        </div>
-                                    })
-                                } else {
-                                    None
-                                }}
+                                // Render View
+                                let view_mode = {
+                                    let article = article.clone(); // Clone for capture
+                                    move || {
+                                        let article = article.clone(); // Clone for execution
+                                        // Transformations for view logic (can move to a helper)
+                                        let content_html = {
+                                             let mut s = article.content_html.clone();
+                                             if let Some(start) = s.find("<h4") {
+                                                 if let Some(end) = s[start..].find("</h4>") {
+                                                     s.replace_range(start..start + end + 5, "");
+                                                 }
+                                             }
+                                             let s = italicize_origin_line(&s);
+                                             let s = bold_byline(&s);
+                                             linkify_images(&s)
+                                        };
 
-                                <div class="article-content prose" inner_html=content_html></div>
-                            </div>
+                                        view! {
+                                            <div class="article-container">
+                                                {
+                                                    let admin_article = article.clone(); // Capture in outer closure environment
+                                                    move || {
+                                                        // Clone for this execution to prevent moving `admin_article` out of environment
+                                                        let a = admin_article.clone(); 
+                                                        is_admin.get().then(move || {
+                                                            view! {
+                                                                <div class="mb-4 p-4 bg-gray-100 border rounded flex gap-2">
+                                                                    <span class="font-bold text-gray-500">"Admin Mode"</span>
+                                                                    <button class="btn btn-sm btn-primary" on:click=move |_| turn_on_edit(&a)>"Edit Article"</button>
+                                                                </div>
+                                                            }
+                                                        })
+                                                    }
+                                                }
+                                            
+                                                <h1 class="mb-4 text-4xl font-bold text-gray-900">{title.clone()}</h1>
+                                                
+                                                // Image Logic
+                                                {if is_terrace || !images.is_empty() {
+                                                    Some(view! {
+                                                        <div class="mb-6">
+                                                            {images.first().map(|url| view! {
+                                                                <figure class="mb-4">
+                                                                    <a href=url.clone() target="_blank" class="article-image-link">
+                                                                        <img src=url.clone() class="w-full h-auto rounded-lg" alt=title.clone() />
+                                                                    </a>
+                                                                    {captions.first().map(|cap| view! {
+                                                                        <figcaption class="mt-2 text-sm text-gray-500 italic">
+                                                                            {cap.clone()}
+                                                                        </figcaption>
+                                                                    })}
+                                                                </figure>
+                                                            })}
+                                                            <div class="flex flex-col text-gray-900">
+                                                                <div class="mb-4">{display_date.clone()}</div>
+                                                                <div class="font-bold mb-4">{article.byline.clone().unwrap_or("By Jake Wray".to_string())}</div>
+                                                            </div>
+                                                        </div>
+                                                    })
+                                                } else { None }}
+
+                                                <div class="article-content prose" inner_html=content_html></div>
+                                            </div>
+                                        }.into_any()
+                                    }
+                                };
+                                
+                                let edit_mode = {
+                                    let article = article.clone();
+                                    move || {
+                                        let article = article.clone();
+                                        let title = article.title.clone();
+                                        let article_save = article.clone();
+                                        let article_delete = article.clone();
+
+                                        view! {
+                                            <div class="edit-container p-6 bg-white border border-blue-200 rounded shadow-lg">
+                                                <h2 class="text-2xl font-bold mb-4">"Editing: " {title}</h2>
+                                                
+                                                <div class="form-group mb-4">
+                                                    <label class="block font-bold mb-1">"Headline"</label>
+                                                    <input type="text" class="w-full p-2 border rounded" 
+                                                        prop:value=edit_title.get()
+                                                        on:input=move |ev| set_edit_title.set(event_target_value(&ev))
+                                                    />
+                                                </div>
+                                                
+                                                <div class="form-group mb-4">
+                                                    <label class="block font-bold mb-1">"Display Date"</label>
+                                                    <input type="text" class="w-full p-2 border rounded" 
+                                                        prop:value=edit_date.get()
+                                                        on:input=move |ev| set_edit_date.set(event_target_value(&ev))
+                                                    />
+                                                </div>
+
+                                                <div class="form-group mb-4">
+                                                    <label class="block font-bold mb-1">"Byline"</label>
+                                                    <input type="text" class="w-full p-2 border rounded" 
+                                                        prop:value=edit_byline.get()
+                                                        on:input=move |ev| set_edit_byline.set(event_target_value(&ev))
+                                                    />
+                                                </div>
+                                                
+                                                <div class="form-group mb-4">
+                                                    <label class="block font-bold mb-1">"HTML Body"</label>
+                                                    <textarea class="w-full p-2 border rounded h-96 font-mono text-sm"
+                                                        prop:value=edit_html.get()
+                                                        on:input=move |ev| set_edit_html.set(event_target_value(&ev))
+                                                    ></textarea>
+                                                </div>
+                                                
+                                                <div class="flex gap-4 items-center">
+                                                    <button class="btn btn-primary" on:click=move |_| on_save(article_save.clone())>
+                                                        "Save Changes"
+                                                    </button>
+                                                    <button class="btn btn-secondary" on:click=move |_| set_is_editing.set(false)>
+                                                        "Cancel"
+                                                    </button>
+                                                    <div class="flex-grow"></div>
+                                                    <button class="btn btn-danger bg-red-600 text-white hover:bg-red-700" on:click=move |_| on_delete(article_delete.slug.clone())>
+                                                        "Delete Article"
+                                                    </button>
+                                                </div>
+                                                <p class="mt-2 text-sm text-gray-600">{save_status.get()}</p>
+                                            </div>
+                                        }.into_any()
+                                    }
+                                };
+
+                                view! {
+                                    <div>
+                                    {move || if is_editing.get() { edit_mode() } else { view_mode() }}
+                                    </div>
+                                }.into_any()
+
+                            },
+                            Ok(None) => view! { <div><p>"Article not found."</p></div> }.into_any(),
+                            Err(e) => view! { <p class="text-red-500">"Error loading article: " {e.to_string()}</p> }.into_any(),
                         }
-                        .into_any()
                     })
-                    .unwrap_or_else(|| view! { <div><p>"Article not found."</p></div> }.into_any())
-            }}
+                }}
+            </Suspense>
         </div>
     }
 }
