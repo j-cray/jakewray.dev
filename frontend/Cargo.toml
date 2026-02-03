@@ -18,6 +18,11 @@ chrono = { version = "0.4", features = ["serde"], optional = true }
 once_cell = "1.20"
 jsonwebtoken = { version = "9.2", optional = true }
 walkdir = { version = "2.5", optional = true }
+web-sys = { version = "0.3", features = ["Window", "Storage", "HtmlInputElement", "FileList", "File", "Blob"] }
+gloo-net = { version = "0.6", features = ["json"] }
+gloo-file = "0.3"
+js-sys = "0.3"
+wasm-bindgen-futures = "0.4"
 
 [features]
 default = ["hydrate"]
@@ -31,11 +36,7 @@ ssr = [
     "dep:walkdir"
 ]
 
+
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 wasm-bindgen = { workspace = true }
 console_error_panic_hook = { workspace = true }
-web-sys = { version = "0.3", features = ["Window", "Storage"] }
-gloo-net = { version = "0.6", features = ["json"] }
-gloo-file = "0.3"
-js-sys = "0.3"
-wasm-bindgen-futures = "0.4"

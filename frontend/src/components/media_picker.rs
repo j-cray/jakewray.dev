@@ -2,7 +2,7 @@ use leptos::prelude::*;
 use crate::api::articles::{list_media, upload_media, MediaItem};
 use leptos::task::spawn_local;
 use leptos::ev;
-use web_sys::HtmlInputElement;
+use web_sys::{HtmlInputElement, FileList};
 use wasm_bindgen_futures::JsFuture;
 
 #[component]
@@ -44,7 +44,7 @@ where F: Fn(String) + 'static + Send + Sync + Clone
         let fetch = fetch_media.clone();
         move |ev: ev::Event| {
             let input: HtmlInputElement = event_target(&ev);
-            let files = input.files();
+            let files: Option<FileList> = input.files();
             if let Some(files) = files {
                 if let Some(file) = files.get(0) {
                     let t = token.get();
