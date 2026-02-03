@@ -493,13 +493,13 @@ pub fn JournalismArticlePage() -> impl IntoView {
                                     let article = article.clone();
                                     move || {
                                         let article = article.clone();
-                                        let title = article.title.clone();
+                                        // let title = article.title.clone(); // Removed unused
                                         let article_save = article.clone();
                                         let article_delete = article.clone();
 
                                         view! {
-                                            <div class="edit-container p-6 bg-white border border-blue-200 rounded shadow-lg">
-                                                <h2 class="text-2xl font-bold mb-4">"Editing: " {title}</h2>
+                                            <div class="edit-container max-w-2xl mx-auto p-6 bg-white border border-blue-200 rounded shadow-lg">
+                                                <h2 class="text-2xl font-bold mb-6 pb-2 border-b">"Editing Article"</h2>
                                                 
                                                 <div class="form-group mb-4">
                                                     <label class="block font-bold mb-1">"Headline"</label>
@@ -511,22 +511,39 @@ pub fn JournalismArticlePage() -> impl IntoView {
 
                                                 <div class="form-group mb-4">
                                                     <label class="block font-bold mb-1">"Photo"</label>
-                                                    <div class="flex items-start gap-4 mb-2">
+                                                    <div class="flex flex-col gap-4 mb-2">
                                                         {move || {
                                                             let imgs = edit_images.get();
                                                             if let Some(src) = imgs.first() {
                                                                 view! {
-                                                                    <div class="relative w-32 h-32 border rounded overflow-hidden">
-                                                                        <img src=src.clone() class="w-full h-full object-cover" />
+                                                                    <div class="relative group w-full max-w-md mt-2 mx-auto">
+                                                                        <div class="border-2 border-gray-200 rounded-lg overflow-hidden shadow-sm">
+                                                                            <img 
+                                                                                src=src.clone() 
+                                                                                class="w-full h-auto object-cover transition-transform duration-500 group-hover:scale-110" 
+                                                                            />
+                                                                        </div>
                                                                         <button 
                                                                             type="button"
-                                                                            class="absolute top-0 right-0 bg-red-600 text-white p-1 text-xs"
+                                                                            class="absolute -top-3 -right-3 bg-red-600 text-white rounded-full w-8 h-8 flex items-center justify-center shadow-md hover:bg-red-700 transition-colors z-10"
                                                                             on:click=move |_| set_edit_images.update(|i| { i.clear(); })
-                                                                        > "×" </button>
+                                                                            title="Remove Image"
+                                                                        >
+                                                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                                                                <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                                                            </svg>
+                                                                        </button>
                                                                     </div>
                                                                 }.into_any()
                                                             } else {
-                                                                view! { <div class="w-32 h-32 border rounded bg-gray-100 flex items-center justify-center text-gray-400">"No Image"</div> }.into_any()
+                                                                view! { 
+                                                                    <div class="w-full h-48 border-2 border-dashed border-gray-300 rounded-lg bg-gray-50 flex flex-col items-center justify-center text-gray-400 gap-2">
+                                                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                                                        </svg>
+                                                                        "No image selected"
+                                                                    </div> 
+                                                                }.into_any()
                                                             }
                                                         }}
                                                         <button 
