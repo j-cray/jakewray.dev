@@ -85,6 +85,7 @@ RUN apt-get update -y \
 COPY --from=builder /usr/local/cargo/bin/sqlx /usr/local/bin/sqlx
 COPY --from=builder /tmp/backend /app/backend
 COPY --from=builder /tmp/site /app/site
+COPY --from=builder /app/data /app/data
 
 # Set environment
 ENV LEPTOS_SITE_ADDR="0.0.0.0:3000"
