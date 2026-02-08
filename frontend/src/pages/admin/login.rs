@@ -7,22 +7,24 @@ use leptos_router::hooks::*;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Clone)]
+#[allow(dead_code)]
 struct LoginRequest {
     username: String,
     password: String,
 }
 
 #[derive(Serialize, Deserialize, Clone)]
+#[allow(dead_code)]
 struct LoginResponse {
     token: String,
 }
 
 #[component]
 pub fn AdminLoginPage() -> impl IntoView {
-    let (username, set_username) = signal("".to_string());
-    let (password, set_password) = signal("".to_string());
+    let (_username, _set_username) = signal("".to_string());
+    let (_password, _set_password) = signal("".to_string());
     let (error, set_error) = signal("".to_string());
-    let (loading, set_loading) = signal(false);
+    let (_loading, _set_loading) = signal(false);
 
     let location = use_location();
 
@@ -40,11 +42,11 @@ pub fn AdminLoginPage() -> impl IntoView {
         move |ev: leptos::ev::SubmitEvent| {
             ev.prevent_default();
             web_sys::console::log_1(&"[Login] Form submitted".into());
-            set_loading.set(true);
+            _set_loading.set(true);
             set_error.set("".to_string());
 
-            let username_val = username.get();
-            let password_val = password.get();
+            let username_val = _username.get();
+            let password_val = _password.get();
             let navigate = navigate.clone();
 
             web_sys::console::log_1(&format!("[Login] Attempting login for user: {}", username_val).into());
@@ -108,7 +110,7 @@ pub fn AdminLoginPage() -> impl IntoView {
                     }
                 }
 
-                set_loading.set(false);
+                _set_loading.set(false);
             });
         }
     };
@@ -121,7 +123,7 @@ pub fn AdminLoginPage() -> impl IntoView {
             <div class="card form-card">
                 <h1 class="mb-2 text-primary text-center">"Admin Access"</h1>
                 <p class="text-muted text-center mb-6">"Secure dashboard login"</p>
-                
+
                 {move || {
                     (!error.get().is_empty()).then(|| view! {
                         <div class="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-md text-sm">
@@ -139,11 +141,11 @@ pub fn AdminLoginPage() -> impl IntoView {
                             type="text"
                             placeholder="Enter username"
                             autocomplete="username"
-                            on:input=move |ev| set_username.set(event_target_value(&ev))
-                            disabled=move || loading.get()
+                            on:input=move |ev| _set_username.set(event_target_value(&ev))
+                            disabled=move || _loading.get()
                         />
                     </div>
-                    
+
                     <div class="form-group">
                         <label for="password">"Password"</label>
                         <input
@@ -152,13 +154,13 @@ pub fn AdminLoginPage() -> impl IntoView {
                             type="password"
                             placeholder="Enter password"
                             autocomplete="current-password"
-                            on:input=move |ev| set_password.set(event_target_value(&ev))
-                            disabled=move || loading.get()
+                            on:input=move |ev| _set_password.set(event_target_value(&ev))
+                            disabled=move || _loading.get()
                         />
                     </div>
-                    
-                    <button type="submit" class="btn btn-primary" disabled=move || loading.get()>
-                        {move || if loading.get() { "Logging in..." } else { "Login" }}
+
+                    <button type="submit" class="btn btn-primary" disabled=move || _loading.get()>
+                        {move || if _loading.get() { "Logging in..." } else { "Login" }}
                     </button>
                 </form>
             </div>

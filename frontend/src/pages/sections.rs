@@ -5,7 +5,7 @@ use leptos_router::hooks::use_params_map;
 use leptos::task::spawn_local;
 use leptos_router::components::A;
 use crate::components::media_picker::MediaPicker;
-use wasm_bindgen::JsCast;
+use leptos::wasm_bindgen::JsCast;
 
 fn strip_tags(s: &str) -> String {
     let mut out = String::with_capacity(s.len());
@@ -45,6 +45,7 @@ fn extract_between(haystack: &str, start_pat: &str, end_pat: &str, from: usize) 
     Some((haystack[after..end_idx].to_string(), end_idx + end_pat.len()))
 }
 
+#[allow(dead_code)]
 fn extract_subhead(html: &str) -> Option<String> {
     let (inner, _) = extract_between(html, "<h4", "</h4>", 0)?;
     // drop attributes in opening tag
@@ -84,6 +85,7 @@ fn extract_body_preview(html: &str) -> Option<String> {
     None
 }
 
+#[allow(dead_code)]
 fn replace_date_paragraph(html: &str, new_date: &str) -> String {
     // Reuse extract logic to find the range, then replace it
      let after_h4 = html.find("</h4>").map(|idx| idx + 5).unwrap_or(0);
@@ -115,21 +117,21 @@ fn replace_date_paragraph(html: &str, new_date: &str) -> String {
 fn bold_byline(html: &str) -> String {
     let mut out = html.to_string();
     let mut search_pos = 0;
-    
+
     // Loop to find <p...>By ...</p>
     // We iterate manually to handle string mutation
     while let Some(open_rel) = out[search_pos..].find("<p") {
         let abs_open = search_pos + open_rel;
-        
+
         // Find end of opening tag >
         if let Some(close_bracket_rel) = out[abs_open..].find('>') {
             let abs_content_start = abs_open + close_bracket_rel + 1;
-            
+
             // Find closing </p>
             if let Some(close_p_rel) = out[abs_content_start..].find("</p>") {
                 let abs_content_end = abs_content_start + close_p_rel;
                 let content = &out[abs_content_start..abs_content_end];
-                
+
                 // Check if content starts with "By "
                 // We use trim() to ignore leading whitespace/newlines
                 if content.trim().starts_with("By ") && content.len() < 100 {
@@ -137,12 +139,12 @@ fn bold_byline(html: &str) -> String {
                     // Note: This replaces the inner content with <strong>...</strong>
                     let new_content = format!("<strong>{}</strong>", content);
                     out.replace_range(abs_content_start..abs_content_end, &new_content);
-                    
+
                     // Update search_pos to skip past this paragraph
                     search_pos = abs_content_start + new_content.len() + 4; // +4 for </p>
                     continue;
                 }
-                
+
                 search_pos = abs_content_end + 4;
             } else {
                 // Malformed HTML, just break or skip
@@ -163,12 +165,12 @@ fn linkify_images(html: &str) -> String {
 
     while let Some(open_rel) = out[search_pos..].find("<img") {
         let abs_open = search_pos + open_rel;
-        
+
         // find end of tag
         if let Some(close_rel) = out[abs_open..].find('>') {
             let abs_close = abs_open + close_rel + 1;
             let img_tag = &out[abs_open..abs_close];
-            
+
             // Extract src
             let src = if let Some(src_start_rel) = img_tag.find("src=\"") {
                 let after_src = src_start_rel + 5;
@@ -176,15 +178,15 @@ fn linkify_images(html: &str) -> String {
                     Some(&img_tag[after_src..after_src + src_end_rel])
                 } else { None }
             } else { None };
-            
+
             if let Some(src_url) = src {
                  let wrapper_start = format!("<a href=\"{}\" target=\"_blank\" class=\"article-image-link\">", src_url);
                  let wrapper_end = "</a>";
-                 
+
                  // Replace strict range
                  let new_content = format!("{}{}{}", wrapper_start, img_tag, wrapper_end);
                  out.replace_range(abs_open..abs_close, &new_content);
-                 
+
                  search_pos = abs_open + new_content.len();
                  continue;
             }
@@ -203,23 +205,23 @@ fn italicize_origin_line(html: &str) -> String {
 
     while let Some(open_rel) = out[search_pos..].find("<p") {
         let abs_open = search_pos + open_rel;
-        
+
         if let Some(close_bracket_rel) = out[abs_open..].find('>') {
             let abs_content_start = abs_open + close_bracket_rel + 1;
-            
+
             if let Some(close_p_rel) = out[abs_content_start..].find("</p>") {
                 let abs_content_end = abs_content_start + close_p_rel;
                 let content = &out[abs_content_start..abs_content_end];
-                
+
                 // Case-insensitive check for the specific phrase
                 if content.to_lowercase().contains("originally appeared in") {
                     let new_content = format!("<em>{}</em>", content);
                     out.replace_range(abs_content_start..abs_content_end, &new_content);
-                    
+
                     search_pos = abs_content_start + new_content.len() + 4;
                     continue;
                 }
-                
+
                 search_pos = abs_content_end + 4;
             } else { break; }
         } else { search_pos = abs_open + 2; }
@@ -298,15 +300,15 @@ pub fn JournalismArticlePage() -> impl IntoView {
     web_sys::console::log_1(&"Rendering JournalismArticlePage".into());
 
     use crate::api::articles::{get_article, save_article, delete_article};
-    
+
     let params = use_params_map();
     let slug = move || params.with(|p| p.get("slug").map(|s| s.to_string()).unwrap_or_default());
-    
+
     let article_resource = Resource::new(slug, |s| get_article(s));
-    
+
     // Auth State
-    let (is_admin, set_is_admin) = signal(false);
-    let (token, set_token) = signal(String::new());
+    let (is_admin, _set_is_admin) = signal(false);
+    let (token, _set_token) = signal(String::new());
 
     Effect::new(move || {
         #[cfg(target_arch = "wasm32")]
@@ -316,8 +318,8 @@ pub fn JournalismArticlePage() -> impl IntoView {
                 if let Ok(Some(t)) = storage.get_item("admin_token") {
                      web_sys::console::log_1(&format!("Found token: {}", t).into());
                      if !t.is_empty() {
-                        set_token.set(t);
-                        set_is_admin.set(true);
+                        _set_token.set(t);
+                        _set_is_admin.set(true);
                         web_sys::console::log_1(&"Admin mode enabled".into());
                      }
                 } else {
@@ -329,10 +331,10 @@ pub fn JournalismArticlePage() -> impl IntoView {
 
     // Edit State
     let (is_editing, set_is_editing) = signal(false);
-    
+
     // Form Signals
     let (edit_title, set_edit_title) = signal(String::new());
-    let (edit_date, set_edit_date) = signal(String::new()); 
+    let (edit_date, set_edit_date) = signal(String::new());
     let (edit_byline, set_edit_byline) = signal(String::new());
     let (edit_caption, set_edit_caption) = signal(String::new()); // New caption signal
     let (edit_html, set_edit_html) = signal(String::new());
@@ -362,7 +364,7 @@ pub fn JournalismArticlePage() -> impl IntoView {
             new_article.captions = if edit_caption.get().trim().is_empty() { vec![] } else { vec![edit_caption.get()] };
             new_article.images = edit_images.get();
             new_article.content_html = edit_html.get();
-            
+
             match save_article(t, new_article).await {
                 Ok(_) => {
                     set_save_status.set("Saved!".to_string());
@@ -381,7 +383,7 @@ pub fn JournalismArticlePage() -> impl IntoView {
                 return;
             }
         }
-        
+
         let t = token.get();
         spawn_local(async move {
             match delete_article(t, slug).await {
@@ -414,7 +416,7 @@ pub fn JournalismArticlePage() -> impl IntoView {
                                 let images = article.images.clone();
                                 let captions = article.captions.clone();
                                 let is_terrace = source_url.contains("terracestandard.com"); // Check logic
-                                
+
                                 // Render View
                                 let view_mode = {
                                     let article = article.clone(); // Clone for capture
@@ -439,7 +441,7 @@ pub fn JournalismArticlePage() -> impl IntoView {
                                                     let admin_article = article.clone(); // Capture in outer closure environment
                                                     move || {
                                                         // Clone for this execution to prevent moving `admin_article` out of environment
-                                                        let a = admin_article.clone(); 
+                                                        let a = admin_article.clone();
                                                         is_admin.get().then(move || {
                                                             view! {
                                                                 <div class="mb-4 p-4 bg-gray-100 border rounded flex gap-2">
@@ -450,9 +452,9 @@ pub fn JournalismArticlePage() -> impl IntoView {
                                                         })
                                                     }
                                                 }
-                                            
+
                                                 <h1 class="mb-4 text-4xl font-bold text-gray-900">{title.clone()}</h1>
-                                                
+
                                                 // Image Logic
                                                 {if is_terrace || !images.is_empty() {
                                                     Some(view! {
@@ -493,7 +495,7 @@ pub fn JournalismArticlePage() -> impl IntoView {
                                         }.into_any()
                                     }
                                 };
-                                
+
                                 let edit_mode = {
                                     let article = article.clone();
                                     move || {
@@ -506,7 +508,7 @@ pub fn JournalismArticlePage() -> impl IntoView {
                                             <div class="edit-container w-full max-w-5xl mx-auto p-8 bg-white border border-blue-200 rounded-xl shadow-2xl">
                                                 <div class="max-w-2xl mx-auto">
                                                     <h2 class="text-3xl font-bold mb-8 pb-4 border-b text-center">"Editing Article"</h2>
-                                                    
+
                                                     <div class="form-group mb-6">
                                                         <label class="block font-bold mb-2 text-gray-700">"Headline"</label>
                                                         <textarea class="w-full p-3 border rounded-lg text-2xl font-bold resize-none" rows="2"
@@ -524,12 +526,12 @@ pub fn JournalismArticlePage() -> impl IntoView {
                                                                     view! {
                                                                         <div class="relative group w-full mt-2">
                                                                             <div class="border-2 border-gray-200 rounded-lg overflow-hidden shadow-sm">
-                                                                                <img 
-                                                                                    src=src.clone() 
-                                                                                    class="w-full h-auto object-cover transition-transform duration-500 group-hover:scale-105" 
+                                                                                <img
+                                                                                    src=src.clone()
+                                                                                    class="w-full h-auto object-cover transition-transform duration-500 group-hover:scale-105"
                                                                                 />
                                                                             </div>
-                                                                            <button 
+                                                                            <button
                                                                                 type="button"
                                                                                 class="absolute -top-3 -right-3 bg-red-600 text-white rounded-full w-8 h-8 flex items-center justify-center shadow-md hover:bg-red-700 transition-colors z-10"
                                                                                 on:click=move |_| set_edit_images.update(|i| { i.clear(); })
@@ -545,7 +547,7 @@ pub fn JournalismArticlePage() -> impl IntoView {
                                                                     view! { <span class="hidden" /> }.into_any()
                                                                 }
                                                             }}
-                                                            <button 
+                                                            <button
                                                                 type="button"
                                                                 class="btn btn-sm btn-secondary w-auto self-start flex items-center gap-2"
                                                                 on:click=move |_| set_show_media_picker.set(!show_media_picker.get())
@@ -561,7 +563,7 @@ pub fn JournalismArticlePage() -> impl IntoView {
                                                             let current = edit_images.get().first().cloned();
                                                             Some(view! {
                                                                 <div class="mt-4 border rounded p-4 bg-gray-50">
-                                                                    <MediaPicker 
+                                                                    <MediaPicker
                                                                         token=token.into()
                                                                         current_image=current
                                                                         on_select=move |url| {
@@ -581,7 +583,7 @@ pub fn JournalismArticlePage() -> impl IntoView {
                                                             on:input=move |ev| set_edit_caption.set(event_target_value(&ev))
                                                         ></textarea>
                                                     </div>
-                                                    
+
                                                     <div class="form-group mb-6">
                                                         <label class="block font-bold mb-2 text-gray-700">"Display Date"</label>
                                                         <textarea class="w-full p-3 border rounded-lg resize-none" rows="1"
@@ -601,41 +603,41 @@ pub fn JournalismArticlePage() -> impl IntoView {
                                                     <div class="form-group mb-6">
                                                         <div class="flex justify-between items-end mb-2">
                                                             <label class="block font-bold mb-0 text-gray-700">"Article Text"</label>
-                                                            
+
                                                             <div class="flex gap-2 items-center">
                                                                 // Toolbar
                                                                 <div class="flex bg-gray-100 rounded-lg border overflow-hidden mr-4">
                                                                     <button type="button" class="p-2 hover:bg-gray-200 text-gray-700 font-bold" title="Bold"
                                                                         on:mousedown=move |ev| { ev.prevent_default(); }
-                                                                        on:click=move |_| { 
+                                                                        on:click=move |_| {
                                                                             if let Ok(doc) = web_sys::window().unwrap().document().unwrap().dyn_into::<web_sys::HtmlDocument>() {
-                                                                                let _ = doc.exec_command("bold"); 
+                                                                                let _ = doc.exec_command("bold");
                                                                             }
                                                                         }
                                                                     >
                                                                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                                                            <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" /> 
+                                                                            <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
                                                                             // Actually let's use a "B" icon or generic
                                                                             <path fill-rule="evenodd" d="M6 4a1 1 0 011-1h4a3 3 0 011.69 5.483 3 3 0 01-1.258.468A3 3 0 0113 14h-6a1 1 0 01-1-1V4zm2 2v2h3a1 1 0 100-2H8zm0 4v2h4a1 1 0 100-2H8z" clip-rule="evenodd" />
                                                                         </svg>
                                                                     </button>
                                                                     <button type="button" class="p-2 hover:bg-gray-200 text-gray-700 italic font-serif" title="Italic"
                                                                         on:mousedown=move |ev| { ev.prevent_default(); }
-                                                                        on:click=move |_| { 
+                                                                        on:click=move |_| {
                                                                             if let Ok(doc) = web_sys::window().unwrap().document().unwrap().dyn_into::<web_sys::HtmlDocument>() {
-                                                                                let _ = doc.exec_command("italic"); 
+                                                                                let _ = doc.exec_command("italic");
                                                                             }
                                                                         }
                                                                     >
                                                                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                                                            <path fill-rule="evenodd" d="M6 4a1 1 0 011-1h.22a1 1 0 01.993.883l3.5 13.5a1 1 0 01-1.926.66l-.667-2.543H6.77l-1.332 2.664A1 1 0 014.544 18H4a1 1 0 01-1-1v-2a1 1 0 011-1h1.11l1.89-3.78L6 4z" clip-rule="evenodd" /> 
+                                                                            <path fill-rule="evenodd" d="M6 4a1 1 0 011-1h.22a1 1 0 01.993.883l3.5 13.5a1 1 0 01-1.926.66l-.667-2.543H6.77l-1.332 2.664A1 1 0 014.544 18H4a1 1 0 01-1-1v-2a1 1 0 011-1h1.11l1.89-3.78L6 4z" clip-rule="evenodd" />
                                                                              // This is Font... let's just use text "I"
                                                                              <text x="6" y="15" font-family="serif" font-style="italic" font-weight="bold" font-size="14">"I"</text>
                                                                         </svg>
                                                                     </button>
                                                                     <button type="button" class="p-2 hover:bg-gray-200 text-gray-700" title="Link"
                                                                         on:mousedown=move |ev| { ev.prevent_default(); }
-                                                                        on:click=move |_| { 
+                                                                        on:click=move |_| {
                                                                             if let Ok(Some(url)) = web_sys::window().unwrap().prompt_with_message("Enter URL:") {
                                                                                 if let Ok(doc) = web_sys::window().unwrap().document().unwrap().dyn_into::<web_sys::HtmlDocument>() {
                                                                                     let _ = doc.exec_command_with_show_ui_and_value("createLink", false, &url);
@@ -651,7 +653,7 @@ pub fn JournalismArticlePage() -> impl IntoView {
 
                                                                 // View Toggles
                                                                 <div class="flex bg-gray-100 rounded-lg border overflow-hidden">
-                                                                    <button 
+                                                                    <button
                                                                         class=move || format!("p-2 {}", if !show_html_code.get() { "bg-white shadow-sm text-blue-600" } else { "text-gray-500 hover:bg-gray-50" })
                                                                         on:click=move |_| set_show_html_code.set(false)
                                                                         title="Visual Preview"
@@ -661,7 +663,7 @@ pub fn JournalismArticlePage() -> impl IntoView {
                                                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                                                                         </svg>
                                                                     </button>
-                                                                    <button 
+                                                                    <button
                                                                         class=move || format!("p-2 {}", if show_html_code.get() { "bg-white shadow-sm text-blue-600" } else { "text-gray-500 hover:bg-gray-50" })
                                                                         on:click=move |_| set_show_html_code.set(true)
                                                                         title="HTML Code"
@@ -673,7 +675,7 @@ pub fn JournalismArticlePage() -> impl IntoView {
                                                                 </div>
                                                             </div>
                                                         </div>
-                                                        
+
                                                         {move || if show_html_code.get() {
                                                             view! {
                                                                 <textarea class="w-full p-4 border rounded-lg h-[600px] font-mono text-sm bg-gray-50 text-gray-900"
@@ -683,7 +685,7 @@ pub fn JournalismArticlePage() -> impl IntoView {
                                                             }.into_any()
                                                         } else {
                                                             view! {
-                                                                <div 
+                                                                <div
                                                                     class="w-full p-6 border rounded-lg h-[600px] overflow-y-auto prose max-w-none bg-white text-black focus:ring-2 focus:ring-blue-500 focus:outline-none"
                                                                     contenteditable="true"
                                                                     inner_html=edit_html.get_untracked()
@@ -694,7 +696,7 @@ pub fn JournalismArticlePage() -> impl IntoView {
                                                             }.into_any()
                                                         }}
                                                     </div>
-                                                
+
                                                 <div class="flex gap-4 items-center">
                                                     <button class="btn btn-primary" on:click=move |_| on_save(article_save.clone())>
                                                         "Save Changes"
