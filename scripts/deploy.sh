@@ -21,6 +21,10 @@ gcloud compute ssh jake-user@$INSTANCE_NAME --project=$PROJECT_ID --zone=$ZONE -
 
 
 # 1. Copy files to VM (Delta sync)
+echo "Getting instance IP..."
+IP=$(gcloud compute instances describe $INSTANCE_NAME --project=$PROJECT_ID --zone=$ZONE --format='get(networkInterfaces[0].accessConfigs[0].natIP)')
+echo "Instance IP: $IP"
+
 echo "Syncing project files (rsync)..."
 # We exclude things that are large, ignored, or platform-specific
 rsync -avz --info=progress2 \
@@ -31,9 +35,9 @@ rsync -avz --info=progress2 \
     --exclude 'postgres.log' \
     --exclude '.env' \
     --exclude '.DS_Store' \
-    -e "gcloud compute ssh --project=$PROJECT_ID --zone=$ZONE" \
+    -e "ssh -i ~/.ssh/google_compute_engine -o StrictHostKeyChecking=no" \
     ./ \
-    jake-user@$INSTANCE_NAME:~/app/
+    jake-user@$IP:~/app/
 
 # 2. SSH and Deploy
 echo "Starting remote configuration and build..."
