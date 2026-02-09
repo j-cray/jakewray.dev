@@ -59,3 +59,6 @@ docker-compose.override.yml
 
 # Imports
 imports/
+
+# Local Database
+.postgres_local/
