@@ -11,15 +11,11 @@ echo "Deploying target: $TARGET"
 
 
 # 0. Clean remote directory (preserving persistent data)
-echo "Cleaning remote directory and Docker artifacts..."
+# We NO LONGER wipe the directory to preserve Docker cache and valid files.
+# rsync/scp will overwrite changed files.
+echo "Preparing remote directory..."
 gcloud compute ssh jake-user@$INSTANCE_NAME --project=$PROJECT_ID --zone=$ZONE --command="
-    # Stop all running containers to release file locks
-    if [ -n \"\$(sudo docker ps -q)\" ]; then sudo docker stop \$(sudo docker ps -q); fi && \
-    sudo docker system prune --force && \
     mkdir -p ~/app && \
-    cd ~/app && \
-    # Remove everything EXCEPT persistent data (using sudo for root-owned files like target/)
-    sudo find . -maxdepth 1 ! -name '.' ! -name 'certbot' ! -name 'media_mount' -exec rm -rf {} + && \
     sudo chown -R jake-user:jake-user ~/app
 "
 

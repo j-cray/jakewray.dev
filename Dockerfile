@@ -1,74 +1,36 @@
 # syntax=docker/dockerfile:1
-FROM rust:bookworm as deps
-
-# Install build dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    nodejs \
-    npm \
-    pkg-config \
-    libssl-dev \
-    && rm -rf /var/lib/apt/lists/*
-
+FROM rust:bookworm as chef
+WORKDIR /app
 # Install cargo-binstall for faster tool installation
 RUN curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash
-
-# Install cargo-leptos and sass (cached layer)
+# Install cargo-chef
+RUN cargo binstall cargo-chef -y
+# Install cargo-leptos and sass (needed for build)
 RUN cargo binstall cargo-leptos -y
-RUN npm install -g sass
-
-# Install sqlx-cli (binary install for speed)
+# Install sqlx-cli (needed for pre-build prepare step)
 RUN cargo binstall sqlx-cli -y --force
-
+RUN apt-get update && apt-get install -y --no-install-recommends nodejs npm pkg-config libssl-dev && rm -rf /var/lib/apt/lists/*
+RUN npm install -g sass
 # Add WASM target
 RUN rustup target add wasm32-unknown-unknown
 
-FROM deps as planner
-WORKDIR /app
-# Copy only Cargo files for dependency caching
-COPY Cargo.toml Cargo.lock ./
-COPY backend/Cargo.toml ./backend/
-COPY frontend/Cargo.toml ./frontend/
-COPY shared/Cargo.toml ./shared/
-COPY migration/Cargo.toml ./migration/
-
-FROM deps as builder
-WORKDIR /app
-
-# Copy lockfiles first for better caching
-COPY Cargo.toml Cargo.lock ./
-COPY backend/Cargo.toml ./backend/
-COPY frontend/Cargo.toml ./frontend/
-COPY shared/Cargo.toml ./shared/
-COPY migration/Cargo.toml ./migration/
-
-# Create dummy source files to cache dependencies
-RUN mkdir -p backend/src frontend/src shared/src migration/src && \
-    echo "fn main() {}" > backend/src/main.rs && \
-    echo "fn main() {}" > migration/src/main.rs && \
-    echo "pub fn dummy() {}" > shared/src/lib.rs && \
-    echo "pub fn dummy() {}" > frontend/src/lib.rs
-
-# Build dependencies only (this layer will be cached)
-ENV SQLX_OFFLINE=true
-RUN --mount=type=cache,target=/usr/local/cargo/registry \
-    --mount=type=cache,target=/usr/local/cargo/git \
-    --mount=type=cache,target=/app/target \
-    cargo build --release && \
-    cargo build --release --target wasm32-unknown-unknown -p frontend
-
-# Now copy actual source code
+FROM chef as planner
 COPY . .
+RUN cargo chef prepare --recipe-path recipe.json
 
-# Touch files to trigger rebuild with real source
-RUN touch backend/src/main.rs frontend/src/lib.rs shared/src/lib.rs
+FROM chef as builder
+COPY --from=planner /app/recipe.json recipe.json
+# Build dependencies - this is the caching Docker layer!
+RUN cargo chef cook --release --target wasm32-unknown-unknown --recipe-path recipe.json
 
-# Build the actual app with cached dependencies
-RUN --mount=type=cache,target=/usr/local/cargo/registry \
-    --mount=type=cache,target=/usr/local/cargo/git \
-    --mount=type=cache,target=/app/target \
-    cargo leptos build --release -vv && \
+# Build application
+COPY . .
+# Build the actual app
+RUN cargo leptos build --release -vv && \
     cp -r target/release/backend /tmp/ && \
     cp -r target/site /tmp/
+# Install sqlx-cli for runtime migrations/prep if needed (or just copy binary if available)
+RUN cargo binstall sqlx-cli -y --force
 
 # Runtime Stage
 FROM debian:bookworm-slim as runtime

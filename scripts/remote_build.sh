@@ -22,11 +22,11 @@ DATABASE_URL=postgres://admin:password@db:5432/portfolio
 EOF
 
 if [ "$TARGET" = "all" ] || [ "$TARGET" = "backend" ]; then
-    echo "Building dependencies image with cache..."
+    echo "Building chef base image (with cache)..."
     sudo DOCKER_BUILDKIT=1 docker build \
-        --target deps \
-        --cache-from portfolio-deps:latest \
-        -t portfolio-deps .
+        --target chef \
+        --cache-from portfolio-chef:latest \
+        -t portfolio-chef .
 
     echo "Ensuring DB is up for preparation..."
     sudo docker compose -f docker-compose.prod.yml up -d db
@@ -35,13 +35,16 @@ if [ "$TARGET" = "all" ] || [ "$TARGET" = "backend" ]; then
 
     echo "Running sqlx prepare on server..."
     DB_CONTAINER=$(sudo docker compose -f docker-compose.prod.yml ps -q db | head -n1)
+
+    # We use the chef image which has sqlx-cli installed, and mount source code
     sudo docker run --rm \
         --network container:$DB_CONTAINER \
-        -v $(pwd):/app \
+        -v "$(pwd)":/app \
         -w /app \
+        -u root \
         -e DATABASE_URL=postgres://admin:password@localhost:5432/portfolio \
         -e SQLX_OFFLINE=false \
-        portfolio-deps \
+        portfolio-chef \
         cargo sqlx prepare --workspace
     sudo chown -R jake-user:jake-user .
 fi
