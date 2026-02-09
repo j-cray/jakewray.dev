@@ -20,26 +20,20 @@ gcloud compute ssh jake-user@$INSTANCE_NAME --project=$PROJECT_ID --zone=$ZONE -
 "
 
 
-# 1. Copy files to VM
-echo "Copying project files..."
-gcloud compute scp --recurse \
-    ./Dockerfile \
-    ./nginx \
-    ./docker-compose.prod.yml \
-    ./migrations \
-    ./Cargo.toml \
-    ./backend \
-    ./frontend \
-    ./shared \
-    ./migration \
-    ./style \
-    ./assets \
-    ./scripts \
-    ./data \
-    ./Cargo.lock \
-    jake-user@$INSTANCE_NAME:~/app \
-    --project=$PROJECT_ID \
-    --zone=$ZONE
+# 1. Copy files to VM (Delta sync)
+echo "Syncing project files (rsync)..."
+# We exclude things that are large, ignored, or platform-specific
+rsync -avz --info=progress2 \
+    --exclude '.git' \
+    --exclude 'target' \
+    --exclude 'node_modules' \
+    --exclude '.postgres_local' \
+    --exclude 'postgres.log' \
+    --exclude '.env' \
+    --exclude '.DS_Store' \
+    -e "gcloud compute ssh --project=$PROJECT_ID --zone=$ZONE" \
+    ./ \
+    jake-user@$INSTANCE_NAME:~/app/
 
 # 2. SSH and Deploy
 echo "Starting remote configuration and build..."
