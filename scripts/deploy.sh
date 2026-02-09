@@ -25,6 +25,16 @@ echo "Getting instance IP..."
 IP=$(gcloud compute instances describe $INSTANCE_NAME --project=$PROJECT_ID --zone=$ZONE --format='get(networkInterfaces[0].accessConfigs[0].natIP)')
 echo "Instance IP: $IP"
 
+echo "Ensuring rsync is installed on remote..."
+gcloud compute ssh jake-user@$INSTANCE_NAME --project=$PROJECT_ID --zone=$ZONE --command="
+    if ! command -v rsync &> /dev/null; then
+        echo 'rsync not found, installing...'
+        sudo apt-get update && sudo apt-get install -y rsync
+    else
+        echo 'rsync is already installed.'
+    fi
+"
+
 echo "Syncing project files (rsync)..."
 # We exclude things that are large, ignored, or platform-specific
 rsync -avz --info=progress2 \
