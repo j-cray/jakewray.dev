@@ -1,0 +1,14 @@
+target/
+.git/
+node_modules/
+.env
+postgres_data/
+docker-compose.yml
+docker-compose.prod.yml
+scripts/
+README.md
+LICENSE
+.direnv/
+.postgres_local/
+postgres.log
+.DS_Store
