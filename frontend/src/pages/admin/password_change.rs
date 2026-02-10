@@ -6,6 +6,7 @@ use leptos_router::hooks::use_navigate;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Clone)]
+#[allow(dead_code)]
 struct ChangePasswordRequest {
     current_password: String,
     new_password: String,
@@ -16,9 +17,9 @@ pub fn AdminPasswordChange() -> impl IntoView {
     let (current_password, set_current_password) = signal("".to_string());
     let (new_password, set_new_password) = signal("".to_string());
     let (confirm_password, set_confirm_password) = signal("".to_string());
-    let (error, set_error) = signal("".to_string());
-    let (success, set_success) = signal("".to_string());
-    let (loading, set_loading) = signal(false);
+    let (error, _set_error) = signal("".to_string());
+    let (success, _set_success) = signal("".to_string());
+    let (loading, _set_loading) = signal(false);
 
     #[cfg(target_arch = "wasm32")]
     let on_submit = {

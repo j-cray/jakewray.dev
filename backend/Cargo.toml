@@ -15,6 +15,7 @@ sqlx = { version = "0.8", features = [
 ] }
 argon2 = "0.5"
 rand = "0.8"
+uuid = { version = "1.0", features = ["serde", "v4"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 serde_urlencoded = "0.7"
@@ -33,13 +34,10 @@ leptos = { workspace = true, features = ["ssr"] }
 leptos_meta = { workspace = true, features = ["ssr"] }
 leptos_router = { workspace = true, features = ["ssr"] }
 leptos_axum = { workspace = true }
-frontend = { path = "../frontend", default-features = false, features = ["ssr"] }
+frontend = { path = "../frontend", default-features = false, features = [
+  "ssr",
+] }
 
 [features]
 default = []
-ssr = [
-  "leptos/ssr",
-  "leptos_meta/ssr",
-  "leptos_router/ssr",
-  "frontend/ssr",
-]
+ssr = ["leptos/ssr", "leptos_meta/ssr", "leptos_router/ssr", "frontend/ssr"]
