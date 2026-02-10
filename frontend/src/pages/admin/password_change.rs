@@ -17,9 +17,12 @@ pub fn AdminPasswordChange() -> impl IntoView {
     let (current_password, set_current_password) = signal("".to_string());
     let (new_password, set_new_password) = signal("".to_string());
     let (confirm_password, set_confirm_password) = signal("".to_string());
-    let (error, _set_error) = signal("".to_string());
-    let (success, _set_success) = signal("".to_string());
-    let (loading, _set_loading) = signal(false);
+    #[allow(unused_variables)]
+    let (error, set_error) = signal("".to_string());
+    #[allow(unused_variables)]
+    let (success, set_success) = signal("".to_string());
+    #[allow(unused_variables)]
+    let (loading, set_loading) = signal(false);
 
     #[cfg(target_arch = "wasm32")]
     let on_submit = {
