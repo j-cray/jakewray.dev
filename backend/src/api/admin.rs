@@ -41,14 +41,21 @@ pub struct LoginRequest {
     password: String,
 }
 
+#[derive(Serialize)]
 pub struct LoginResponse {
     token: String,
 }
 
-#[derive(Deserialize)]
+#[derive(Serialize, Deserialize)]
 pub struct ChangePasswordRequest {
     current_password: String,
     new_password: String,
+}
+
+#[derive(sqlx::FromRow)]
+struct UserRow {
+    id: uuid::Uuid,
+    password_hash: String,
 }
 
 fn hash_password(password: &str) -> Result<String, String> {
@@ -106,7 +113,8 @@ async fn login(
         return Err((StatusCode::UNSUPPORTED_MEDIA_TYPE, "Unsupported content type".to_string()));
     };
 
-    let user = sqlx::query!("SELECT id, password_hash FROM users WHERE username = $1", &req.username)
+    let user: Option<UserRow> = sqlx::query_as("SELECT id, password_hash FROM users WHERE username = $1")
+        .bind(&req.username)
         .fetch_optional(&pool)
         .await
         .map_err(|_| (StatusCode::INTERNAL_SERVER_ERROR, "Database error".to_string()))?;
@@ -190,7 +198,8 @@ async fn change_password(
         .map_err(|_| (StatusCode::INTERNAL_SERVER_ERROR, "Invalid user ID in token".to_string()))?;
 
     // Verify current password
-    let user = sqlx::query!("SELECT password_hash FROM users WHERE id = $1", user_id)
+    let user: Option<UserRow> = sqlx::query_as("SELECT id, password_hash FROM users WHERE id = $1")
+        .bind(user_id)
         .fetch_optional(&pool)
         .await
         .map_err(|_| (StatusCode::INTERNAL_SERVER_ERROR, "Database error".to_string()))?;
@@ -205,7 +214,9 @@ async fn change_password(
     let new_hash = hash_password(&req.new_password)
         .map_err(|_| (StatusCode::INTERNAL_SERVER_ERROR, "Failed to hash password".to_string()))?;
 
-    sqlx::query!("UPDATE users SET password_hash = $1 WHERE id = $2", new_hash, user_id)
+    sqlx::query("UPDATE users SET password_hash = $1 WHERE id = $2")
+        .bind(new_hash)
+        .bind(user_id)
         .execute(&pool)
         .await
         .map_err(|_| (StatusCode::INTERNAL_SERVER_ERROR, "Database update failed".to_string()))?;
