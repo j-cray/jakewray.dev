@@ -62,3 +62,8 @@ imports/
 
 # Local Database
 .postgres_local/
+
+# Sass
+.sass-cache/
+.sass-cache
+
