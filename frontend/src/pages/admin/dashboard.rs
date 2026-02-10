@@ -37,12 +37,17 @@ pub fn AdminDashboard() -> impl IntoView {
         <div class="container py-12">
             <div class="flex justify-between items-center mb-8">
                 <h1 class="text-4xl">"Admin Dashboard"</h1>
-                <button 
-                    on:click=logout 
-                    class="btn btn-secondary"
-                >
-                    "Logout"
-                </button>
+                <div class="flex gap-2">
+                    <a href="/admin/password-change" class="btn btn-secondary">
+                        "Change Password"
+                    </a>
+                    <button
+                        on:click=logout
+                        class="btn btn-secondary"
+                    >
+                        "Logout"
+                    </button>
+                </div>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

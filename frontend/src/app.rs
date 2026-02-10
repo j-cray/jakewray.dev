@@ -1,18 +1,19 @@
 use crate::components::footer::Footer;
 use crate::components::navbar::Navbar;
+use crate::pages::about::AboutPage;
 use crate::pages::admin::composer::AdminComposer;
 use crate::pages::admin::dashboard::AdminDashboard;
 use crate::pages::admin::login::AdminLoginPage;
+use crate::pages::admin::password_change::AdminPasswordChange;
 use crate::pages::admin::sync_manager::AdminSyncManager;
-use crate::pages::about::AboutPage;
 use crate::pages::sections::{
     JournalismArticlePage, JournalismPage, PersonalBlogPage, ProgrammingPage,
 };
 use leptos::prelude::*;
 use leptos_meta::*;
 use leptos_router::components::*;
-use leptos_router::*;
 use leptos_router::hooks::use_location;
+use leptos_router::*;
 
 #[component]
 pub fn App() -> impl IntoView {
@@ -26,7 +27,8 @@ pub fn App() -> impl IntoView {
 #[component]
 pub fn Shell() -> impl IntoView {
     provide_meta_context();
-    let options = use_context::<leptos::config::LeptosOptions>().expect("LeptosOptions not found in Shell");
+    let options =
+        use_context::<leptos::config::LeptosOptions>().expect("LeptosOptions not found in Shell");
     view! {
         <html lang="en">
             <head>
@@ -41,7 +43,6 @@ pub fn Shell() -> impl IntoView {
         </html>
     }
 }
-
 
 #[component]
 fn MainLayout() -> impl IntoView {
@@ -80,6 +81,7 @@ fn MainLayout() -> impl IntoView {
                     <Route path=path!("/admin/login") view=AdminLoginPage/>
                     <Route path=path!("/admin/compose") view=AdminComposer/>
                     <Route path=path!("/admin/sync") view=AdminSyncManager/>
+                    <Route path=path!("/admin/password-change") view=AdminPasswordChange/>
                     <Route path=path!("/admin/media") view=MediaLibraryPlaceholder/>
                 </Routes>
             </main>

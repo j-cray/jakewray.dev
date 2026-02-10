@@ -15,6 +15,13 @@ use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 use jsonwebtoken::{encode, Header, EncodingKey};
 use chrono::{Utc, Duration};
+use argon2::{
+    password_hash::{
+        rand_core::OsRng,
+        PasswordHash, PasswordHasher, PasswordVerifier, SaltString
+    },
+    Argon2
+};
 
 fn get_jwt_secret() -> &'static [u8] {
     // In production, use environment variable: std::env::var("JWT_SECRET").unwrap_or_default().as_bytes()
@@ -34,14 +41,36 @@ pub struct LoginRequest {
     password: String,
 }
 
-#[derive(Serialize)]
 pub struct LoginResponse {
     token: String,
+}
+
+#[derive(Deserialize)]
+pub struct ChangePasswordRequest {
+    current_password: String,
+    new_password: String,
+}
+
+fn hash_password(password: &str) -> Result<String, String> {
+    let salt = SaltString::generate(&mut OsRng);
+    let argon2 = Argon2::default();
+    argon2.hash_password(password.as_bytes(), &salt)
+        .map_err(|e| e.to_string())
+        .map(|hash| hash.to_string())
+}
+
+fn verify_password(password: &str, password_hash: &str) -> bool {
+    let parsed_hash = match PasswordHash::new(password_hash) {
+        Ok(h) => h,
+        Err(_) => return false,
+    };
+    Argon2::default().verify_password(password.as_bytes(), &parsed_hash).is_ok()
 }
 
 pub fn router(state: crate::state::AppState) -> Router<crate::state::AppState> {
     Router::new()
         .route("/login", post(login))
+        .route("/password", post(change_password))
         .route("/me", get(me))
         .with_state(state)
 }
@@ -83,7 +112,7 @@ async fn login(
         .map_err(|_| (StatusCode::INTERNAL_SERVER_ERROR, "Database error".to_string()))?;
 
     let is_invalid = match user {
-        Some(ref u) => u.password_hash != req.password,
+        Some(ref u) => !verify_password(&req.password, &u.password_hash),
         None => true,
     };
 
@@ -134,5 +163,52 @@ async fn me(headers: HeaderMap) -> Result<&'static str, StatusCode> {
         .and_then(|s| s.strip_prefix("Bearer "))
         .ok_or(StatusCode::UNAUTHORIZED)?;
 
+
     Ok("Authenticated")
+}
+
+async fn change_password(
+    State(pool): State<PgPool>,
+    headers: HeaderMap,
+    Json(req): Json<ChangePasswordRequest>,
+) -> Result<StatusCode, (StatusCode, String)> {
+    let token = headers
+        .get("Authorization")
+        .and_then(|h| h.to_str().ok())
+        .and_then(|s| s.strip_prefix("Bearer "))
+        .ok_or((StatusCode::UNAUTHORIZED, "Missing token".to_string()))?;
+
+    // Verify token (simple check, ideally decode claims)
+    let validation = jsonwebtoken::Validation::default();
+    let token_data = jsonwebtoken::decode::<Claims>(
+        token,
+        &jsonwebtoken::DecodingKey::from_secret(get_jwt_secret()),
+        &validation,
+    ).map_err(|_| (StatusCode::UNAUTHORIZED, "Invalid token".to_string()))?;
+
+    let user_id = token_data.claims.sub.parse::<uuid::Uuid>()
+        .map_err(|_| (StatusCode::INTERNAL_SERVER_ERROR, "Invalid user ID in token".to_string()))?;
+
+    // Verify current password
+    let user = sqlx::query!("SELECT password_hash FROM users WHERE id = $1", user_id)
+        .fetch_optional(&pool)
+        .await
+        .map_err(|_| (StatusCode::INTERNAL_SERVER_ERROR, "Database error".to_string()))?;
+
+    let user = user.ok_or((StatusCode::NOT_FOUND, "User not found".to_string()))?;
+
+    if !verify_password(&req.current_password, &user.password_hash) {
+        return Err((StatusCode::FORBIDDEN, "Invalid current password".to_string()));
+    }
+
+    // Hash new password and update
+    let new_hash = hash_password(&req.new_password)
+        .map_err(|_| (StatusCode::INTERNAL_SERVER_ERROR, "Failed to hash password".to_string()))?;
+
+    sqlx::query!("UPDATE users SET password_hash = $1 WHERE id = $2", new_hash, user_id)
+        .execute(&pool)
+        .await
+        .map_err(|_| (StatusCode::INTERNAL_SERVER_ERROR, "Database update failed".to_string()))?;
+
+    Ok(StatusCode::OK)
 }
