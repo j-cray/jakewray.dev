@@ -1,17 +1,18 @@
-version: '3.8'
+version: "3.8"
 
 services:
   db:
-    image: docker.io/postgres:15-alpine
+    image: docker.io/bitnami/postgresql:15
     restart: always
+    userns_mode: keep-id
     environment:
-      POSTGRES_USER: admin
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: portfolio
+      POSTGRESQL_USERNAME: admin
+      POSTGRESQL_PASSWORD: password
+      POSTGRESQL_DATABASE: portfolio
     ports:
       - "5432:5432"
     volumes:
-      - db_data:/var/lib/postgresql/data
+      - db_data_v2:/bitnami/postgresql
 
 volumes:
-  db_data:
+  db_data_v2:

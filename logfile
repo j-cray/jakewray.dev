@@ -1,0 +1,31 @@
+2026-02-10 05:11:57.648 PST [183740] LOG:  starting PostgreSQL 17.7 on x86_64-pc-linux-gnu, compiled by clang version 20.1.8, 64-bit
+2026-02-10 05:11:57.649 PST [183740] LOG:  listening on IPv6 address "::1", port 5433
+2026-02-10 05:11:57.649 PST [183740] LOG:  listening on IPv4 address "127.0.0.1", port 5433
+2026-02-10 05:11:57.649 PST [183740] FATAL:  could not create lock file "/run/postgresql/.s.PGSQL.5433.lock": No such file or directory
+2026-02-10 05:11:57.650 PST [183740] LOG:  database system is shut down
+2026-02-10 05:12:37.608 PST [185063] LOG:  starting PostgreSQL 17.7 on x86_64-pc-linux-gnu, compiled by clang version 20.1.8, 64-bit
+2026-02-10 05:12:37.609 PST [185063] LOG:  listening on IPv6 address "::1", port 5433
+2026-02-10 05:12:37.610 PST [185063] LOG:  listening on IPv4 address "127.0.0.1", port 5433
+2026-02-10 05:12:37.611 PST [185063] LOG:  listening on Unix socket "/tmp/.s.PGSQL.5433"
+2026-02-10 05:12:37.614 PST [185066] LOG:  database system was shut down at 2026-02-10 05:11:57 PST
+2026-02-10 05:12:37.619 PST [185063] LOG:  database system is ready to accept connections
+2026-02-10 05:12:40.615 PST [185503] FATAL:  database "icarus" does not exist
+2026-02-10 05:13:04.593 PST [186196] ERROR:  role "admin" already exists
+2026-02-10 05:13:04.593 PST [186196] STATEMENT:  CREATE ROLE admin SUPERUSER CREATEDB CREATEROLE INHERIT LOGIN NOREPLICATION NOBYPASSRLS;
+2026-02-10 05:13:06.603 PST [186562] ERROR:  database "portfolio" already exists
+2026-02-10 05:13:06.603 PST [186562] STATEMENT:  CREATE DATABASE portfolio;
+2026-02-10 05:16:02.898 PST [185068] WARNING:  autovacuum worker took too long to start; canceled
+2026-02-10 07:35:57.267 PST [11195] LOG:  starting PostgreSQL 17.7 on x86_64-pc-linux-gnu, compiled by clang version 20.1.8, 64-bit
+2026-02-10 07:35:57.268 PST [11195] LOG:  listening on IPv6 address "::1", port 5433
+2026-02-10 07:35:57.268 PST [11195] LOG:  listening on IPv4 address "127.0.0.1", port 5433
+2026-02-10 07:35:57.269 PST [11195] LOG:  listening on Unix socket "/tmp/.s.PGSQL.5433"
+2026-02-10 07:35:57.272 PST [11200] LOG:  database system was interrupted; last known up at 2026-02-10 05:12:37 PST
+2026-02-10 07:35:57.394 PST [11200] LOG:  database system was not properly shut down; automatic recovery in progress
+2026-02-10 07:35:57.396 PST [11200] LOG:  redo starts at 0/1549D60
+2026-02-10 07:35:57.421 PST [11200] LOG:  invalid record length at 0/1DFE670: expected at least 24, got 0
+2026-02-10 07:35:57.421 PST [11200] LOG:  redo done at 0/1DFE638 system usage: CPU: user: 0.00 s, system: 0.01 s, elapsed: 0.02 s
+2026-02-10 07:35:57.442 PST [11198] LOG:  checkpoint starting: end-of-recovery immediate wait
+2026-02-10 07:35:57.491 PST [11198] LOG:  checkpoint complete: wrote 1904 buffers (11.6%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.029 s, sync=0.017 s, total=0.051 s; sync files=601, longest=0.002 s, average=0.001 s; distance=8914 kB, estimate=8914 kB; lsn=0/1DFE670, redo lsn=0/1DFE670
+2026-02-10 07:35:57.495 PST [11195] LOG:  database system is ready to accept connections
+2026-02-10 07:36:04.468 PST [12022] ERROR:  relation "users" does not exist at character 37
+2026-02-10 07:36:04.468 PST [12022] STATEMENT:  SELECT username, password_hash FROM users WHERE username='admin';
