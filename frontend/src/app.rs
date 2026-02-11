@@ -5,7 +5,7 @@ use crate::pages::admin::composer::AdminComposer;
 use crate::pages::admin::dashboard::AdminDashboard;
 use crate::pages::admin::login::AdminLoginPage;
 use crate::pages::admin::password_change::AdminPasswordChange;
-use crate::pages::admin::sync_manager::AdminSyncManager;
+
 use crate::pages::sections::{
     JournalismArticlePage, JournalismPage, PersonalBlogPage, ProgrammingPage,
 };
@@ -80,7 +80,7 @@ fn MainLayout() -> impl IntoView {
                     <Route path=path!("/admin/dashboard") view=AdminDashboard/>
                     <Route path=path!("/admin/login") view=AdminLoginPage/>
                     <Route path=path!("/admin/compose") view=AdminComposer/>
-                    <Route path=path!("/admin/sync") view=AdminSyncManager/>
+
                     <Route path=path!("/admin/password-change") view=AdminPasswordChange/>
                     <Route path=path!("/admin/media") view=MediaLibraryPlaceholder/>
                 </Routes>

@@ -56,10 +56,7 @@ pub fn AdminDashboard() -> impl IntoView {
                     <p class="text-muted">"Write a new blog post or article."</p>
                 </a>
 
-                <a href="/admin/sync" class="card hover:shadow-md transition">
-                    <h3 class="text-xl font-bold mb-2">"Sync Manager"</h3>
-                    <p class="text-muted">"Manage data sync from terracestandard.com"</p>
-                </a>
+
 
                 <a href="/admin/media" class="card hover:shadow-md transition">
                     <h3 class="text-xl font-bold mb-2">"Media Library"</h3>
