@@ -7,7 +7,7 @@ edition = "2021"
 axum = { workspace = true }
 tokio = { workspace = true }
 sqlx = { version = "0.8", features = [
-  "postgres",
+  "sqlite",
   "runtime-tokio-rustls",
   "uuid",
   "chrono",

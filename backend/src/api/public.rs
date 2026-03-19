@@ -1,6 +1,6 @@
 use axum::{extract::State, routing::get, Json, Router};
 use shared::{Article, BlogPost};
-use sqlx::PgPool;
+use sqlx::SqlitePool;
 
 pub fn router(state: crate::state::AppState) -> Router<crate::state::AppState> {
     Router::new()
@@ -15,9 +15,9 @@ async fn health_check() -> &'static str {
 
 use sqlx::Row;
 
-async fn list_articles(State(pool): State<PgPool>) -> Json<Vec<Article>> {
+async fn list_articles(State(pool): State<SqlitePool>) -> Json<Vec<Article>> {
     match sqlx::query("SELECT id, wp_id, slug, title, subtitle, excerpt, content, cover_image_url, author, published_at, origin FROM articles ORDER BY published_at DESC LIMIT 20")
-        .map(|row: sqlx::postgres::PgRow| {
+        .map(|row: sqlx::sqlite::SqliteRow| {
             let origin_str: String = row.get("origin");
             let origin = match origin_str.as_str() {
                 "imported" => shared::Origin::Imported,
@@ -25,7 +25,7 @@ async fn list_articles(State(pool): State<PgPool>) -> Json<Vec<Article>> {
                 _ => shared::Origin::Local,
             };
             Article {
-                id: row.get("id"),
+                id: row.get::<uuid::Uuid, _>("id"),
                 wp_id: row.get("wp_id"),
                 slug: row.get("slug"),
                 title: row.get("title"),
@@ -49,15 +49,19 @@ async fn list_articles(State(pool): State<PgPool>) -> Json<Vec<Article>> {
     }
 }
 
-async fn list_blog_posts(State(pool): State<PgPool>) -> Json<Vec<BlogPost>> {
+async fn list_blog_posts(State(pool): State<SqlitePool>) -> Json<Vec<BlogPost>> {
     match sqlx::query("SELECT id, slug, title, content, published_at, tags FROM blog_posts ORDER BY published_at DESC LIMIT 20")
-        .map(|row: sqlx::postgres::PgRow| BlogPost {
-            id: row.get("id"),
-            slug: row.get("slug"),
-            title: row.get("title"),
-            content: row.get("content"),
-            published_at: row.get("published_at"),
-            tags: row.get("tags"),
+        .map(|row: sqlx::sqlite::SqliteRow| {
+            let tags_str: Option<String> = row.get("tags");
+            let tags = tags_str.and_then(|s| serde_json::from_str(&s).ok());
+            BlogPost {
+                id: row.get::<uuid::Uuid, _>("id"),
+                slug: row.get("slug"),
+                title: row.get("title"),
+                content: row.get("content"),
+                published_at: row.try_get("published_at").unwrap_or_default(),
+                tags,
+            }
         })
         .fetch_all(&pool)
         .await

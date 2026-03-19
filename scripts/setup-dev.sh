@@ -49,24 +49,19 @@ if [ "$CONTAINER_CMD" = "docker" ] && ! docker ps &> /dev/null; then
   fi
 fi
 
-# Start database
-echo "📦 Starting PostgreSQL database..."
-COMPOSE_CMD="docker-compose"
-if [ "$CONTAINER_CMD" = "podman" ]; then
-  COMPOSE_CMD="podman-compose"
-fi
-
-$COMPOSE_CMD up -d db
-sleep 3
-
+# Try to use existing tools if possible, but no background service is needed for sqlite.
 echo ""
 echo "⏳ Running database migrations..."
+# create an empty sqlite database file if it doesn't exist
+touch sqlite.db
+export DATABASE_URL="sqlite://sqlite.db"
+
 cargo sqlx database create || true
-cargo sqlx migrate run -D "postgres://admin:password@127.0.0.1:5432/portfolio" || true
+cargo sqlx migrate run -D $DATABASE_URL || true
 
 echo ""
 echo "👤 Creating default admin user..."
-PGPASSWORD=password psql -U admin -h 127.0.0.1 -d portfolio -c "INSERT INTO users (username, password_hash) VALUES ('admin', 'demo-admin-2026!') ON CONFLICT (username) DO NOTHING;" || echo "⚠️ Could not create user (may already exist)"
+sqlite3 sqlite.db "INSERT INTO users (id, username, password_hash) VALUES ('00000000-0000-0000-0000-000000000000', 'admin', '\$argon2id\$v=19\$m=19456,t=2,p=1\$Ewiz6jCZu9NGQaAJtWRLqg\$Fn5yB19PZG+eTq/f1oKbw+tsqvhwuAnMI3TpQCIg9vI') ON CONFLICT (username) DO NOTHING;" || echo "⚠️ Could not create user (may already exist)"
 
 echo ""
 echo "✅ Setup complete!"
@@ -83,5 +78,4 @@ echo "🔐 Default credentials:"
 echo "   Username: admin"
 echo "   Password: demo-admin-2026!"
 echo ""
-echo "🛑 To stop the database:"
-echo "   $COMPOSE_CMD down"
+echo "🛑 Setup complete."

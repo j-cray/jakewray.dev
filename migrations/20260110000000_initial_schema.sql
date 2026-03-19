@@ -1,17 +1,14 @@
--- Enable UUID extension
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-
 -- Users (Admin)
 CREATE TABLE users (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY,
     username TEXT NOT NULL UNIQUE,
     password_hash TEXT NOT NULL,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Articles (Journalism - Imported/Synced)
 CREATE TABLE articles (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY,
     wp_id BIGINT UNIQUE, -- External ID from WordPress
     slug TEXT NOT NULL UNIQUE,
     title TEXT NOT NULL,
@@ -20,74 +17,72 @@ CREATE TABLE articles (
     content TEXT NOT NULL, -- HTML content
     cover_image_url TEXT,
     author TEXT NOT NULL,
-    published_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    published_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     origin TEXT NOT NULL DEFAULT 'local', -- 'imported', 'synced', 'local'
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Personal Blog Posts
 CREATE TABLE blog_posts (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY,
     slug TEXT NOT NULL UNIQUE,
     title TEXT NOT NULL,
     content TEXT NOT NULL, -- Markdown/Rich Text
-    published_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    tags TEXT[],
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    published_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    tags TEXT, -- JSON Array
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Creative Writing (Stories, Novels, Poetry)
-CREATE TYPE creative_type AS ENUM ('story', 'novel', 'poetry');
 CREATE TABLE creative_works (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY,
     slug TEXT NOT NULL UNIQUE,
     title TEXT NOT NULL,
-    work_type creative_type NOT NULL,
+    work_type TEXT NOT NULL, -- 'story', 'novel', 'poetry'
     synopsis TEXT,
     content TEXT, -- Full text or chapters (can be JSON if complex)
     status TEXT NOT NULL DEFAULT 'published', -- 'draft', 'published'
-    published_at TIMESTAMPTZ DEFAULT NOW(),
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    published_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Media Items (Photography, Visual Art, J-School Video, Videography)
-CREATE TYPE media_category AS ENUM ('photography', 'visual_art', 'video', 'j_school');
-CREATE TYPE media_context AS ENUM ('personal', 'professional');
+
 
 CREATE TABLE media_items (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY,
     title TEXT,
     description TEXT,
     url TEXT NOT NULL, -- S3 URL or local path
     thumbnail_url TEXT,
-    category media_category NOT NULL,
-    context media_context NOT NULL DEFAULT 'personal', -- To distinguish Photojournalism (prof) vs Personal
-    taken_at TIMESTAMPTZ,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    category TEXT NOT NULL, -- 'photography', 'visual_art', 'video', 'j_school'
+    context TEXT NOT NULL DEFAULT 'personal', -- To distinguish Photojournalism (prof) vs Personal
+    taken_at DATETIME,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Music
 CREATE TABLE music_tracks (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY,
     title TEXT NOT NULL,
     description TEXT,
     audio_url TEXT,
     embed_code TEXT, -- For Soundcloud/Spotify iframe
-    published_at TIMESTAMPTZ DEFAULT NOW(),
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    published_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Programming Projects
 CREATE TABLE projects (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY,
     name TEXT NOT NULL,
     description TEXT,
     github_url TEXT,
     demo_url TEXT,
-    technologies TEXT[],
+    technologies TEXT, -- JSON Array
     stars INT DEFAULT 0,
     is_featured BOOLEAN DEFAULT FALSE,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );

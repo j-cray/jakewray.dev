@@ -1,18 +1,7 @@
 version: "3.8"
 
 services:
-  db:
-    image: docker.io/bitnami/postgresql:15
-    restart: always
-    userns_mode: keep-id
-    environment:
-      POSTGRESQL_USERNAME: admin
-      POSTGRESQL_PASSWORD: password
-      POSTGRESQL_DATABASE: portfolio
-    ports:
-      - "5432:5432"
-    volumes:
-      - db_data_v2:/bitnami/postgresql
+  # The web and backend services will now use a local SQLite DB file.
 
 volumes:
-  db_data_v2:
+

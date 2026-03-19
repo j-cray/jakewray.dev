@@ -11,7 +11,8 @@ use futures_util::StreamExt;
 use leptos::context::provide_context;
 use leptos::prelude::*;
 use leptos_axum::{generate_route_list, LeptosRoutes};
-use sqlx::postgres::PgPoolOptions;
+use sqlx::sqlite::{SqlitePoolOptions, SqliteConnectOptions};
+use std::str::FromStr;
 use std::net::SocketAddr;
 use tower::ServiceBuilder;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
@@ -38,9 +39,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let database_url = std::env::var("DATABASE_URL")
         .map_err(|_| "DATABASE_URL environment variable must be set")?;
 
-    let pool = PgPoolOptions::new()
+    // Parse options and ensure database is created if it doesn't exist
+    let connect_options = SqliteConnectOptions::from_str(&database_url)
+        .map_err(|e| format!("Invalid DATABASE_URL: {}", e))?
+        .create_if_missing(true);
+
+    let pool = SqlitePoolOptions::new()
         .max_connections(5)
-        .connect(&database_url)
+        .connect_with(connect_options)
         .await
         .map_err(|e| format!("Failed to create database pool: {}", e))?;
 

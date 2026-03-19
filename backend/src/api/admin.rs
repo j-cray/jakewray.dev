@@ -12,7 +12,7 @@ use axum::response::Html;
 use axum::response::IntoResponse;
 use axum::response::Redirect;
 use serde::{Deserialize, Serialize};
-use sqlx::PgPool;
+use sqlx::SqlitePool;
 use jsonwebtoken::{encode, Header, EncodingKey};
 use chrono::{Utc, Duration};
 use argon2::{
@@ -83,7 +83,7 @@ pub fn router(state: crate::state::AppState) -> Router<crate::state::AppState> {
 }
 
 async fn login(
-    State(pool): State<PgPool>,
+    State(pool): State<SqlitePool>,
     req: Request<Body>,
 ) -> Result<axum::response::Response, (StatusCode, String)> {
     let (parts, body) = req.into_parts();
@@ -113,7 +113,7 @@ async fn login(
         return Err((StatusCode::UNSUPPORTED_MEDIA_TYPE, "Unsupported content type".to_string()));
     };
 
-    let user: Option<UserRow> = sqlx::query_as("SELECT id, password_hash FROM users WHERE username = $1")
+    let user: Option<UserRow> = sqlx::query_as("SELECT id, password_hash FROM users WHERE username = ?")
         .bind(&req.username)
         .fetch_optional(&pool)
         .await
@@ -176,7 +176,7 @@ async fn me(headers: HeaderMap) -> Result<&'static str, StatusCode> {
 }
 
 async fn change_password(
-    State(pool): State<PgPool>,
+    State(pool): State<SqlitePool>,
     headers: HeaderMap,
     Json(req): Json<ChangePasswordRequest>,
 ) -> Result<StatusCode, (StatusCode, String)> {
@@ -198,7 +198,7 @@ async fn change_password(
         .map_err(|_| (StatusCode::INTERNAL_SERVER_ERROR, "Invalid user ID in token".to_string()))?;
 
     // Verify current password
-    let user: Option<UserRow> = sqlx::query_as("SELECT id, password_hash FROM users WHERE id = $1")
+    let user: Option<UserRow> = sqlx::query_as("SELECT id, password_hash FROM users WHERE id = ?")
         .bind(user_id)
         .fetch_optional(&pool)
         .await
@@ -214,7 +214,7 @@ async fn change_password(
     let new_hash = hash_password(&req.new_password)
         .map_err(|_| (StatusCode::INTERNAL_SERVER_ERROR, "Failed to hash password".to_string()))?;
 
-    sqlx::query("UPDATE users SET password_hash = $1 WHERE id = $2")
+    sqlx::query("UPDATE users SET password_hash = ? WHERE id = ?")
         .bind(new_hash)
         .bind(user_id)
         .execute(&pool)
