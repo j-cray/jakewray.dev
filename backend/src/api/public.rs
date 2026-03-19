@@ -53,7 +53,13 @@ async fn list_blog_posts(State(pool): State<SqlitePool>) -> Json<Vec<BlogPost>> 
     match sqlx::query("SELECT id, slug, title, content, published_at, tags FROM blog_posts ORDER BY published_at DESC LIMIT 20")
         .map(|row: sqlx::sqlite::SqliteRow| {
             let tags_str: Option<String> = row.get("tags");
-            let tags = tags_str.and_then(|s| serde_json::from_str(&s).ok());
+            let tags = tags_str.and_then(|s| match serde_json::from_str(&s) {
+                Ok(t) => Some(t),
+                Err(e) => {
+                    tracing::warn!("Failed to deserialize tags: {}", e);
+                    None
+                }
+            });
             BlogPost {
                 id: row.get::<uuid::Uuid, _>("id"),
                 slug: row.get("slug"),

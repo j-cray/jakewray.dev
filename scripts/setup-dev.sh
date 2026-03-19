@@ -61,6 +61,8 @@ cargo sqlx migrate run -D "$DATABASE_URL" || true
 
 echo ""
 echo "👤 Creating default admin user..."
+# Note: If uuidgen is unavailable, a hardcoded fallback UUID is used.
+# This results in shared admin IDs across affected dev installs, which is acceptable for dev environments.
 ADMIN_UUID=$(uuidgen 2>/dev/null || echo "dfbfb952-b8ec-4bd8-b1aa-ed154109addf")
 sqlite3 sqlite.db <<EOF || echo "⚠️ Could not create user (may already exist)"
 INSERT INTO users (id, username, password_hash) VALUES ('${ADMIN_UUID}', 'admin', '\$argon2id\$v=19\$m=19456,t=2,p=1\$Ewiz6jCZu9NGQaAJtWRLqg\$Fn5yB19PZG+eTq/f1oKbw+tsqvhwuAnMI3TpQCIg9vI') ON CONFLICT (username) DO NOTHING;
