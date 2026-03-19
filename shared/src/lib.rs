@@ -35,6 +35,7 @@ pub struct BlogPost {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
 pub enum MediaCategory {
     Photography,
     VisualArt,
@@ -42,10 +43,57 @@ pub enum MediaCategory {
     JSchool,
 }
 
+impl std::fmt::Display for MediaCategory {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            MediaCategory::Photography => write!(f, "photography"),
+            MediaCategory::VisualArt => write!(f, "visual_art"),
+            MediaCategory::Video => write!(f, "video"),
+            MediaCategory::JSchool => write!(f, "j_school"),
+        }
+    }
+}
+
+impl std::str::FromStr for MediaCategory {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "photography" => Ok(MediaCategory::Photography),
+            "visual_art" => Ok(MediaCategory::VisualArt),
+            "video" => Ok(MediaCategory::Video),
+            "j_school" => Ok(MediaCategory::JSchool),
+            _ => Err(format!("Invalid media category: {}", s)),
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "lowercase")]
 pub enum MediaContext {
     Personal,
     Professional,
+}
+
+impl std::fmt::Display for MediaContext {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            MediaContext::Personal => write!(f, "personal"),
+            MediaContext::Professional => write!(f, "professional"),
+        }
+    }
+}
+
+impl std::str::FromStr for MediaContext {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "personal" => Ok(MediaContext::Personal),
+            "professional" => Ok(MediaContext::Professional),
+            _ => Err(format!("Invalid media context: {}", s)),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
