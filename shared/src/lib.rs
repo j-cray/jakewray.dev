@@ -61,10 +61,34 @@ pub struct MediaItem {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "lowercase")]
 pub enum CreativeType {
     Story,
     Novel,
     Poetry,
+}
+
+impl std::fmt::Display for CreativeType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            CreativeType::Story => write!(f, "story"),
+            CreativeType::Novel => write!(f, "novel"),
+            CreativeType::Poetry => write!(f, "poetry"),
+        }
+    }
+}
+
+impl std::str::FromStr for CreativeType {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "story" => Ok(CreativeType::Story),
+            "novel" => Ok(CreativeType::Novel),
+            "poetry" => Ok(CreativeType::Poetry),
+            _ => Err(format!("Invalid creative type: {}", s)),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
