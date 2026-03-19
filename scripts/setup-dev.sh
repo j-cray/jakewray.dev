@@ -61,9 +61,8 @@ cargo sqlx migrate run -D "$DATABASE_URL" || true
 
 echo ""
 echo "👤 Creating default admin user..."
-# Note: If uuidgen is unavailable, a hardcoded fallback UUID is used.
-# This results in shared admin IDs across affected dev installs, which is acceptable for dev environments.
-ADMIN_UUID=$(uuidgen 2>/dev/null || echo "dfbfb952-b8ec-4bd8-b1aa-ed154109addf")
+# Fallback to python UUID or kernel uuid if uuidgen missing
+ADMIN_UUID=$(uuidgen 2>/dev/null || cat /proc/sys/kernel/random/uuid 2>/dev/null || python3 -c 'import uuid; print(uuid.uuid4())' 2>/dev/null || { echo "❌ Could not generate a UUID. Please install uuidgen."; exit 1; })
 SAFE_UUID=$(printf '%q' "$ADMIN_UUID" | tr -cd 'a-fA-F0-9-')
 
 if ! [[ "$SAFE_UUID" =~ ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$ ]]; then

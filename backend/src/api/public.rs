@@ -60,13 +60,13 @@ async fn list_blog_posts(
     match sqlx::query("SELECT id, slug, title, content, published_at, tags FROM blog_posts ORDER BY published_at DESC LIMIT 20")
         .try_map(|row: sqlx::sqlite::SqliteRow| {
             let tags_str: Option<String> = row.get("tags");
-            let tags = tags_str.and_then(|s| match serde_json::from_str(&s) {
-                Ok(t) => Some(t),
-                Err(e) => {
-                    tracing::warn!("Failed to deserialize tags: {}", e);
-                    None
-                }
-            });
+            let tags = match tags_str {
+                Some(s) => match serde_json::from_str(&s) {
+                    Ok(t) => Some(t),
+                    Err(e) => return Err(sqlx::Error::Decode(Box::new(e))),
+                },
+                None => None,
+            };
             let id_str: String = row.get("id");
             let id = id_str.parse::<uuid::Uuid>().map_err(|e| sqlx::Error::Decode(Box::new(e)))?;
             Ok(BlogPost {

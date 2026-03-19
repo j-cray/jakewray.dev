@@ -20,10 +20,10 @@ use jsonwebtoken::{encode, EncodingKey, Header};
 use serde::{Deserialize, Serialize};
 use sqlx::SqlitePool;
 
-fn get_jwt_secret() -> &'static [u8] {
-    // In production, use environment variable: std::env::var("JWT_SECRET").unwrap_or_default().as_bytes()
-    // For now using a default that should be changed
-    b"change-this-secret-key-in-production-environment"
+fn get_jwt_secret() -> Vec<u8> {
+    std::env::var("JWT_SECRET")
+        .expect("JWT_SECRET environment variable must be set")
+        .into_bytes()
 }
 
 #[derive(Serialize, Deserialize)]
@@ -51,7 +51,7 @@ pub struct ChangePasswordRequest {
 
 #[derive(sqlx::FromRow)]
 struct UserRow {
-    id: uuid::Uuid,
+    id: String,
     password_hash: String,
 }
 
@@ -148,14 +148,14 @@ async fn login(
 
     let exp = (Utc::now() + Duration::hours(24)).timestamp() as usize;
     let claims = Claims {
-        sub: user.id.to_string(),
+        sub: user.id.clone(),
         exp,
     };
 
     let token = encode(
         &Header::default(),
         &claims,
-        &EncodingKey::from_secret(get_jwt_secret()),
+        &EncodingKey::from_secret(&get_jwt_secret()),
     )
     .map_err(|_| {
         (
@@ -203,7 +203,7 @@ async fn change_password(
     let validation = jsonwebtoken::Validation::default();
     let token_data = jsonwebtoken::decode::<Claims>(
         token,
-        &jsonwebtoken::DecodingKey::from_secret(get_jwt_secret()),
+        &jsonwebtoken::DecodingKey::from_secret(&get_jwt_secret()),
         &validation,
     )
     .map_err(|_| (StatusCode::UNAUTHORIZED, "Invalid token".to_string()))?;
@@ -217,7 +217,7 @@ async fn change_password(
 
     // Verify current password
     let user: Option<UserRow> = sqlx::query_as("SELECT id, password_hash FROM users WHERE id = ?")
-        .bind(user_id)
+        .bind(user_id.to_string())
         .fetch_optional(&pool)
         .await
         .map_err(|_| {
@@ -246,7 +246,7 @@ async fn change_password(
 
     sqlx::query("UPDATE users SET password_hash = ? WHERE id = ?")
         .bind(new_hash)
-        .bind(user_id)
+        .bind(user_id.to_string())
         .execute(&pool)
         .await
         .map_err(|_| {

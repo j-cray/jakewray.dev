@@ -87,31 +87,4 @@ CREATE TABLE projects (
     created_at DATETIME NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
 );
 
--- Triggers for UUID generation on primary keys
-CREATE TRIGGER set_users_id AFTER INSERT ON users
-WHEN NEW.id IS NULL
-BEGIN UPDATE users SET id = lower(hex(randomblob(16))) WHERE rowid = NEW.rowid; END;
 
-CREATE TRIGGER set_articles_id AFTER INSERT ON articles
-WHEN NEW.id IS NULL
-BEGIN UPDATE articles SET id = lower(hex(randomblob(16))) WHERE rowid = NEW.rowid; END;
-
-CREATE TRIGGER set_blog_posts_id AFTER INSERT ON blog_posts
-WHEN NEW.id IS NULL
-BEGIN UPDATE blog_posts SET id = lower(hex(randomblob(16))) WHERE rowid = NEW.rowid; END;
-
-CREATE TRIGGER set_creative_works_id AFTER INSERT ON creative_works
-WHEN NEW.id IS NULL
-BEGIN UPDATE creative_works SET id = lower(hex(randomblob(16))) WHERE rowid = NEW.rowid; END;
-
-CREATE TRIGGER set_media_items_id AFTER INSERT ON media_items
-WHEN NEW.id IS NULL
-BEGIN UPDATE media_items SET id = lower(hex(randomblob(16))) WHERE rowid = NEW.rowid; END;
-
-CREATE TRIGGER set_music_tracks_id AFTER INSERT ON music_tracks
-WHEN NEW.id IS NULL
-BEGIN UPDATE music_tracks SET id = lower(hex(randomblob(16))) WHERE rowid = NEW.rowid; END;
-
-CREATE TRIGGER set_projects_id AFTER INSERT ON projects
-WHEN NEW.id IS NULL
-BEGIN UPDATE projects SET id = lower(hex(randomblob(16))) WHERE rowid = NEW.rowid; END;
