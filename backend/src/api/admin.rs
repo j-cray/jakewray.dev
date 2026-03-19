@@ -20,10 +20,21 @@ use jsonwebtoken::{encode, EncodingKey, Header};
 use serde::{Deserialize, Serialize};
 use sqlx::SqlitePool;
 
-fn get_jwt_secret() -> Vec<u8> {
-    std::env::var("JWT_SECRET")
+use std::sync::OnceLock;
+
+static JWT_SECRET: OnceLock<Vec<u8>> = OnceLock::new();
+
+pub fn init_jwt_secret() {
+    let secret = std::env::var("JWT_SECRET")
         .expect("JWT_SECRET environment variable must be set")
-        .into_bytes()
+        .into_bytes();
+    JWT_SECRET
+        .set(secret)
+        .expect("JWT_SECRET initialized twice");
+}
+
+fn get_jwt_secret() -> &'static [u8] {
+    JWT_SECRET.get().expect("JWT_SECRET not initialized")
 }
 
 #[derive(Serialize, Deserialize)]
@@ -97,7 +108,7 @@ async fn login(
         .get(header::ACCEPT)
         .and_then(|v| v.to_str().ok())
         .unwrap_or("");
-    let bytes = to_bytes(body, 64 * 1024)
+    let bytes = to_bytes(body, 16 * 1024)
         .await
         .map_err(|_| (StatusCode::BAD_REQUEST, "Invalid request body".to_string()))?;
 
@@ -155,7 +166,7 @@ async fn login(
     let token = encode(
         &Header::default(),
         &claims,
-        &EncodingKey::from_secret(&get_jwt_secret()),
+        &EncodingKey::from_secret(get_jwt_secret()),
     )
     .map_err(|_| {
         (
@@ -179,11 +190,19 @@ async fn login(
 }
 
 async fn me(headers: HeaderMap) -> Result<&'static str, StatusCode> {
-    headers
+    let token = headers
         .get("Authorization")
         .and_then(|h| h.to_str().ok())
         .and_then(|s| s.strip_prefix("Bearer "))
         .ok_or(StatusCode::UNAUTHORIZED)?;
+
+    let validation = jsonwebtoken::Validation::default();
+    jsonwebtoken::decode::<Claims>(
+        token,
+        &jsonwebtoken::DecodingKey::from_secret(get_jwt_secret()),
+        &validation,
+    )
+    .map_err(|_| StatusCode::UNAUTHORIZED)?;
 
     Ok("Authenticated")
 }
@@ -203,7 +222,7 @@ async fn change_password(
     let validation = jsonwebtoken::Validation::default();
     let token_data = jsonwebtoken::decode::<Claims>(
         token,
-        &jsonwebtoken::DecodingKey::from_secret(&get_jwt_secret()),
+        &jsonwebtoken::DecodingKey::from_secret(get_jwt_secret()),
         &validation,
     )
     .map_err(|_| (StatusCode::UNAUTHORIZED, "Invalid token".to_string()))?;

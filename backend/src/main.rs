@@ -35,6 +35,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .with(tracing_subscriber::fmt::layer())
         .init();
 
+    // Initialize JWT Secret early so it panics at startup if missing
+    api::admin::init_jwt_secret();
+
     // Improved error handling for DATABASE_URL
     let database_url = std::env::var("DATABASE_URL")
         .map_err(|_| "DATABASE_URL environment variable must be set")?;
@@ -47,7 +50,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .busy_timeout(std::time::Duration::from_secs(5));
 
     let pool = SqlitePoolOptions::new()
-        .max_connections(1)
+        .max_connections(8)
         .connect_with(connect_options)
         .await
         .map_err(|e| format!("Failed to create database pool: {}", e))?;

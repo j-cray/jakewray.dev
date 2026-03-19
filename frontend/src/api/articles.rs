@@ -206,7 +206,14 @@ pub async fn upload_media(
 
     // We'll upload to a 'uploads' folder for manual picking or sorting later
     let timestamp = chrono::Utc::now().timestamp();
-    let safe_name = format!("{}_{}", timestamp, filename.replace(" ", "_"));
+    let safe_name = format!(
+        "{}_{}",
+        timestamp,
+        filename
+            .chars()
+            .filter(|c| c.is_alphanumeric() || *c == '.' || *c == '-' || *c == '_')
+            .collect::<String>()
+    );
     let destination = format!(
         "gs://jakewray-portfolio/media/journalism/uploads/{}",
         safe_name

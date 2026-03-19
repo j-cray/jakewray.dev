@@ -1,6 +1,6 @@
 use axum::Router;
 
-mod admin;
+pub mod admin;
 mod public;
 
 pub fn router(state: crate::state::AppState) -> Router<crate::state::AppState> {
