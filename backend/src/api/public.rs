@@ -59,7 +59,7 @@ async fn list_blog_posts(State(pool): State<SqlitePool>) -> Json<Vec<BlogPost>> 
                 slug: row.get("slug"),
                 title: row.get("title"),
                 content: row.get("content"),
-                published_at: row.try_get("published_at").unwrap_or_default(),
+                published_at: row.get("published_at"),
                 tags,
             }
         })
