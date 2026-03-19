@@ -50,7 +50,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .busy_timeout(std::time::Duration::from_secs(5));
 
     let pool = SqlitePoolOptions::new()
-        .max_connections(8)
+        .max_connections(2)
         .connect_with(connect_options)
         .await
         .map_err(|e| format!("Failed to create database pool: {}", e))?;
@@ -115,7 +115,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     tracing::info!("listening on http://{}", &addr);
     let listener = tokio::net::TcpListener::bind(&addr).await?;
-    axum::serve(listener, app.into_make_service()).await?;
+    axum::serve(
+        listener,
+        app.into_make_service_with_connect_info::<SocketAddr>(),
+    )
+    .await?;
 
     Ok(())
 }

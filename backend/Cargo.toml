@@ -37,6 +37,7 @@ leptos_axum = { workspace = true }
 frontend = { path = "../frontend", default-features = false, features = [
   "ssr",
 ] }
+tower_governor = "0.4.2"
 
 [features]
 default = []

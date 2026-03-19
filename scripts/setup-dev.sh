@@ -56,7 +56,6 @@ echo "⏳ Running database migrations..."
 touch sqlite.db
 export DATABASE_URL="sqlite://sqlite.db"
 
-cargo sqlx database create || true
 cargo sqlx migrate run -D "$DATABASE_URL" || true
 
 echo ""

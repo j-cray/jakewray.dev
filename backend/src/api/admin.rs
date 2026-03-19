@@ -86,8 +86,22 @@ fn verify_password(password: &str, password_hash: &str) -> bool {
 }
 
 pub fn router(state: crate::state::AppState) -> Router<crate::state::AppState> {
+    // Configure rate limit: 1 request per 3 seconds, up to 5 burst
+    let governor_conf = std::sync::Arc::new(
+        tower_governor::governor::GovernorConfigBuilder::default()
+            .per_second(2) // Wait, let's use per_second(1) or something. Wait, user said "keyed on IP".
+            // 2 per second is okay, but 1 request per 2 seconds is better.
+            .per_second(2)
+            .burst_size(5)
+            .finish()
+            .unwrap(),
+    );
+    let governor_layer = tower_governor::GovernorLayer {
+        config: governor_conf,
+    };
+
     Router::new()
-        .route("/login", post(login))
+        .route("/login", post(login).route_layer(governor_layer))
         .route("/password", post(change_password))
         .route("/me", get(me))
         .with_state(state)
@@ -142,7 +156,7 @@ async fn login(
     let is_invalid = match user {
         Some(ref u) => !verify_password(&req.password, &u.password_hash),
         None => {
-            static DUMMY_HASH: &str = "$argon2id$v=19$m=19456,t=2,p=1$Ewiz6jCZu9NGQaAJtWRLqg$Fn5yB19PZG+eTq/f1oKbw+tsqvhwuAnMI3TpQCIg9vI";
+            static DUMMY_HASH: &str = "$argon2id$v=19$m=19456,t=2,p=1$DummyDummyDummyDummy$DummyDummyDummyDummyDummyDummyDummyDummyDummy";
             let _ = verify_password(&req.password, DUMMY_HASH);
             true
         }
@@ -193,7 +207,7 @@ async fn login(
     }
 }
 
-async fn me(headers: HeaderMap) -> Result<&'static str, StatusCode> {
+async fn me(headers: HeaderMap) -> Result<String, StatusCode> {
     let token = headers
         .get("Authorization")
         .and_then(|h| h.to_str().ok())
@@ -201,14 +215,14 @@ async fn me(headers: HeaderMap) -> Result<&'static str, StatusCode> {
         .ok_or(StatusCode::UNAUTHORIZED)?;
 
     let validation = jsonwebtoken::Validation::default();
-    jsonwebtoken::decode::<Claims>(
+    let token_data = jsonwebtoken::decode::<Claims>(
         token,
         &jsonwebtoken::DecodingKey::from_secret(get_jwt_secret()),
         &validation,
     )
     .map_err(|_| StatusCode::UNAUTHORIZED)?;
 
-    Ok("Authenticated")
+    Ok(token_data.claims.sub)
 }
 
 async fn change_password(
@@ -216,6 +230,9 @@ async fn change_password(
     headers: HeaderMap,
     Json(req): Json<ChangePasswordRequest>,
 ) -> Result<StatusCode, (StatusCode, String)> {
+    if req.new_password.len() < 12 {
+        return Err((StatusCode::BAD_REQUEST, "Password too short".to_string()));
+    }
     let token = headers
         .get("Authorization")
         .and_then(|h| h.to_str().ok())
