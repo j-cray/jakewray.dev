@@ -49,6 +49,7 @@ pub fn AdminLoginPage() -> impl IntoView {
             let password_val = _password.get();
             let navigate = navigate.clone();
 
+            #[cfg(debug_assertions)]
             web_sys::console::log_1(
                 &format!("[Login] Attempting login for user: {}", username_val).into(),
             );

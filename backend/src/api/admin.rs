@@ -216,7 +216,7 @@ async fn me(headers: HeaderMap) -> Result<Json<serde_json::Value>, StatusCode> {
         .and_then(|s| s.strip_prefix("Bearer "))
         .ok_or(StatusCode::UNAUTHORIZED)?;
 
-    let validation = jsonwebtoken::Validation::default();
+    let validation = jsonwebtoken::Validation::new(jsonwebtoken::Algorithm::HS256);
     let _token_data = jsonwebtoken::decode::<Claims>(
         token,
         &jsonwebtoken::DecodingKey::from_secret(get_jwt_secret()),
@@ -232,9 +232,6 @@ async fn change_password(
     headers: HeaderMap,
     Json(req): Json<ChangePasswordRequest>,
 ) -> Result<StatusCode, (StatusCode, String)> {
-    if req.new_password.len() < 12 {
-        return Err((StatusCode::BAD_REQUEST, "Password too short".to_string()));
-    }
     let token = headers
         .get("Authorization")
         .and_then(|h| h.to_str().ok())
@@ -242,13 +239,17 @@ async fn change_password(
         .ok_or((StatusCode::UNAUTHORIZED, "Missing token".to_string()))?;
 
     // Verify token (simple check, ideally decode claims)
-    let validation = jsonwebtoken::Validation::default();
+    let validation = jsonwebtoken::Validation::new(jsonwebtoken::Algorithm::HS256);
     let token_data = jsonwebtoken::decode::<Claims>(
         token,
         &jsonwebtoken::DecodingKey::from_secret(get_jwt_secret()),
         &validation,
     )
     .map_err(|_| (StatusCode::UNAUTHORIZED, "Invalid token".to_string()))?;
+
+    if req.new_password.len() < 12 {
+        return Err((StatusCode::BAD_REQUEST, "Password too short".to_string()));
+    }
 
     let user_id = &token_data.claims.sub;
 
