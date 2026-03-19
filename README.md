@@ -63,5 +63,5 @@ cargo leptos watch
 - [ ] **Admin features** - Post creation, sync manager
 - [ ] **Content sync** - Import from terracestandard.com
 - [ ] **Media library** - Photo/video management
-- [ ] **Password hashing** - Bcrypt implementation
+- [x] **Password hashing** - Argon2 implementation
 - [ ] **Password reset** - Email-based recovery

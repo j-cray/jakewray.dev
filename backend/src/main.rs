@@ -50,7 +50,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .busy_timeout(std::time::Duration::from_secs(5));
 
     let pool = SqlitePoolOptions::new()
-        .max_connections(2)
+        .max_connections(1)
         .connect_with(connect_options)
         .await
         .map_err(|e| format!("Failed to create database pool: {}", e))?;
@@ -63,6 +63,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             tracing::error!("Failed to run migrations: {}", e);
             e
         })?;
+
+    let user_count: (i64,) = sqlx::query_as("SELECT COUNT(*) FROM users")
+        .fetch_one(&pool)
+        .await
+        .unwrap_or((0,));
+    if user_count.0 == 0 {
+        tracing::warn!("=====================================================================");
+        tracing::warn!("WARNING: The 'users' table is empty. No admin user exists.");
+        tracing::warn!("Run './scripts/setup-dev.sh' or inject a seed migration to create one.");
+        tracing::warn!("=====================================================================");
+    }
 
     // Build LeptosOptions from environment/config
     let site_addr: SocketAddr = std::env::var("LEPTOS_SITE_ADDR")

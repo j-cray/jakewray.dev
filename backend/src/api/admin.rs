@@ -86,11 +86,9 @@ fn verify_password(password: &str, password_hash: &str) -> bool {
 }
 
 pub fn router(state: crate::state::AppState) -> Router<crate::state::AppState> {
-    // Configure rate limit: 1 request per 3 seconds, up to 5 burst
+    // Configure rate limit: 2 requests per second, up to 5 burst
     let governor_conf = std::sync::Arc::new(
         tower_governor::governor::GovernorConfigBuilder::default()
-            .per_second(2) // Wait, let's use per_second(1) or something. Wait, user said "keyed on IP".
-            // 2 per second is okay, but 1 request per 2 seconds is better.
             .per_second(2)
             .burst_size(5)
             .finish()
@@ -156,7 +154,7 @@ async fn login(
     let is_invalid = match user {
         Some(ref u) => !verify_password(&req.password, &u.password_hash),
         None => {
-            static DUMMY_HASH: &str = "$argon2id$v=19$m=19456,t=2,p=1$DummyDummyDummyDummy$DummyDummyDummyDummyDummyDummyDummyDummyDummy";
+            static DUMMY_HASH: &str = "$argon2id$v=19$m=19456,t=2,p=1$75vBQ9LN4IAiHrViVOPI4w$L1wC8aj0h6PO/I8xVshCOB0TjOa9CTkfx8dIKA/0FVY";
             let _ = verify_password(&req.password, DUMMY_HASH);
             true
         }
@@ -248,16 +246,11 @@ async fn change_password(
     )
     .map_err(|_| (StatusCode::UNAUTHORIZED, "Invalid token".to_string()))?;
 
-    let user_id = token_data.claims.sub.parse::<uuid::Uuid>().map_err(|_| {
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            "Invalid user ID in token".to_string(),
-        )
-    })?;
+    let user_id = &token_data.claims.sub;
 
     // Verify current password
     let user: Option<UserRow> = sqlx::query_as("SELECT id, password_hash FROM users WHERE id = ?")
-        .bind(user_id.to_string())
+        .bind(user_id)
         .fetch_optional(&pool)
         .await
         .map_err(|_| {
@@ -286,7 +279,7 @@ async fn change_password(
 
     sqlx::query("UPDATE users SET password_hash = ? WHERE id = ?")
         .bind(new_hash)
-        .bind(user_id.to_string())
+        .bind(user_id)
         .execute(&pool)
         .await
         .map_err(|_| {
