@@ -61,3 +61,10 @@ cargo leptos watch
 
 5. **Deployment**:
    Deployment is managed by `./scripts/deploy.sh`. Changes to infrastructure should be mirrored in both `compose.yaml` and `compose.prod.yaml` where applicable.
+
+   - Tick off tasks in the roadmap as they are completed.
+- Update the roadmap as the project progresses.
+- Update the plan as the project progresses.
+- Update the GEMINI.md SPARINGLY as the project progresses.
+- Update the README.md as the project progresses.
+- run cargo nextest, cargo fmt, and cargo clippy after every task.
