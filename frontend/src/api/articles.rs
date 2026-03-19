@@ -71,7 +71,7 @@ pub async fn get_articles() -> Result<Vec<Article>, ServerFnError> {
     if let Ok(entries) = fs::read_dir(dir) {
         for entry in entries.flatten() {
             let path = entry.path();
-            if path.extension().map_or(false, |ext| ext == "json") {
+            if path.extension().is_some_and(|ext| ext == "json") {
                 if let Ok(content) = fs::read_to_string(&path) {
                     if let Ok(article) = serde_json::from_str::<Article>(&content) {
                         articles.push(article);
@@ -181,7 +181,7 @@ pub async fn list_media(token: String) -> Result<Vec<MediaItem>, ServerFnError> 
         } // Skip directories
 
         if let Some(path) = line.strip_prefix("gs://jakewray-portfolio/") {
-            let name = path.split('/').last().unwrap_or(path).to_string();
+            let name = path.split('/').next_back().unwrap_or(path).to_string();
             items.push(MediaItem {
                 url: format!("{}/{}", base_url, path),
                 name,

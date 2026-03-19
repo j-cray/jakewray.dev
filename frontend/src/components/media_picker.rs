@@ -19,63 +19,53 @@ where
     let (uploading, set_uploading) = signal(false);
     let (error_msg, set_error_msg) = signal(String::new());
 
-    let fetch_media = {
-        let token = token.clone();
-        move || {
-            set_loading.set(true);
-            let t = token.get();
-            spawn_local(async move {
-                match list_media(t).await {
-                    Ok(res) => set_items.set(res),
-                    Err(e) => set_error_msg.set(format!("Error: {}", e)),
-                }
-                set_loading.set(false);
-            });
-        }
+    let fetch_media = move || {
+        set_loading.set(true);
+        let t = token.get();
+        spawn_local(async move {
+            match list_media(t).await {
+                Ok(res) => set_items.set(res),
+                Err(e) => set_error_msg.set(format!("Error: {}", e)),
+            }
+            set_loading.set(false);
+        });
     };
 
     // Initial fetch
-    Effect::new({
-        let fetch = fetch_media.clone();
-        move || {
-            fetch();
-        }
+    Effect::new(move || {
+        fetch_media();
     });
 
-    let on_upload = {
-        let token = token.clone();
-        let fetch = fetch_media.clone();
-        move |ev: ev::Event| {
-            let input: HtmlInputElement = event_target(&ev);
-            let files: Option<FileList> = input.files();
-            if let Some(files) = files {
-                if let Some(file) = files.get(0) {
-                    let t = token.get();
-                    let f_clone = fetch.clone();
-                    let filename = file.name();
-                    let file_clone = file.clone(); // web_sys::File is Clone (JsValue wrapper)
-                    set_uploading.set(true);
+    let on_upload = move |ev: ev::Event| {
+        let input: HtmlInputElement = event_target(&ev);
+        let files: Option<FileList> = input.files();
+        if let Some(files) = files {
+            if let Some(file) = files.get(0) {
+                let t = token.get();
+                let f_clone = fetch_media;
+                let filename = file.name();
+                let file_clone = file.clone(); // web_sys::File is Clone (JsValue wrapper)
+                set_uploading.set(true);
 
-                    spawn_local(async move {
-                        // Read file as bytes via web_sys
-                        let array_buffer_promise = file_clone.array_buffer();
-                        match JsFuture::from(array_buffer_promise).await {
-                            Ok(array_buffer) => {
-                                let uint8_array = js_sys::Uint8Array::new(&array_buffer);
-                                let bytes = uint8_array.to_vec();
+                spawn_local(async move {
+                    // Read file as bytes via web_sys
+                    let array_buffer_promise = file_clone.array_buffer();
+                    match JsFuture::from(array_buffer_promise).await {
+                        Ok(array_buffer) => {
+                            let uint8_array = js_sys::Uint8Array::new(&array_buffer);
+                            let bytes = uint8_array.to_vec();
 
-                                match upload_media(t, filename, bytes).await {
-                                    Ok(_url) => {
-                                        f_clone(); // Refresh list
-                                    }
-                                    Err(e) => set_error_msg.set(format!("Upload failed: {}", e)),
+                            match upload_media(t, filename, bytes).await {
+                                Ok(_url) => {
+                                    f_clone(); // Refresh list
                                 }
+                                Err(e) => set_error_msg.set(format!("Upload failed: {}", e)),
                             }
-                            Err(e) => set_error_msg.set(format!("File read failed: {:?}", e)),
                         }
-                        set_uploading.set(false);
-                    });
-                }
+                        Err(e) => set_error_msg.set(format!("File read failed: {:?}", e)),
+                    }
+                    set_uploading.set(false);
+                });
             }
         }
     };

@@ -50,10 +50,9 @@ fn starts_with_month(s: &str) -> bool {
         "December",
     ];
     MONTHS.iter().any(|m| {
-        if sm.starts_with(m) {
-            let after = &sm[m.len()..];
+        if let Some(after) = sm.strip_prefix(m) {
             // Match if it's the end of string or next char is not a letter
-            after.chars().next().map_or(true, |c| !c.is_alphabetic())
+            after.chars().next().is_none_or(|c| !c.is_alphabetic())
         } else {
             false
         }
@@ -213,11 +212,9 @@ fn linkify_images(html: &str) -> String {
             // Extract src
             let src = if let Some(src_start_rel) = img_tag.find("src=\"") {
                 let after_src = src_start_rel + 5;
-                if let Some(src_end_rel) = img_tag[after_src..].find('"') {
-                    Some(&img_tag[after_src..after_src + src_end_rel])
-                } else {
-                    None
-                }
+                img_tag[after_src..]
+                    .find('"')
+                    .map(|src_end_rel| &img_tag[after_src..after_src + src_end_rel])
             } else {
                 None
             };
@@ -279,15 +276,13 @@ fn italicize_origin_line(html: &str) -> String {
 }
 
 fn format_cp_style(date: &str) -> String {
-    let date = date
-        .replace("January", "Jan.")
+    date.replace("January", "Jan.")
         .replace("February", "Feb.")
         .replace("August", "Aug.")
         .replace("September", "Sept.")
         .replace("October", "Oct.")
         .replace("November", "Nov.")
-        .replace("December", "Dec.");
-    date
+        .replace("December", "Dec.")
 }
 
 #[component]
@@ -312,7 +307,7 @@ pub fn JournalismPage() -> impl IntoView {
                                         let title = article.title.clone();
                                         let preview_text = extract_body_preview(&article.content_html)
                                             .unwrap_or_else(|| article.excerpt.clone());
-                                        let image = article.images.get(0).cloned();
+                                        let image = article.images.first().cloned();
                                         let thumb_src = image.clone().unwrap_or_else(|| "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='400' height='300' viewBox='0 0 400 300'><rect width='400' height='300' fill='%23e5e7eb'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' fill='%239ca3af' font-size='16' font-family='Inter, sans-serif'>Image coming soon</text></svg>".to_string());
                                         let date = extract_printed_date(&article.content_html)
                                             .unwrap_or_else(|| article.display_date.clone());
@@ -354,7 +349,7 @@ pub fn JournalismArticlePage() -> impl IntoView {
     let params = use_params_map();
     let slug = move || params.with(|p| p.get("slug").map(|s| s.to_string()).unwrap_or_default());
 
-    let article_resource = Resource::new(slug, |s| get_article(s));
+    let article_resource = Resource::new(slug, get_article);
 
     // Auth State
     let (is_admin, _set_is_admin) = signal(false);

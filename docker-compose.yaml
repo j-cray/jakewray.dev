@@ -1,5 +1,7 @@
 version: "3.8"
 
-# services:
-  # The web and backend services will now use a local SQLite DB file.
+services:
+  db_stub:
+    image: alpine:latest
+    command: echo "SQLite used directly, no db service required."
 

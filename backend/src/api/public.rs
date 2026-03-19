@@ -15,7 +15,9 @@ async fn health_check() -> &'static str {
 
 use sqlx::Row;
 
-async fn list_articles(State(pool): State<SqlitePool>) -> Json<Vec<Article>> {
+async fn list_articles(
+    State(pool): State<SqlitePool>,
+) -> Result<Json<Vec<Article>>, axum::http::StatusCode> {
     match sqlx::query("SELECT id, wp_id, slug, title, subtitle, excerpt, content, cover_image_url, author, published_at, origin FROM articles ORDER BY published_at DESC LIMIT 20")
         .map(|row: sqlx::sqlite::SqliteRow| {
             let origin_str: String = row.get("origin");
@@ -41,15 +43,18 @@ async fn list_articles(State(pool): State<SqlitePool>) -> Json<Vec<Article>> {
         .fetch_all(&pool)
         .await
     {
-        Ok(articles) => Json(articles),
+        Ok(articles) => Ok(Json(articles)),
         Err(e) => {
             tracing::error!("Failed to fetch articles: {}", e);
-            Json(Vec::new())
+            Err(axum::http::StatusCode::INTERNAL_SERVER_ERROR)
         }
     }
 }
 
-async fn list_blog_posts(State(pool): State<SqlitePool>) -> Json<Vec<BlogPost>> {
+#[allow(dead_code)]
+async fn list_blog_posts(
+    State(pool): State<SqlitePool>,
+) -> Result<Json<Vec<BlogPost>>, axum::http::StatusCode> {
     match sqlx::query("SELECT id, slug, title, content, published_at, tags FROM blog_posts ORDER BY published_at DESC LIMIT 20")
         .map(|row: sqlx::sqlite::SqliteRow| {
             let tags_str: Option<String> = row.get("tags");
@@ -72,10 +77,10 @@ async fn list_blog_posts(State(pool): State<SqlitePool>) -> Json<Vec<BlogPost>> 
         .fetch_all(&pool)
         .await
     {
-        Ok(posts) => Json(posts),
+        Ok(posts) => Ok(Json(posts)),
         Err(e) => {
             tracing::error!("Failed to fetch blog posts: {}", e);
-            Json(Vec::new())
+            Err(axum::http::StatusCode::INTERNAL_SERVER_ERROR)
         }
     }
 }
