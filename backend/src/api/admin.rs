@@ -89,6 +89,7 @@ pub fn router(state: crate::state::AppState) -> Router<crate::state::AppState> {
     // Configure rate limit: 2 requests per second, up to 5 burst
     let governor_conf = std::sync::Arc::new(
         tower_governor::governor::GovernorConfigBuilder::default()
+            .key_extractor(tower_governor::key_extractor::SmartIpKeyExtractor)
             .per_second(2)
             .burst_size(5)
             .finish()
@@ -99,8 +100,11 @@ pub fn router(state: crate::state::AppState) -> Router<crate::state::AppState> {
     };
 
     Router::new()
-        .route("/login", post(login).route_layer(governor_layer))
-        .route("/password", post(change_password))
+        .route("/login", post(login).route_layer(governor_layer.clone()))
+        .route(
+            "/password",
+            post(change_password).route_layer(governor_layer),
+        )
         .route("/me", get(me))
         .with_state(state)
 }
@@ -205,7 +209,7 @@ async fn login(
     }
 }
 
-async fn me(headers: HeaderMap) -> Result<String, StatusCode> {
+async fn me(headers: HeaderMap) -> Result<Json<serde_json::Value>, StatusCode> {
     let token = headers
         .get("Authorization")
         .and_then(|h| h.to_str().ok())
@@ -213,14 +217,14 @@ async fn me(headers: HeaderMap) -> Result<String, StatusCode> {
         .ok_or(StatusCode::UNAUTHORIZED)?;
 
     let validation = jsonwebtoken::Validation::default();
-    let token_data = jsonwebtoken::decode::<Claims>(
+    let _token_data = jsonwebtoken::decode::<Claims>(
         token,
         &jsonwebtoken::DecodingKey::from_secret(get_jwt_secret()),
         &validation,
     )
     .map_err(|_| StatusCode::UNAUTHORIZED)?;
 
-    Ok(token_data.claims.sub)
+    Ok(Json(serde_json::json!({"authenticated": true})))
 }
 
 async fn change_password(
