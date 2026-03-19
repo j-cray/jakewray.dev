@@ -75,17 +75,17 @@ Certificates will be automatically renewed by the certbot service (checks twice 
 
 1. Check if all services are running:
    ```bash
-   docker compose -f docker-compose.prod.yml ps
+   docker compose -f compose.prod.yaml ps
    ```
 
 2. View Nginx logs:
    ```bash
-   docker compose -f docker-compose.prod.yml logs nginx
+   docker compose -f compose.prod.yaml logs nginx
    ```
 
 3. View backend logs:
    ```bash
-   docker compose -f docker-compose.prod.yml logs portfolio
+   docker compose -f compose.prod.yaml logs portfolio
    ```
 
 4. Verify DNS records:
@@ -97,13 +97,13 @@ Certificates will be automatically renewed by the certbot service (checks twice 
 
 1. Check certbot logs:
    ```bash
-   docker compose -f docker-compose.prod.yml logs certbot
+   docker compose -f compose.prod.yaml logs certbot
    ```
 
 2. Manually renew certificates:
    ```bash
-   docker compose -f docker-compose.prod.yml run --rm certbot renew
-   docker compose -f docker-compose.prod.yml exec nginx nginx -s reload
+   docker compose -f compose.prod.yaml run --rm certbot renew
+   docker compose -f compose.prod.yaml exec nginx nginx -s reload
    ```
 
 3. Ensure ports 80 and 443 are accessible from the internet
@@ -114,12 +114,12 @@ If you're experiencing timeouts:
 
 1. Check if the portfolio service is running and healthy:
    ```bash
-   docker compose -f docker-compose.prod.yml exec portfolio curl http://localhost:3000/health
+   docker compose -f compose.prod.yaml exec portfolio curl http://localhost:3000/health
    ```
 
 2. Check Nginx can reach the backend:
    ```bash
-   docker compose -f docker-compose.prod.yml exec nginx wget -O- http://portfolio:3000/health
+   docker compose -f compose.prod.yaml exec nginx wget -O- http://portfolio:3000/health
    ```
 
 3. Verify firewall rules allow traffic on ports 80 and 443

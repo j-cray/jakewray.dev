@@ -16,6 +16,7 @@ result-*
 # direnv
 .direnv/
 .direnv
+.direnvrc
 
 # IDE
 .vscode/
@@ -64,6 +65,7 @@ imports/
 .postgres_local/
 
 # Sass
+.sass-cache/*
 .sass-cache/
 .sass-cache
 

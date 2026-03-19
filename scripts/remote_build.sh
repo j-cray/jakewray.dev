@@ -29,12 +29,12 @@ if [ "$TARGET" = "all" ] || [ "$TARGET" = "backend" ]; then
         -t portfolio-chef .
 
     echo "Ensuring DB is up for preparation..."
-    sudo docker compose -f docker-compose.prod.yml up -d db
+    sudo docker compose -f compose.prod.yaml up -d db
     echo "Waiting for DB..."
     sleep 5
 
     echo "Running sqlx prepare on server..."
-    DB_CONTAINER=$(sudo docker compose -f docker-compose.prod.yml ps -q db | head -n1)
+    DB_CONTAINER=$(sudo docker compose -f compose.prod.yaml ps -q db | head -n1)
 
     # We use the chef image which has sqlx-cli installed, and mount source code
     sudo docker run --rm \
@@ -51,14 +51,14 @@ fi
 
 if [ "$TARGET" = "all" ]; then
     echo "Building and starting ALL services with BuildKit caching..."
-    sudo DOCKER_BUILDKIT=1 docker compose -f docker-compose.prod.yml build \
+    sudo DOCKER_BUILDKIT=1 docker compose -f compose.prod.yaml build \
         --build-arg BUILDKIT_INLINE_CACHE=1
-    sudo docker compose -f docker-compose.prod.yml up -d --remove-orphans
+    sudo docker compose -f compose.prod.yaml up -d --remove-orphans
 elif [ "$TARGET" = "backend" ]; then
     echo "Building and restarting BACKEND (portfolio) service with caching..."
-    sudo DOCKER_BUILDKIT=1 docker compose -f docker-compose.prod.yml build \
+    sudo DOCKER_BUILDKIT=1 docker compose -f compose.prod.yaml build \
         --build-arg BUILDKIT_INLINE_CACHE=1 portfolio
-    sudo docker compose -f docker-compose.prod.yml up -d --no-deps portfolio
+    sudo docker compose -f compose.prod.yaml up -d --no-deps portfolio
 elif [ "$TARGET" = "frontend" ]; then
     echo "Frontend is part of the backend binary in this setup (SSR)."
     echo "Please use 'backend' or 'all' target."

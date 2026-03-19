@@ -199,7 +199,7 @@ docker-compose up -d db
 ├── shared/           # Shared types between frontend/backend
 ├── migration/        # Database migration tools
 ├── style/            # SCSS stylesheet
-├── docker-compose.yml # Local dev database
+├── compose.yaml # Local dev database
 └── Cargo.toml        # Workspace configuration
 ```
 

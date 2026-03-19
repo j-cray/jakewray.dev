@@ -3,8 +3,8 @@ target/
 node_modules/
 .env
 postgres_data/
-docker-compose.yml
-docker-compose.prod.yml
+compose.yaml
+compose.prod.yaml
 scripts/
 README.md
 LICENSE

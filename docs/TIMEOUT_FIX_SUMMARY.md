@@ -30,7 +30,7 @@ Replaced nginx-proxy-manager with Nginx + Certbot for a fully automated, configu
   - Migration instructions
 
 ### 2. Modified Files
-- **`docker-compose.prod.yml`**:
+- **`compose.prod.yaml`**:
   - Removed `nginx-proxy-manager` service
   - Added `nginx:alpine` as proxy service
   - Added `certbot` service for certificate renewal (runs every 6h)
@@ -105,8 +105,8 @@ If issues occur:
 
 1. Services can be restarted individually:
    ```bash
-   docker compose -f docker-compose.prod.yml restart proxy
-   docker compose -f docker-compose.prod.yml restart portfolio
+   docker compose -f compose.prod.yaml restart proxy
+   docker compose -f compose.prod.yaml restart portfolio
    ```
 
 2. To revert to nginx-proxy-manager:

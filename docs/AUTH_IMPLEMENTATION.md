@@ -40,7 +40,7 @@
 
 ### 1. Rebuild Docker Image
 ```bash
-docker compose -f docker-compose.prod.yml build
+docker compose -f compose.prod.yaml build
 ```
 
 ### 2. Create Admin User
@@ -53,7 +53,7 @@ ON CONFLICT (username) DO NOTHING;
 
 Or via Docker:
 ```bash
-docker compose -f docker-compose.prod.yml exec -T db psql -U $POSTGRES_USER -d $POSTGRES_DB -c "INSERT INTO users (username, password_hash) VALUES ('admin', 'admin123') ON CONFLICT (username) DO NOTHING;"
+docker compose -f compose.prod.yaml exec -T db psql -U $POSTGRES_USER -d $POSTGRES_DB -c "INSERT INTO users (username, password_hash) VALUES ('admin', 'admin123') ON CONFLICT (username) DO NOTHING;"
 ```
 
 ### 3. Access Admin Panel
