@@ -46,12 +46,13 @@ pub mod ssr_utils {
         }
 
         // WARN: Synchronize this secret with backend/src/api/admin.rs
-        // Ideally, use an ENV var.
-        let secret = b"change-this-secret-key-in-production-environment";
+        let secret = std::env::var("JWT_SECRET")
+            .expect("JWT_SECRET environment variable must be set")
+            .into_bytes();
 
         let token_data = decode::<Claims>(
             token,
-            &DecodingKey::from_secret(secret),
+            &DecodingKey::from_secret(&secret),
             &Validation::new(Algorithm::HS256),
         )
         .map_err(|_| ServerFnError::new("Invalid token"))?;

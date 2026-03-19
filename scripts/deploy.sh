@@ -15,7 +15,8 @@ echo "Deploying target: $TARGET"
 # rsync/scp will overwrite changed files.
 echo "Preparing remote directory..."
 gcloud compute ssh jake-user@$INSTANCE_NAME --project=$PROJECT_ID --zone=$ZONE --command="
-    mkdir -p ~/app && \
+    mkdir -p ~/app/data && \
+    chmod 700 ~/app/data && \
     sudo chown -R jake-user:jake-user ~/app
 "
 

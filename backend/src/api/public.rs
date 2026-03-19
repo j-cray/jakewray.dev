@@ -6,6 +6,7 @@ pub fn router(state: crate::state::AppState) -> Router<crate::state::AppState> {
     Router::new()
         .route("/health", get(health_check))
         .route("/api/articles", get(list_articles))
+        .route("/api/blog", get(list_blog_posts))
         .with_state(state)
 }
 
@@ -53,7 +54,6 @@ async fn list_articles(
     }
 }
 
-#[allow(dead_code)]
 async fn list_blog_posts(
     State(pool): State<SqlitePool>,
 ) -> Result<Json<Vec<BlogPost>>, axum::http::StatusCode> {

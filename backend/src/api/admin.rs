@@ -141,7 +141,11 @@ async fn login(
 
     let is_invalid = match user {
         Some(ref u) => !verify_password(&req.password, &u.password_hash),
-        None => true,
+        None => {
+            static DUMMY_HASH: &str = "$argon2id$v=19$m=19456,t=2,p=1$Ewiz6jCZu9NGQaAJtWRLqg$Fn5yB19PZG+eTq/f1oKbw+tsqvhwuAnMI3TpQCIg9vI";
+            let _ = verify_password(&req.password, DUMMY_HASH);
+            true
+        }
     };
 
     if is_invalid {
