@@ -61,7 +61,8 @@ cargo sqlx migrate run -D $DATABASE_URL || true
 
 echo ""
 echo "👤 Creating default admin user..."
-sqlite3 sqlite.db "INSERT INTO users (id, username, password_hash) VALUES ('00000000-0000-0000-0000-000000000000', 'admin', '\$argon2id\$v=19\$m=19456,t=2,p=1\$Ewiz6jCZu9NGQaAJtWRLqg\$Fn5yB19PZG+eTq/f1oKbw+tsqvhwuAnMI3TpQCIg9vI') ON CONFLICT (username) DO NOTHING;" || echo "⚠️ Could not create user (may already exist)"
+ADMIN_UUID=$(uuidgen 2>/dev/null || echo "dfbfb952-b8ec-4bd8-b1aa-ed154109addf")
+sqlite3 sqlite.db "INSERT INTO users (id, username, password_hash) VALUES ('$ADMIN_UUID', 'admin', '\$argon2id\$v=19\$m=19456,t=2,p=1\$Ewiz6jCZu9NGQaAJtWRLqg\$Fn5yB19PZG+eTq/f1oKbw+tsqvhwuAnMI3TpQCIg9vI') ON CONFLICT (username) DO NOTHING;" || echo "⚠️ Could not create user (may already exist)"
 
 echo ""
 echo "✅ Setup complete!"
