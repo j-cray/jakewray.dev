@@ -36,7 +36,7 @@ pub mod ssr_utils {
     // Simple JWT verification helper
     // In a real app, this should be shared with backend logic
     pub fn verify_token(token: &str) -> Result<String, ServerFnError> {
-        use jsonwebtoken::{decode, DecodingKey, Validation, Algorithm};
+        use jsonwebtoken::{decode, Algorithm, DecodingKey, Validation};
         use serde::Deserialize;
 
         #[derive(Deserialize)]
@@ -53,7 +53,8 @@ pub mod ssr_utils {
             token,
             &DecodingKey::from_secret(secret),
             &Validation::new(Algorithm::HS256),
-        ).map_err(|_| ServerFnError::new("Invalid token"))?;
+        )
+        .map_err(|_| ServerFnError::new("Invalid token"))?;
 
         Ok(token_data.claims.sub)
     }
@@ -116,7 +117,9 @@ pub async fn save_article(token: String, article: Article) -> Result<(), ServerF
     }
 
     // Sanitize slug just in case
-    let safe_slug = article.slug.chars()
+    let safe_slug = article
+        .slug
+        .chars()
         .filter(|c| c.is_alphanumeric() || *c == '-')
         .collect::<String>()
         .to_lowercase();
@@ -173,7 +176,9 @@ pub async fn list_media(token: String) -> Result<Vec<MediaItem>, ServerFnError> 
 
     for line in stdout.lines() {
         let line = line.trim();
-        if line.is_empty() || line.ends_with('/') { continue; } // Skip directories
+        if line.is_empty() || line.ends_with('/') {
+            continue;
+        } // Skip directories
 
         if let Some(path) = line.strip_prefix("gs://jakewray-portfolio/") {
             let name = path.split('/').last().unwrap_or(path).to_string();
@@ -188,17 +193,24 @@ pub async fn list_media(token: String) -> Result<Vec<MediaItem>, ServerFnError> 
 }
 
 #[server(UploadMedia, "/api")]
-pub async fn upload_media(token: String, filename: String, data: Vec<u8>) -> Result<String, ServerFnError> {
+pub async fn upload_media(
+    token: String,
+    filename: String,
+    data: Vec<u8>,
+) -> Result<String, ServerFnError> {
     use self::ssr_utils::verify_token;
-    use std::process::{Command, Stdio};
     use std::io::Write;
+    use std::process::{Command, Stdio};
 
     verify_token(&token)?;
 
     // We'll upload to a 'uploads' folder for manual picking or sorting later
     let timestamp = chrono::Utc::now().timestamp();
     let safe_name = format!("{}_{}", timestamp, filename.replace(" ", "_"));
-    let destination = format!("gs://jakewray-portfolio/media/journalism/uploads/{}", safe_name);
+    let destination = format!(
+        "gs://jakewray-portfolio/media/journalism/uploads/{}",
+        safe_name
+    );
 
     let mut child = Command::new("gsutil")
         .arg("cp")
@@ -216,5 +228,8 @@ pub async fn upload_media(token: String, filename: String, data: Vec<u8>) -> Res
         return Err(ServerFnError::new("Failed to upload to GCS"));
     }
 
-    Ok(format!("https://storage.googleapis.com/jakewray-portfolio/media/journalism/uploads/{}", safe_name))
+    Ok(format!(
+        "https://storage.googleapis.com/jakewray-portfolio/media/journalism/uploads/{}",
+        safe_name
+    ))
 }

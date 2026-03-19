@@ -1,11 +1,11 @@
 // use crate::data::journalism; // Deprecated
 use crate::api::articles::{get_articles, Article};
-use leptos::prelude::*;
-use leptos_router::hooks::use_params_map;
-use leptos::task::spawn_local;
-use leptos_router::components::A;
 use crate::components::media_picker::MediaPicker;
+use leptos::prelude::*;
+use leptos::task::spawn_local;
 use leptos::wasm_bindgen::JsCast;
+use leptos_router::components::A;
+use leptos_router::hooks::use_params_map;
 
 fn strip_tags(s: &str) -> String {
     let mut out = String::with_capacity(s.len());
@@ -14,7 +14,11 @@ fn strip_tags(s: &str) -> String {
         match ch {
             '<' => in_tag = true,
             '>' => in_tag = false,
-            _ => if !in_tag { out.push(ch) },
+            _ => {
+                if !in_tag {
+                    out.push(ch)
+                }
+            }
         }
     }
     out.trim().to_string()
@@ -23,9 +27,27 @@ fn strip_tags(s: &str) -> String {
 fn starts_with_month(s: &str) -> bool {
     let sm = s.trim_start();
     const MONTHS: [&str; 21] = [
-        "Jan.", "January", "Feb.", "February", "Mar.", "March", "Apr.", "April",
-        "May", "June", "July", "Aug.", "August", "Sept.", "September", "Oct.",
-        "October", "Nov.", "November", "Dec.", "December",
+        "Jan.",
+        "January",
+        "Feb.",
+        "February",
+        "Mar.",
+        "March",
+        "Apr.",
+        "April",
+        "May",
+        "June",
+        "July",
+        "Aug.",
+        "August",
+        "Sept.",
+        "September",
+        "Oct.",
+        "October",
+        "Nov.",
+        "November",
+        "Dec.",
+        "December",
     ];
     MONTHS.iter().any(|m| {
         if sm.starts_with(m) {
@@ -38,11 +60,19 @@ fn starts_with_month(s: &str) -> bool {
     })
 }
 
-fn extract_between(haystack: &str, start_pat: &str, end_pat: &str, from: usize) -> Option<(String, usize)> {
+fn extract_between(
+    haystack: &str,
+    start_pat: &str,
+    end_pat: &str,
+    from: usize,
+) -> Option<(String, usize)> {
     let start_idx = haystack[from..].find(start_pat)? + from;
     let after = start_idx + start_pat.len();
     let end_idx = haystack[after..].find(end_pat)? + after;
-    Some((haystack[after..end_idx].to_string(), end_idx + end_pat.len()))
+    Some((
+        haystack[after..end_idx].to_string(),
+        end_idx + end_pat.len(),
+    ))
 }
 
 #[allow(dead_code)]
@@ -61,9 +91,13 @@ fn extract_printed_date(html: &str) -> Option<String> {
         if let Some((p_inner, next)) = extract_between(html, "<p", "</p>", pos) {
             let open_end = p_inner.find('>').map(|i| i + 1).unwrap_or(0);
             let text = strip_tags(&p_inner[open_end..]);
-            if starts_with_month(&text) { return Some(text); }
+            if starts_with_month(&text) {
+                return Some(text);
+            }
             pos = next;
-        } else { break; }
+        } else {
+            break;
+        }
     }
     None
 }
@@ -88,7 +122,7 @@ fn extract_body_preview(html: &str) -> Option<String> {
 #[allow(dead_code)]
 fn replace_date_paragraph(html: &str, new_date: &str) -> String {
     // Reuse extract logic to find the range, then replace it
-     let after_h4 = html.find("</h4>").map(|idx| idx + 5).unwrap_or(0);
+    let after_h4 = html.find("</h4>").map(|idx| idx + 5).unwrap_or(0);
     let mut pos = after_h4;
     for _ in 0..5 {
         if let Some((p_inner, next)) = extract_between(html, "<p", "</p>", pos) {
@@ -97,19 +131,24 @@ fn replace_date_paragraph(html: &str, new_date: &str) -> String {
             if starts_with_month(&text) {
                 if let Some(start_rel) = html[pos..].find("<p") {
                     let start_abs = pos + start_rel;
-                     let after_start = start_abs + 2; // <p len
+                    let after_start = start_abs + 2; // <p len
                     if let Some(end_rel) = html[after_start..].find("</p>") {
-                         let end_abs = after_start + end_rel + 4; // </p> len
-                          let mut out = html.to_string();
-                          // Construct replacement paragraph
-                          let replacement = format!("<p class=\"text-sm text-gray-500 mb-6 mt-6\">{}</p>", new_date);
-                          out.replace_range(start_abs..end_abs, &replacement);
-                          return out;
+                        let end_abs = after_start + end_rel + 4; // </p> len
+                        let mut out = html.to_string();
+                        // Construct replacement paragraph
+                        let replacement = format!(
+                            "<p class=\"text-sm text-gray-500 mb-6 mt-6\">{}</p>",
+                            new_date
+                        );
+                        out.replace_range(start_abs..end_abs, &replacement);
+                        return out;
                     }
                 }
             }
             pos = next;
-        } else { break; }
+        } else {
+            break;
+        }
     }
     html.to_string()
 }
@@ -176,24 +215,30 @@ fn linkify_images(html: &str) -> String {
                 let after_src = src_start_rel + 5;
                 if let Some(src_end_rel) = img_tag[after_src..].find('"') {
                     Some(&img_tag[after_src..after_src + src_end_rel])
-                } else { None }
-            } else { None };
+                } else {
+                    None
+                }
+            } else {
+                None
+            };
 
             if let Some(src_url) = src {
-                 let wrapper_start = format!("<a href=\"{}\" target=\"_blank\" class=\"article-image-link\">", src_url);
-                 let wrapper_end = "</a>";
+                let wrapper_start = format!(
+                    "<a href=\"{}\" target=\"_blank\" class=\"article-image-link\">",
+                    src_url
+                );
+                let wrapper_end = "</a>";
 
-                 // Replace strict range
-                 let new_content = format!("{}{}{}", wrapper_start, img_tag, wrapper_end);
-                 out.replace_range(abs_open..abs_close, &new_content);
+                // Replace strict range
+                let new_content = format!("{}{}{}", wrapper_start, img_tag, wrapper_end);
+                out.replace_range(abs_open..abs_close, &new_content);
 
-                 search_pos = abs_open + new_content.len();
-                 continue;
+                search_pos = abs_open + new_content.len();
+                continue;
             }
-             search_pos = abs_close;
-
+            search_pos = abs_close;
         } else {
-             search_pos = abs_open + 4;
+            search_pos = abs_open + 4;
         }
     }
     out
@@ -223,14 +268,19 @@ fn italicize_origin_line(html: &str) -> String {
                 }
 
                 search_pos = abs_content_end + 4;
-            } else { break; }
-        } else { search_pos = abs_open + 2; }
+            } else {
+                break;
+            }
+        } else {
+            search_pos = abs_open + 2;
+        }
     }
     out
 }
 
 fn format_cp_style(date: &str) -> String {
-    let date = date.replace("January", "Jan.")
+    let date = date
+        .replace("January", "Jan.")
         .replace("February", "Feb.")
         .replace("August", "Aug.")
         .replace("September", "Sept.")
@@ -299,7 +349,7 @@ pub fn JournalismArticlePage() -> impl IntoView {
     #[cfg(target_arch = "wasm32")]
     web_sys::console::log_1(&"Rendering JournalismArticlePage".into());
 
-    use crate::api::articles::{get_article, save_article, delete_article};
+    use crate::api::articles::{delete_article, get_article, save_article};
 
     let params = use_params_map();
     let slug = move || params.with(|p| p.get("slug").map(|s| s.to_string()).unwrap_or_default());
@@ -316,12 +366,12 @@ pub fn JournalismArticlePage() -> impl IntoView {
             web_sys::console::log_1(&"Checking auth token...".into());
             if let Ok(Some(storage)) = web_sys::window().unwrap().local_storage() {
                 if let Ok(Some(t)) = storage.get_item("admin_token") {
-                     web_sys::console::log_1(&format!("Found token: {}", t).into());
-                     if !t.is_empty() {
+                    web_sys::console::log_1(&format!("Found token: {}", t).into());
+                    if !t.is_empty() {
                         _set_token.set(t);
                         _set_is_admin.set(true);
                         web_sys::console::log_1(&"Admin mode enabled".into());
-                     }
+                    }
                 } else {
                     web_sys::console::log_1(&"No token found in localStorage".into());
                 }
@@ -361,7 +411,11 @@ pub fn JournalismArticlePage() -> impl IntoView {
             new_article.title = edit_title.get();
             new_article.display_date = edit_date.get();
             new_article.byline = Some(edit_byline.get());
-            new_article.captions = if edit_caption.get().trim().is_empty() { vec![] } else { vec![edit_caption.get()] };
+            new_article.captions = if edit_caption.get().trim().is_empty() {
+                vec![]
+            } else {
+                vec![edit_caption.get()]
+            };
             new_article.images = edit_images.get();
             new_article.content_html = edit_html.get();
 
@@ -370,7 +424,7 @@ pub fn JournalismArticlePage() -> impl IntoView {
                     set_save_status.set("Saved!".to_string());
                     set_is_editing.set(false);
                     article_resource.refetch();
-                },
+                }
                 Err(e) => set_save_status.set(format!("Error: {}", e)),
             }
         });
@@ -379,7 +433,11 @@ pub fn JournalismArticlePage() -> impl IntoView {
     let on_delete = move |slug: String| {
         #[cfg(target_arch = "wasm32")]
         {
-            if !web_sys::window().unwrap().confirm_with_message("Are you sure you want to delete this article?").unwrap() {
+            if !web_sys::window()
+                .unwrap()
+                .confirm_with_message("Are you sure you want to delete this article?")
+                .unwrap()
+            {
                 return;
             }
         }
@@ -390,10 +448,12 @@ pub fn JournalismArticlePage() -> impl IntoView {
                 Ok(_) => {
                     let navigate = leptos_router::hooks::use_navigate();
                     navigate("/journalism", Default::default());
-                },
+                }
                 Err(e) => {
                     #[cfg(target_arch = "wasm32")]
-                    let _ = web_sys::window().unwrap().alert_with_message(&format!("Error deleting: {}", e));
+                    let _ = web_sys::window()
+                        .unwrap()
+                        .alert_with_message(&format!("Error deleting: {}", e));
                     #[cfg(not(target_arch = "wasm32"))]
                     leptos::logging::error!("Error deleting: {}", e);
                 }

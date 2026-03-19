@@ -1,8 +1,8 @@
 #![recursion_limit = "256"]
-use axum::{extract::State, Router};
 use axum::body::Body;
 use axum::http::Request;
 use axum::middleware::{self, Next};
+use axum::{extract::State, Router};
 use bytes::Bytes;
 use dotenvy::dotenv;
 use frontend::{App, Shell};
@@ -11,9 +11,9 @@ use futures_util::StreamExt;
 use leptos::context::provide_context;
 use leptos::prelude::*;
 use leptos_axum::{generate_route_list, LeptosRoutes};
-use sqlx::sqlite::{SqlitePoolOptions, SqliteConnectOptions};
-use std::str::FromStr;
+use sqlx::sqlite::{SqliteConnectOptions, SqlitePoolOptions};
 use std::net::SocketAddr;
+use std::str::FromStr;
 use tower::ServiceBuilder;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 

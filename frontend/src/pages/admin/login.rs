@@ -49,7 +49,9 @@ pub fn AdminLoginPage() -> impl IntoView {
             let password_val = _password.get();
             let navigate = navigate.clone();
 
-            web_sys::console::log_1(&format!("[Login] Attempting login for user: {}", username_val).into());
+            web_sys::console::log_1(
+                &format!("[Login] Attempting login for user: {}", username_val).into(),
+            );
 
             spawn_local(async move {
                 let req = LoginRequest {
@@ -64,31 +66,36 @@ pub fn AdminLoginPage() -> impl IntoView {
                         .header("Content-Type", "application/json")
                         .json(&req)
                         .map_err(|e| {
-                            web_sys::console::log_1(&format!("[Login] Serialize error: {:?}", e).into());
+                            web_sys::console::log_1(
+                                &format!("[Login] Serialize error: {:?}", e).into(),
+                            );
                             "Failed to serialize request".to_string()
                         })?
                         .send()
                         .await
                         .map_err(|e| {
-                            web_sys::console::log_1(&format!("[Login] Network error: {:?}", e).into());
+                            web_sys::console::log_1(
+                                &format!("[Login] Network error: {:?}", e).into(),
+                            );
                             "Failed to connect to server".to_string()
                         })?;
 
-                    web_sys::console::log_1(&format!("[Login] Response status: {}", resp.status()).into());
+                    web_sys::console::log_1(
+                        &format!("[Login] Response status: {}", resp.status()).into(),
+                    );
 
                     if !resp.ok() {
                         return Err("Invalid username or password".to_string());
                     }
 
-                    let data: LoginResponse = resp
-                        .json()
-                        .await
-                        .map_err(|e| {
-                            web_sys::console::log_1(&format!("[Login] Parse error: {:?}", e).into());
-                            "Failed to parse response".to_string()
-                        })?;
+                    let data: LoginResponse = resp.json().await.map_err(|e| {
+                        web_sys::console::log_1(&format!("[Login] Parse error: {:?}", e).into());
+                        "Failed to parse response".to_string()
+                    })?;
 
-                    web_sys::console::log_1(&"[Login] Token received, storing in localStorage".into());
+                    web_sys::console::log_1(
+                        &"[Login] Token received, storing in localStorage".into(),
+                    );
 
                     // Store token in localStorage
                     let window = web_sys::window().unwrap();
@@ -103,7 +110,7 @@ pub fn AdminLoginPage() -> impl IntoView {
                     Ok(()) => {
                         web_sys::console::log_1(&"[Login] Success, navigating to dashboard".into());
                         navigate("/admin/dashboard", Default::default())
-                    },
+                    }
                     Err(msg) => {
                         web_sys::console::log_1(&format!("[Login] Error: {}", msg).into());
                         set_error.set(msg);

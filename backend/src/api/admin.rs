@@ -1,27 +1,24 @@
+use argon2::{
+    password_hash::{rand_core::OsRng, PasswordHash, PasswordHasher, PasswordVerifier, SaltString},
+    Argon2,
+};
+use axum::body::to_bytes;
+use axum::body::Body;
+use axum::http::{header, Request};
+use axum::response::Html;
+use axum::response::IntoResponse;
+use axum::response::Json;
+use axum::response::Redirect;
 use axum::{
     extract::State,
     http::{HeaderMap, StatusCode},
     routing::{get, post},
     Router,
 };
-use axum::body::to_bytes;
-use axum::http::{header, Request};
-use axum::body::Body;
-use axum::response::Json;
-use axum::response::Html;
-use axum::response::IntoResponse;
-use axum::response::Redirect;
+use chrono::{Duration, Utc};
+use jsonwebtoken::{encode, EncodingKey, Header};
 use serde::{Deserialize, Serialize};
 use sqlx::SqlitePool;
-use jsonwebtoken::{encode, Header, EncodingKey};
-use chrono::{Utc, Duration};
-use argon2::{
-    password_hash::{
-        rand_core::OsRng,
-        PasswordHash, PasswordHasher, PasswordVerifier, SaltString
-    },
-    Argon2
-};
 
 fn get_jwt_secret() -> &'static [u8] {
     // In production, use environment variable: std::env::var("JWT_SECRET").unwrap_or_default().as_bytes()
@@ -61,7 +58,8 @@ struct UserRow {
 fn hash_password(password: &str) -> Result<String, String> {
     let salt = SaltString::generate(&mut OsRng);
     let argon2 = Argon2::default();
-    argon2.hash_password(password.as_bytes(), &salt)
+    argon2
+        .hash_password(password.as_bytes(), &salt)
         .map_err(|e| e.to_string())
         .map(|hash| hash.to_string())
 }
@@ -71,7 +69,9 @@ fn verify_password(password: &str, password_hash: &str) -> bool {
         Ok(h) => h,
         Err(_) => return false,
     };
-    Argon2::default().verify_password(password.as_bytes(), &parsed_hash).is_ok()
+    Argon2::default()
+        .verify_password(password.as_bytes(), &parsed_hash)
+        .is_ok()
 }
 
 pub fn router(state: crate::state::AppState) -> Router<crate::state::AppState> {
@@ -110,14 +110,23 @@ async fn login(
         serde_urlencoded::from_bytes(&bytes)
             .map_err(|_| (StatusCode::BAD_REQUEST, "Invalid form data".to_string()))?
     } else {
-        return Err((StatusCode::UNSUPPORTED_MEDIA_TYPE, "Unsupported content type".to_string()));
+        return Err((
+            StatusCode::UNSUPPORTED_MEDIA_TYPE,
+            "Unsupported content type".to_string(),
+        ));
     };
 
-    let user: Option<UserRow> = sqlx::query_as("SELECT id, password_hash FROM users WHERE username = ?")
-        .bind(&req.username)
-        .fetch_optional(&pool)
-        .await
-        .map_err(|_| (StatusCode::INTERNAL_SERVER_ERROR, "Database error".to_string()))?;
+    let user: Option<UserRow> =
+        sqlx::query_as("SELECT id, password_hash FROM users WHERE username = ?")
+            .bind(&req.username)
+            .fetch_optional(&pool)
+            .await
+            .map_err(|_| {
+                (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    "Database error".to_string(),
+                )
+            })?;
 
     let is_invalid = match user {
         Some(ref u) => !verify_password(&req.password, &u.password_hash),
@@ -148,7 +157,12 @@ async fn login(
         &claims,
         &EncodingKey::from_secret(get_jwt_secret()),
     )
-    .map_err(|_| (StatusCode::INTERNAL_SERVER_ERROR, "Token generation failed".to_string()))?;
+    .map_err(|_| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "Token generation failed".to_string(),
+        )
+    })?;
 
     if content_type.contains("application/x-www-form-urlencoded")
         || content_type.contains("multipart/form-data")
@@ -171,7 +185,6 @@ async fn me(headers: HeaderMap) -> Result<&'static str, StatusCode> {
         .and_then(|s| s.strip_prefix("Bearer "))
         .ok_or(StatusCode::UNAUTHORIZED)?;
 
-
     Ok("Authenticated")
 }
 
@@ -192,34 +205,56 @@ async fn change_password(
         token,
         &jsonwebtoken::DecodingKey::from_secret(get_jwt_secret()),
         &validation,
-    ).map_err(|_| (StatusCode::UNAUTHORIZED, "Invalid token".to_string()))?;
+    )
+    .map_err(|_| (StatusCode::UNAUTHORIZED, "Invalid token".to_string()))?;
 
-    let user_id = token_data.claims.sub.parse::<uuid::Uuid>()
-        .map_err(|_| (StatusCode::INTERNAL_SERVER_ERROR, "Invalid user ID in token".to_string()))?;
+    let user_id = token_data.claims.sub.parse::<uuid::Uuid>().map_err(|_| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "Invalid user ID in token".to_string(),
+        )
+    })?;
 
     // Verify current password
     let user: Option<UserRow> = sqlx::query_as("SELECT id, password_hash FROM users WHERE id = ?")
         .bind(user_id)
         .fetch_optional(&pool)
         .await
-        .map_err(|_| (StatusCode::INTERNAL_SERVER_ERROR, "Database error".to_string()))?;
+        .map_err(|_| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "Database error".to_string(),
+            )
+        })?;
 
     let user = user.ok_or((StatusCode::NOT_FOUND, "User not found".to_string()))?;
 
     if !verify_password(&req.current_password, &user.password_hash) {
-        return Err((StatusCode::FORBIDDEN, "Invalid current password".to_string()));
+        return Err((
+            StatusCode::FORBIDDEN,
+            "Invalid current password".to_string(),
+        ));
     }
 
     // Hash new password and update
-    let new_hash = hash_password(&req.new_password)
-        .map_err(|_| (StatusCode::INTERNAL_SERVER_ERROR, "Failed to hash password".to_string()))?;
+    let new_hash = hash_password(&req.new_password).map_err(|_| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "Failed to hash password".to_string(),
+        )
+    })?;
 
     sqlx::query("UPDATE users SET password_hash = ? WHERE id = ?")
         .bind(new_hash)
         .bind(user_id)
         .execute(&pool)
         .await
-        .map_err(|_| (StatusCode::INTERNAL_SERVER_ERROR, "Database update failed".to_string()))?;
+        .map_err(|_| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "Database update failed".to_string(),
+            )
+        })?;
 
     Ok(StatusCode::OK)
 }

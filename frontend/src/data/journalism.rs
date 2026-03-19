@@ -32,5 +32,8 @@ pub fn all_articles() -> &'static [JournalismArticle] {
 }
 
 pub fn find_article(slug: &str) -> Option<JournalismArticle> {
-    ARTICLES.iter().find(|article| article.slug == slug).cloned()
+    ARTICLES
+        .iter()
+        .find(|article| article.slug == slug)
+        .cloned()
 }

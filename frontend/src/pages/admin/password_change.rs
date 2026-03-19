@@ -97,12 +97,12 @@ pub fn AdminPasswordChange() -> impl IntoView {
                     // Let me check `backend/src/api/mod.rs`.
                     // If `login.rs` works with `/admin/login`, then the backend MUST be serving it there.
                     // I will check `backend/src/api/mod.rs` to see if it nests `admin::router`.
-                .header("Authorization", &format!("Bearer {}", token))
-                .header("Content-Type", "application/json")
-                .json(&req)
-                .unwrap()
-                .send()
-                .await;
+                    .header("Authorization", &format!("Bearer {}", token))
+                    .header("Content-Type", "application/json")
+                    .json(&req)
+                    .unwrap()
+                    .send()
+                    .await;
 
                 match resp {
                     Ok(r) => {
@@ -112,12 +112,15 @@ pub fn AdminPasswordChange() -> impl IntoView {
                             set_new_password.set("".to_string());
                             set_confirm_password.set("".to_string());
                         } else {
-                            let text = r.text().await.unwrap_or_else(|_| "Unknown error".to_string());
+                            let text = r
+                                .text()
+                                .await
+                                .unwrap_or_else(|_| "Unknown error".to_string());
                             set_error.set(format!("Error: {}", text));
                         }
                     }
                     Err(e) => {
-                         set_error.set(format!("Network error: {}", e));
+                        set_error.set(format!("Network error: {}", e));
                     }
                 }
                 set_loading.set(false);
