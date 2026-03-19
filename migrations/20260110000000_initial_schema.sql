@@ -3,7 +3,7 @@ CREATE TABLE users (
     id UUID PRIMARY KEY,
     username TEXT NOT NULL UNIQUE,
     password_hash TEXT NOT NULL,
-    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    created_at DATETIME NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
 );
 
 -- Articles (Journalism - Imported/Synced)
@@ -17,10 +17,10 @@ CREATE TABLE articles (
     content TEXT NOT NULL, -- HTML content
     cover_image_url TEXT,
     author TEXT NOT NULL,
-    published_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    published_at DATETIME NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
     origin TEXT NOT NULL DEFAULT 'local', -- 'imported', 'synced', 'local'
-    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    created_at DATETIME NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+    updated_at DATETIME NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
 );
 
 -- Personal Blog Posts
@@ -29,10 +29,10 @@ CREATE TABLE blog_posts (
     slug TEXT NOT NULL UNIQUE,
     title TEXT NOT NULL,
     content TEXT NOT NULL, -- Markdown/Rich Text
-    published_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    published_at DATETIME NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
     tags TEXT, -- JSON Array
-    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    created_at DATETIME NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+    updated_at DATETIME NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
 );
 
 -- Creative Writing (Stories, Novels, Poetry)
@@ -44,8 +44,8 @@ CREATE TABLE creative_works (
     synopsis TEXT,
     content TEXT, -- Full text or chapters (can be JSON if complex)
     status TEXT NOT NULL DEFAULT 'published', -- 'draft', 'published'
-    published_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    published_at DATETIME DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+    created_at DATETIME NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
 );
 
 -- Media Items (Photography, Visual Art, J-School Video, Videography)
@@ -60,7 +60,7 @@ CREATE TABLE media_items (
     category TEXT NOT NULL, -- 'photography', 'visual_art', 'video', 'j_school'
     context TEXT NOT NULL DEFAULT 'personal', -- To distinguish Photojournalism (prof) vs Personal
     taken_at DATETIME,
-    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    created_at DATETIME NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
 );
 
 -- Music
@@ -70,8 +70,8 @@ CREATE TABLE music_tracks (
     description TEXT,
     audio_url TEXT,
     embed_code TEXT, -- For Soundcloud/Spotify iframe
-    published_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    published_at DATETIME DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
+    created_at DATETIME NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
 );
 
 -- Programming Projects
@@ -84,5 +84,5 @@ CREATE TABLE projects (
     technologies TEXT, -- JSON Array
     stars INT DEFAULT 0,
     is_featured BOOLEAN DEFAULT FALSE,
-    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    created_at DATETIME NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
 );

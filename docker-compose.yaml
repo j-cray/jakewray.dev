@@ -1,7 +1,5 @@
 version: "3.8"
 
-services:
+# services:
   # The web and backend services will now use a local SQLite DB file.
-
-volumes:
 
