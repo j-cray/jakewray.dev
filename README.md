@@ -27,6 +27,9 @@ For first-time SSL setup on the server:
 - **Reverse Proxy**: Nginx with Let's Encrypt SSL
 - **Deployment**: Docker Compose
 
+### Known Limitations
+- **Database Concurrency**: The application uses embedded SQLite in WAL mode with a small connection pool (`max_connections(5)`). SQLite only allows one concurrent writer. Concurrent write bursts will queue (up to a 5s busy timeout) and could fail under heavy write load. This is acceptable for a personal blog/portfolio, but must be accounted for if write traffic scales.
+
 ## Development
 
 ### Quick Start with Nix (Recommended)
@@ -49,7 +52,6 @@ cargo leptos watch
 - `backend/` - Server-side Rust code
 - `frontend/` - Client-side Leptos components  
 - `shared/` - Shared types and utilities
-- `migration/` - Database migration tools
 - `flake.nix` - Nix development environment
 - `.envrc` - direnv configuration
 

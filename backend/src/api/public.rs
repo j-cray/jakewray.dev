@@ -19,15 +19,17 @@ async fn list_articles(
     State(pool): State<SqlitePool>,
 ) -> Result<Json<Vec<Article>>, axum::http::StatusCode> {
     match sqlx::query("SELECT id, wp_id, slug, title, subtitle, excerpt, content, cover_image_url, author, published_at, origin FROM articles ORDER BY published_at DESC LIMIT 20")
-        .map(|row: sqlx::sqlite::SqliteRow| {
+        .try_map(|row: sqlx::sqlite::SqliteRow| {
             let origin_str: String = row.get("origin");
             let origin = match origin_str.as_str() {
                 "imported" => shared::Origin::Imported,
                 "synced" => shared::Origin::Synced,
                 _ => shared::Origin::Local,
             };
-            Article {
-                id: row.get::<uuid::Uuid, _>("id"),
+            let id_str: String = row.get("id");
+            let id = id_str.parse::<uuid::Uuid>().map_err(|e| sqlx::Error::Decode(Box::new(e)))?;
+            Ok(Article {
+                id,
                 wp_id: row.get("wp_id"),
                 slug: row.get("slug"),
                 title: row.get("title"),
@@ -38,7 +40,7 @@ async fn list_articles(
                 author: row.get("author"),
                 published_at: row.get("published_at"),
                 origin,
-            }
+            })
         })
         .fetch_all(&pool)
         .await
@@ -56,7 +58,7 @@ async fn list_blog_posts(
     State(pool): State<SqlitePool>,
 ) -> Result<Json<Vec<BlogPost>>, axum::http::StatusCode> {
     match sqlx::query("SELECT id, slug, title, content, published_at, tags FROM blog_posts ORDER BY published_at DESC LIMIT 20")
-        .map(|row: sqlx::sqlite::SqliteRow| {
+        .try_map(|row: sqlx::sqlite::SqliteRow| {
             let tags_str: Option<String> = row.get("tags");
             let tags = tags_str.and_then(|s| match serde_json::from_str(&s) {
                 Ok(t) => Some(t),
@@ -65,14 +67,16 @@ async fn list_blog_posts(
                     None
                 }
             });
-            BlogPost {
-                id: row.get::<uuid::Uuid, _>("id"),
+            let id_str: String = row.get("id");
+            let id = id_str.parse::<uuid::Uuid>().map_err(|e| sqlx::Error::Decode(Box::new(e)))?;
+            Ok(BlogPost {
+                id,
                 slug: row.get("slug"),
                 title: row.get("title"),
                 content: row.get("content"),
                 published_at: row.get("published_at"),
                 tags,
-            }
+            })
         })
         .fetch_all(&pool)
         .await
