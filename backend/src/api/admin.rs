@@ -84,8 +84,8 @@ impl tower_governor::key_extractor::KeyExtractor for TrustedProxyIpKeyExtractor 
 
         if is_trusted_proxy {
             if let Some(real_ip) = req.headers().get("X-Real-IP").and_then(|h| h.to_str().ok()) {
-                if real_ip.parse::<std::net::IpAddr>().is_ok() {
-                    return Ok(real_ip.to_string());
+                if let Ok(parsed_ip) = real_ip.parse::<std::net::IpAddr>() {
+                    return Ok(parsed_ip.to_string());
                 }
             }
         }
@@ -108,26 +108,37 @@ fn verify_password(password: &str, password_hash: &str) -> bool {
 }
 
 pub fn router(state: crate::state::AppState) -> Router<crate::state::AppState> {
-    // Configure rate limit: 1 request per second, up to 3 burst
-    let rate_limit_conf = std::sync::Arc::new(
-        tower_governor::governor::GovernorConfigBuilder::default()
-            .key_extractor(TrustedProxyIpKeyExtractor)
-            .per_second(1)
-            .burst_size(1)
-            .finish()
-            .unwrap(),
-    );
-
     let login_governor_layer = tower_governor::GovernorLayer {
-        config: rate_limit_conf.clone(),
+        config: std::sync::Arc::new(
+            tower_governor::governor::GovernorConfigBuilder::default()
+                .key_extractor(TrustedProxyIpKeyExtractor)
+                .per_second(1)
+                .burst_size(1)
+                .finish()
+                .unwrap(),
+        ),
     };
 
     let password_governor_layer = tower_governor::GovernorLayer {
-        config: rate_limit_conf.clone(),
+        config: std::sync::Arc::new(
+            tower_governor::governor::GovernorConfigBuilder::default()
+                .key_extractor(TrustedProxyIpKeyExtractor)
+                .per_second(1)
+                .burst_size(1)
+                .finish()
+                .unwrap(),
+        ),
     };
 
     let me_governor_layer = tower_governor::GovernorLayer {
-        config: rate_limit_conf,
+        config: std::sync::Arc::new(
+            tower_governor::governor::GovernorConfigBuilder::default()
+                .key_extractor(TrustedProxyIpKeyExtractor)
+                .per_second(5)
+                .burst_size(10)
+                .finish()
+                .unwrap(),
+        ),
     };
 
     Router::new()
@@ -191,6 +202,8 @@ async fn login(
         Some(ref u) => !verify_password(&req.password, &u.password_hash),
         None => {
             static DUMMY_HASH: &str = "$argon2id$v=19$m=19456,t=2,p=1$75vBQ9LN4IAiHrViVOPI4w$L1wC8aj0h6PO/I8xVshCOB0TjOa9CTkfx8dIKA/0FVY";
+            // Note: This does not provide a robust timing-safe guarantee against advanced analysis,
+            // but prevents trivial early-return optimization timing differences.
             let _ = std::hint::black_box(verify_password(&req.password, DUMMY_HASH));
             true
         }
@@ -318,18 +331,16 @@ async fn change_password(
         ));
     }
 
-    let user_id = &token_data.claims.sub;
-
-    if uuid::Uuid::parse_str(user_id).is_err() {
-        return Err((
+    let parsed_user_id = uuid::Uuid::parse_str(&token_data.claims.sub).map_err(|_| {
+        (
             StatusCode::INTERNAL_SERVER_ERROR,
             "Invalid user ID format in token".to_string(),
-        ));
-    }
+        )
+    })?;
 
     // Verify current password
     let user: Option<UserRow> = sqlx::query_as("SELECT id, password_hash FROM users WHERE id = ?")
-        .bind(user_id)
+        .bind(parsed_user_id)
         .fetch_optional(&pool)
         .await
         .map_err(|e| {
@@ -360,7 +371,7 @@ async fn change_password(
 
     sqlx::query("UPDATE users SET password_hash = ? WHERE id = ?")
         .bind(new_hash)
-        .bind(user_id)
+        .bind(parsed_user_id)
         .execute(&pool)
         .await
         .map_err(|e| {

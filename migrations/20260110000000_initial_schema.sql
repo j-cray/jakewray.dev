@@ -93,5 +93,3 @@ CREATE TABLE projects (
     is_featured BOOLEAN DEFAULT FALSE,
     created_at DATETIME NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
 );
-
-
