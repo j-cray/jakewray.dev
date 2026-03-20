@@ -75,7 +75,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         tracing::warn!("=====================================================================");
     }
 
-    if std::env::var("TRUSTED_PROXY_IPS").is_err() {
+    if std::env::var("ENVIRONMENT").as_deref() == Ok("production")
+        && std::env::var("TRUSTED_PROXY_IPS").is_err()
+    {
         tracing::warn!("=====================================================================");
         tracing::warn!("WARNING: TRUSTED_PROXY_IPS is not set. All users may share a single rate-limit bucket if behind a proxy.");
         tracing::warn!("=====================================================================");

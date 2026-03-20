@@ -21,6 +21,8 @@ use serde::{Deserialize, Serialize};
 use sqlx::SqlitePool;
 use std::sync::OnceLock;
 
+const DUMMY_HASH: &str = "$argon2id$v=19$m=19456,t=2,p=1$75vBQ9LN4IAiHrViVOPI4w$L1wC8aj0h6PO/I8xVshCOB0TjOa9CTkfx8dIKA/0FVY";
+
 #[derive(Serialize, Deserialize)]
 pub struct Claims {
     sub: String,
@@ -125,21 +127,26 @@ fn verify_password(password: &str, password_hash: &str) -> bool {
 }
 
 pub fn router(state: crate::state::AppState) -> Router<crate::state::AppState> {
-    let shared_governor_config = std::sync::Arc::new(
-        tower_governor::governor::GovernorConfigBuilder::default()
-            .key_extractor(TrustedProxyIpKeyExtractor)
-            .per_second(1)
-            .burst_size(1)
-            .finish()
-            .unwrap(),
-    );
-
     let login_governor_layer = tower_governor::GovernorLayer {
-        config: shared_governor_config.clone(),
+        config: std::sync::Arc::new(
+            tower_governor::governor::GovernorConfigBuilder::default()
+                .key_extractor(TrustedProxyIpKeyExtractor)
+                .per_second(1)
+                .burst_size(1)
+                .finish()
+                .unwrap(),
+        ),
     };
 
     let password_governor_layer = tower_governor::GovernorLayer {
-        config: shared_governor_config.clone(),
+        config: std::sync::Arc::new(
+            tower_governor::governor::GovernorConfigBuilder::default()
+                .key_extractor(TrustedProxyIpKeyExtractor)
+                .per_second(1)
+                .burst_size(1)
+                .finish()
+                .unwrap(),
+        ),
     };
 
     let me_governor_layer = tower_governor::GovernorLayer {
@@ -216,7 +223,6 @@ async fn login(
             // To prevent early-return timing leaks, we always verify a password hash.
             // If the user doesn't exist, we use a dummy hash. The dummy hash's source
             // password is irrelevant as it's only used to consume time.
-            static DUMMY_HASH: &str = "$argon2id$v=19$m=19456,t=2,p=1$75vBQ9LN4IAiHrViVOPI4w$L1wC8aj0h6PO/I8xVshCOB0TjOa9CTkfx8dIKA/0FVY";
             (DUMMY_HASH, false)
         }
     };
@@ -348,7 +354,7 @@ async fn change_password(
         ));
     }
 
-    let parsed_user_id = uuid::Uuid::parse_str(&token_data.claims.sub).map_err(|_| {
+    let _parsed_user_id = uuid::Uuid::parse_str(&token_data.claims.sub).map_err(|_| {
         (
             StatusCode::INTERNAL_SERVER_ERROR,
             "Invalid user ID format in token".to_string(),
@@ -357,7 +363,7 @@ async fn change_password(
 
     // Verify current password
     let user: Option<UserRow> = sqlx::query_as("SELECT id, password_hash FROM users WHERE id = ?")
-        .bind(parsed_user_id.to_string())
+        .bind(token_data.claims.sub.clone())
         .fetch_optional(&pool)
         .await
         .map_err(|e| {
@@ -370,10 +376,7 @@ async fn change_password(
 
     let (hash_to_verify, is_valid_user) = match user {
         Some(ref u) => (u.password_hash.as_str(), true),
-        None => {
-            static DUMMY_HASH: &str = "$argon2id$v=19$m=19456,t=2,p=1$75vBQ9LN4IAiHrViVOPI4w$L1wC8aj0h6PO/I8xVshCOB0TjOa9CTkfx8dIKA/0FVY";
-            (DUMMY_HASH, false)
-        }
+        None => (DUMMY_HASH, false),
     };
 
     let password_match = verify_password(&req.current_password, hash_to_verify);
@@ -396,7 +399,7 @@ async fn change_password(
 
     sqlx::query("UPDATE users SET password_hash = ? WHERE id = ?")
         .bind(new_hash)
-        .bind(parsed_user_id.to_string())
+        .bind(token_data.claims.sub.clone())
         .execute(&pool)
         .await
         .map_err(|e| {

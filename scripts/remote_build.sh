@@ -29,6 +29,7 @@ if [ "$TARGET" = "all" ] || [ "$TARGET" = "backend" ]; then
         -t portfolio-chef .
 
     echo "Ensuring DB is up for preparation..."
+    mkdir -p data && chmod 700 data && sudo chown 1000:1000 data
     sudo docker compose -f compose.prod.yaml up -d db
     echo "Waiting for DB..."
     sleep 5
@@ -53,11 +54,13 @@ if [ "$TARGET" = "all" ]; then
     echo "Building and starting ALL services with BuildKit caching..."
     sudo DOCKER_BUILDKIT=1 docker compose -f compose.prod.yaml build \
         --build-arg BUILDKIT_INLINE_CACHE=1
+    mkdir -p data && chmod 700 data && sudo chown 1000:1000 data
     sudo docker compose -f compose.prod.yaml up -d --remove-orphans
 elif [ "$TARGET" = "backend" ]; then
     echo "Building and restarting BACKEND (portfolio) service with caching..."
     sudo DOCKER_BUILDKIT=1 docker compose -f compose.prod.yaml build \
         --build-arg BUILDKIT_INLINE_CACHE=1 portfolio
+    mkdir -p data && chmod 700 data && sudo chown 1000:1000 data
     sudo docker compose -f compose.prod.yaml up -d --no-deps portfolio
 elif [ "$TARGET" = "frontend" ]; then
     echo "Frontend is part of the backend binary in this setup (SSR)."
