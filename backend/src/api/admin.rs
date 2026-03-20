@@ -95,8 +95,8 @@ impl tower_governor::key_extractor::KeyExtractor for TrustedProxyIpKeyExtractor 
                 .get("X-Forwarded-For")
                 .and_then(|h| h.to_str().ok())
             {
-                // We pick the rightmost IP (next_back) because trustworthy proxies append client IPs to the end.
-                // If a proxy replaces the header outright instead of appending, this still yields the correct single IP.
+                // We pick the rightmost IP (next_back) because Nginx appends the connecting client's IP to the right of any existing XFF.
+                // The rightmost entry is the client IP as seen by Nginx.
                 if let Some(last_ip) = forwarded_for.split(',').next_back() {
                     if let Ok(parsed_ip) = last_ip.trim().parse::<std::net::IpAddr>() {
                         return Ok(parsed_ip.to_string());
@@ -241,11 +241,9 @@ async fn login(
         return Err((StatusCode::UNAUTHORIZED, "Invalid credentials".to_string()));
     }
 
-    let user = user.expect("User should exist when credentials are valid");
-
     let exp = (Utc::now() + Duration::hours(24)).timestamp() as usize;
     let claims = Claims {
-        sub: user.id.clone(),
+        sub: user.unwrap().id,
         exp,
     };
 

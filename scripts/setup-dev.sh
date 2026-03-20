@@ -5,7 +5,7 @@ set -e
 
 echo "🚀 Setting up local development environment..."
 
-if [ "$APP_ENV" = "production" ] || [[ "$DATABASE_URL" == *"/app/data"* ]]; then
+if [ "$ENVIRONMENT" = "production" ] || [[ "$DATABASE_URL" == *"/app/data"* ]]; then
   echo "❌ Error: Production environment detected. Setup script aborted."
   exit 1
 fi
@@ -72,7 +72,10 @@ echo "👤 Creating default admin user..."
 # Anyone reading the repository knows these default credentials. Check that this
 # dev instance isn't exposed to untrusted networks.
 # Generate hash dynamically
-ADMIN_HASH=$(echo -n "demo-admin-2026!" | (cd hgen && cargo run --quiet 2>/dev/null) | tail -n 1)
+if [ ! -x "hgen/target/release/hgen" ]; then
+  (cd hgen && cargo build --release --quiet)
+fi
+ADMIN_HASH=$(echo -n "demo-admin-2026!" | ./hgen/target/release/hgen 2>/dev/null | tail -n 1)
 
 if ! [[ "$ADMIN_HASH" =~ ^\$argon2 ]]; then
   echo "❌ hgen failed or produced unexpected output"
