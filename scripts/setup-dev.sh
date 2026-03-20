@@ -59,6 +59,7 @@ echo ""
 echo "⏳ Running database migrations..."
 # create an empty sqlite database file if it doesn't exist
 touch sqlite.db
+chmod 600 sqlite.db
 if [ -z "$DATABASE_URL" ]; then
   export DATABASE_URL="sqlite://sqlite.db"
 fi

@@ -81,7 +81,9 @@ impl tower_governor::key_extractor::KeyExtractor for TrustedProxyIpKeyExtractor 
 
         if is_trusted_proxy {
             if let Some(real_ip) = req.headers().get("X-Real-IP").and_then(|h| h.to_str().ok()) {
-                return Ok(real_ip.to_string());
+                if real_ip.parse::<std::net::IpAddr>().is_ok() {
+                    return Ok(real_ip.to_string());
+                }
             }
             if let Some(fwd) = req
                 .headers()
@@ -89,7 +91,10 @@ impl tower_governor::key_extractor::KeyExtractor for TrustedProxyIpKeyExtractor 
                 .and_then(|h| h.to_str().ok())
             {
                 if let Some(first_ip) = fwd.split(',').next() {
-                    return Ok(first_ip.trim().to_string());
+                    let ip_str = first_ip.trim();
+                    if ip_str.parse::<std::net::IpAddr>().is_ok() {
+                        return Ok(ip_str.to_string());
+                    }
                 }
             }
         }
@@ -198,7 +203,7 @@ async fn login(
         Some(ref u) => !verify_password(&req.password, &u.password_hash),
         None => {
             static DUMMY_HASH: &str = "$argon2id$v=19$m=19456,t=2,p=1$75vBQ9LN4IAiHrViVOPI4w$L1wC8aj0h6PO/I8xVshCOB0TjOa9CTkfx8dIKA/0FVY";
-            let _ = verify_password(&req.password, DUMMY_HASH);
+            let _ = std::hint::black_box(verify_password(&req.password, DUMMY_HASH));
             true
         }
     };
@@ -257,14 +262,17 @@ async fn me(headers: HeaderMap) -> Result<Json<serde_json::Value>, StatusCode> {
         .ok_or(StatusCode::UNAUTHORIZED)?;
 
     let validation = jsonwebtoken::Validation::new(jsonwebtoken::Algorithm::HS256);
-    let _token_data = jsonwebtoken::decode::<Claims>(
+    let token_data = jsonwebtoken::decode::<Claims>(
         token,
         &jsonwebtoken::DecodingKey::from_secret(shared::auth::get_jwt_secret()),
         &validation,
     )
     .map_err(|_| StatusCode::UNAUTHORIZED)?;
 
-    Ok(Json(serde_json::json!({"authenticated": true})))
+    Ok(Json(serde_json::json!({
+        "authenticated": true,
+        "sub": token_data.claims.sub
+    })))
 }
 
 async fn change_password(
@@ -292,6 +300,13 @@ async fn change_password(
     }
 
     let user_id = &token_data.claims.sub;
+
+    if uuid::Uuid::parse_str(user_id).is_err() {
+        return Err((
+            StatusCode::BAD_REQUEST,
+            "Invalid user ID format".to_string(),
+        ));
+    }
 
     // Verify current password
     let user: Option<UserRow> = sqlx::query_as("SELECT id, password_hash FROM users WHERE id = ?")
