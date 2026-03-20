@@ -75,6 +75,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         tracing::warn!("=====================================================================");
     }
 
+    if std::env::var("TRUSTED_PROXY_IPS").is_err() {
+        tracing::warn!("=====================================================================");
+        tracing::warn!("WARNING: TRUSTED_PROXY_IPS is not set. All users may share a single rate-limit bucket if behind a proxy.");
+        tracing::warn!("=====================================================================");
+    }
+
     // Build LeptosOptions from environment/config
     let site_addr: SocketAddr = std::env::var("LEPTOS_SITE_ADDR")
         .unwrap_or_else(|_| "0.0.0.0:3000".to_string())

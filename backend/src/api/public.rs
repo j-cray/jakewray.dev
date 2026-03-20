@@ -21,8 +21,14 @@ pub fn router(state: crate::state::AppState) -> Router<crate::state::AppState> {
 
     Router::new()
         .route("/health", get(health_check))
-        .route("/api/articles", get(list_articles).route_layer(public_governor_layer.clone()))
-        .route("/api/blog", get(list_blog_posts).route_layer(public_governor_layer))
+        .route(
+            "/api/articles",
+            get(list_articles).route_layer(public_governor_layer.clone()),
+        )
+        .route(
+            "/api/blog",
+            get(list_blog_posts).route_layer(public_governor_layer),
+        )
         .with_state(state)
 }
 

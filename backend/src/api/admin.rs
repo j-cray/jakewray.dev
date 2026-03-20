@@ -88,9 +88,13 @@ impl tower_governor::key_extractor::KeyExtractor for TrustedProxyIpKeyExtractor 
                     return Ok(parsed_ip.to_string());
                 }
             }
-            if let Some(forwarded_for) = req.headers().get("X-Forwarded-For").and_then(|h| h.to_str().ok()) {
-                if let Some(first_ip) = forwarded_for.split(',').next() {
-                    if let Ok(parsed_ip) = first_ip.trim().parse::<std::net::IpAddr>() {
+            if let Some(forwarded_for) = req
+                .headers()
+                .get("X-Forwarded-For")
+                .and_then(|h| h.to_str().ok())
+            {
+                if let Some(last_ip) = forwarded_for.split(',').next_back() {
+                    if let Ok(parsed_ip) = last_ip.trim().parse::<std::net::IpAddr>() {
                         return Ok(parsed_ip.to_string());
                     }
                 }
@@ -356,7 +360,7 @@ async fn change_password(
 
     // Verify current password
     let user: Option<UserRow> = sqlx::query_as("SELECT id, password_hash FROM users WHERE id = ?")
-        .bind(parsed_user_id)
+        .bind(parsed_user_id.to_string())
         .fetch_optional(&pool)
         .await
         .map_err(|e| {
@@ -367,7 +371,10 @@ async fn change_password(
             )
         })?;
 
-    let user = user.ok_or((StatusCode::NOT_FOUND, "User not found".to_string()))?;
+    let user = user.ok_or((
+        StatusCode::FORBIDDEN,
+        "Invalid current password".to_string(),
+    ))?;
 
     if !verify_password(&req.current_password, &user.password_hash) {
         return Err((
@@ -387,7 +394,7 @@ async fn change_password(
 
     sqlx::query("UPDATE users SET password_hash = ? WHERE id = ?")
         .bind(new_hash)
-        .bind(parsed_user_id)
+        .bind(parsed_user_id.to_string())
         .execute(&pool)
         .await
         .map_err(|e| {
