@@ -1,3 +1,11 @@
+// Usage:
+// This utility reads the password from standard input (stdin), not from command-line arguments.
+// This improves security by preventing the password from appearing in shell history or `ps` output.
+//
+// Example:
+// echo -n "mypassword" | cargo run --bin hgen
+// or run `cargo run --bin hgen` and type the password followed by Enter.
+
 use argon2::{
     password_hash::{rand_core::OsRng, PasswordHasher, SaltString},
     Argon2,

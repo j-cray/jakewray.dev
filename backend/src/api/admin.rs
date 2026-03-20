@@ -75,7 +75,10 @@ impl tower_governor::key_extractor::KeyExtractor for TrustedProxyIpKeyExtractor 
                 || ip.is_unspecified()
                 || match ip {
                     std::net::IpAddr::V4(ipv4) => ipv4.is_private(),
-                    _ => false,
+                    std::net::IpAddr::V6(ipv6) => {
+                        (ipv6.segments()[0] & 0xfe00) == 0xfc00
+                            || (ipv6.segments()[0] & 0xffc0) == 0xfe80
+                    }
                 }
         });
 
@@ -133,8 +136,8 @@ pub fn router(state: crate::state::AppState) -> Router<crate::state::AppState> {
     let password_governor_conf = std::sync::Arc::new(
         tower_governor::governor::GovernorConfigBuilder::default()
             .key_extractor(TrustedProxyIpKeyExtractor)
-            .per_second(2)
-            .burst_size(5)
+            .per_second(1)
+            .burst_size(3)
             .finish()
             .unwrap(),
     );
@@ -303,8 +306,8 @@ async fn change_password(
 
     if uuid::Uuid::parse_str(user_id).is_err() {
         return Err((
-            StatusCode::BAD_REQUEST,
-            "Invalid user ID format".to_string(),
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "Invalid user ID format in token".to_string(),
         ));
     }
 
