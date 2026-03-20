@@ -16,6 +16,9 @@ DOMAIN_NAME=jakewray.dev
 LEPTOS_SITE_ADDR=0.0.0.0:3000
 RUST_LOG=info
 DATABASE_URL=sqlite:////app/data/sqlite.db
+ENVIRONMENT=production
+JWT_SECRET=$(openssl rand -base64 48 | tr -d '\n')
+TRUSTED_PROXY_IPS=127.0.0.1
 EOF
 
 if [ "$TARGET" = "all" ] || [ "$TARGET" = "backend" ]; then

@@ -52,10 +52,25 @@ struct UserRow {
     password_hash: String,
 }
 
+// Pin Argon2 parameters (m=19456, t=2, p=1) to prevent timing discrepancies if defaults ever change.
+const ARGON2_M_COST: u32 = 19456;
+const ARGON2_T_COST: u32 = 2;
+const ARGON2_P_COST: u32 = 1;
+
+fn get_argon2() -> Argon2<'static> {
+    let params = argon2::Params::new(
+        ARGON2_M_COST,
+        ARGON2_T_COST,
+        ARGON2_P_COST,
+        Some(argon2::Params::DEFAULT_OUTPUT_LEN),
+    )
+    .expect("Valid Argon2 parameters");
+    Argon2::new(argon2::Algorithm::Argon2id, argon2::Version::V0x13, params)
+}
+
 fn hash_password(password: &str) -> Result<String, String> {
     let salt = SaltString::generate(&mut OsRng);
-    let argon2 = Argon2::default();
-    argon2
+    get_argon2()
         .hash_password(password.as_bytes(), &salt)
         .map_err(|e| e.to_string())
         .map(|hash| hash.to_string())
@@ -85,18 +100,23 @@ impl tower_governor::key_extractor::KeyExtractor for TrustedProxyIpKeyExtractor 
         let is_trusted_proxy = peer_ip.is_some_and(|ip| trusted_ips.contains(&ip));
 
         if is_trusted_proxy {
+            // Priority 1: X-Real-IP is checked first.
+            // Some proxy configurations use X-Real-IP to explicitly pass the client IP, overriding XFF lists.
             if let Some(real_ip) = req.headers().get("X-Real-IP").and_then(|h| h.to_str().ok()) {
                 if let Ok(parsed_ip) = real_ip.parse::<std::net::IpAddr>() {
                     return Ok(parsed_ip.to_string());
                 }
             }
+            // Priority 2: X-Forwarded-For
             if let Some(forwarded_for) = req
                 .headers()
                 .get("X-Forwarded-For")
                 .and_then(|h| h.to_str().ok())
             {
-                // We pick the rightmost IP (next_back) because Nginx appends the connecting client's IP to the right of any existing XFF.
-                // The rightmost entry is the client IP as seen by Nginx.
+                // We pick the rightmost IP (next_back) under the exact assumption that the trusted Nginx configuration
+                // uses `proxy_add_x_forwarded_for`, which appends the connecting client's IP to the right.
+                // NOTE: If intermediate proxies exist between Nginx and this backend that are NOT in TRUSTED_PROXY_IPS,
+                // the rightmost IP will be the last untrusted proxy's IP, not the true client.
                 if let Some(last_ip) = forwarded_for.split(',').next_back() {
                     if let Ok(parsed_ip) = last_ip.trim().parse::<std::net::IpAddr>() {
                         return Ok(parsed_ip.to_string());
@@ -121,12 +141,14 @@ fn verify_password(password: &str, password_hash: &str) -> bool {
         Ok(h) => h,
         Err(_) => return false,
     };
-    Argon2::default()
+    get_argon2()
         .verify_password(password.as_bytes(), &parsed_hash)
         .is_ok()
 }
 
 pub fn router(state: crate::state::AppState) -> Router<crate::state::AppState> {
+    // NOTE: tower_governor uses in-memory state. A server restart will reset all rate limit counters.
+    // Burst windows completely refresh across restarts.
     let login_governor_layer = tower_governor::GovernorLayer {
         config: std::sync::Arc::new(
             tower_governor::governor::GovernorConfigBuilder::default()
@@ -352,7 +374,7 @@ async fn change_password(
         ));
     }
 
-    let _parsed_user_id = uuid::Uuid::parse_str(&token_data.claims.sub).map_err(|_| {
+    let user_id = uuid::Uuid::parse_str(&token_data.claims.sub).map_err(|_| {
         (
             StatusCode::INTERNAL_SERVER_ERROR,
             "Invalid user ID format in token".to_string(),
@@ -361,7 +383,7 @@ async fn change_password(
 
     // Verify current password
     let user: Option<UserRow> = sqlx::query_as("SELECT id, password_hash FROM users WHERE id = ?")
-        .bind(token_data.claims.sub.clone())
+        .bind(user_id.to_string())
         .fetch_optional(&pool)
         .await
         .map_err(|e| {
@@ -397,7 +419,7 @@ async fn change_password(
 
     sqlx::query("UPDATE users SET password_hash = ? WHERE id = ?")
         .bind(new_hash)
-        .bind(token_data.claims.sub.clone())
+        .bind(user_id.to_string())
         .execute(&pool)
         .await
         .map_err(|e| {
