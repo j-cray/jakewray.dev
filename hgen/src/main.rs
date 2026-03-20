@@ -15,7 +15,17 @@ fn main() {
     std::io::stdin().read_line(&mut password).expect("Failed to read password");
     let password = password.trim_end_matches('\n').trim_end_matches('\r');
     let salt = SaltString::generate(&mut OsRng);
-    let argon2 = Argon2::default();
+    let params = argon2::Params::new(
+        19456,
+        2,
+        1,
+        Some(argon2::Params::DEFAULT_OUTPUT_LEN),
+    ).unwrap();
+    let argon2 = Argon2::new(
+        argon2::Algorithm::Argon2id,
+        argon2::Version::V0x13,
+        params,
+    );
     let hash = argon2.hash_password(password.as_bytes(), &salt).unwrap();
     println!("{}", hash);
 }
