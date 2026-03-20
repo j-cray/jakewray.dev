@@ -5,6 +5,7 @@ use sqlx::SqlitePool;
 #[derive(serde::Deserialize)]
 pub struct Pagination {
     pub limit: Option<u32>,
+    pub offset: Option<u32>,
 }
 pub fn router(state: crate::state::AppState) -> Router<crate::state::AppState> {
     Router::new()
@@ -25,8 +26,10 @@ async fn list_articles(
     Query(query): Query<Pagination>,
 ) -> Result<Json<Vec<Article>>, axum::http::StatusCode> {
     let limit = query.limit.unwrap_or(20).min(50);
-    match sqlx::query("SELECT id, wp_id, slug, title, subtitle, excerpt, content, cover_image_url, author, published_at, origin FROM articles ORDER BY published_at DESC LIMIT ?")
+    let offset = query.offset.unwrap_or(0);
+    match sqlx::query("SELECT id, wp_id, slug, title, subtitle, excerpt, content, cover_image_url, author, published_at, origin FROM articles ORDER BY published_at DESC LIMIT ? OFFSET ?")
         .bind(limit)
+        .bind(offset)
         .try_map(|row: sqlx::sqlite::SqliteRow| {
             let origin_str: String = row.get("origin");
             let origin = match origin_str.as_str() {
@@ -66,8 +69,10 @@ async fn list_blog_posts(
     Query(query): Query<Pagination>,
 ) -> Result<Json<Vec<BlogPost>>, axum::http::StatusCode> {
     let limit = query.limit.unwrap_or(20).min(50);
-    match sqlx::query("SELECT id, slug, title, content, published_at, tags FROM blog_posts ORDER BY published_at DESC LIMIT ?")
+    let offset = query.offset.unwrap_or(0);
+    match sqlx::query("SELECT id, slug, title, content, published_at, tags FROM blog_posts ORDER BY published_at DESC LIMIT ? OFFSET ?")
         .bind(limit)
+        .bind(offset)
         .try_map(|row: sqlx::sqlite::SqliteRow| {
             let tags_str: Option<String> = row.get("tags");
             let tags = match tags_str {

@@ -109,7 +109,15 @@ fn verify_password(password: &str, password_hash: &str) -> bool {
 
 pub fn router(state: crate::state::AppState) -> Router<crate::state::AppState> {
     // Configure rate limit: 1 request per second, up to 3 burst
-    let rate_limit_conf = std::sync::Arc::new(
+    let login_rate_limit_conf = std::sync::Arc::new(
+        tower_governor::governor::GovernorConfigBuilder::default()
+            .key_extractor(TrustedProxyIpKeyExtractor)
+            .per_second(1)
+            .burst_size(3)
+            .finish()
+            .unwrap(),
+    );
+    let password_rate_limit_conf = std::sync::Arc::new(
         tower_governor::governor::GovernorConfigBuilder::default()
             .key_extractor(TrustedProxyIpKeyExtractor)
             .per_second(1)
@@ -118,11 +126,11 @@ pub fn router(state: crate::state::AppState) -> Router<crate::state::AppState> {
             .unwrap(),
     );
     let login_governor_layer = tower_governor::GovernorLayer {
-        config: rate_limit_conf.clone(),
+        config: login_rate_limit_conf,
     };
 
     let password_governor_layer = tower_governor::GovernorLayer {
-        config: rate_limit_conf,
+        config: password_rate_limit_conf,
     };
 
     Router::new()
@@ -261,8 +269,14 @@ async fn me(headers: HeaderMap) -> Result<Json<serde_json::Value>, StatusCode> {
 async fn change_password(
     State(pool): State<SqlitePool>,
     headers: HeaderMap,
-    Json(req): Json<ChangePasswordRequest>,
+    req: Request<Body>,
 ) -> Result<StatusCode, (StatusCode, String)> {
+    let bytes = to_bytes(req.into_body(), 16 * 1024)
+        .await
+        .map_err(|_| (StatusCode::BAD_REQUEST, "Invalid request body".to_string()))?;
+
+    let req: ChangePasswordRequest = serde_json::from_slice(&bytes)
+        .map_err(|_| (StatusCode::BAD_REQUEST, "Invalid JSON".to_string()))?;
     let token = headers
         .get("Authorization")
         .and_then(|h| h.to_str().ok())
@@ -278,10 +292,12 @@ async fn change_password(
     )
     .map_err(|_| (StatusCode::UNAUTHORIZED, "Invalid token".to_string()))?;
 
-    if req.new_password.len() < 12 || req.new_password.len() > 128 {
+    let char_count = req.new_password.chars().count();
+    let byte_count = req.new_password.len();
+    if char_count < 12 || byte_count > 128 {
         return Err((
             StatusCode::BAD_REQUEST,
-            "Password length must be between 12 and 128 bytes".to_string(),
+            "Password length must be at least 12 characters and max 128 bytes".to_string(),
         ));
     }
 

@@ -40,5 +40,5 @@ frontend = { path = "../frontend", default-features = false, features = [
 tower_governor = "0.4.2"
 
 [features]
-default = []
+default = ["ssr"]
 ssr = ["leptos/ssr", "leptos_meta/ssr", "leptos_router/ssr", "frontend/ssr", "shared/ssr"]

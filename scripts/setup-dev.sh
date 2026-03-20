@@ -68,9 +68,12 @@ cargo sqlx migrate run -D "$DATABASE_URL" || true
 
 echo ""
 echo "👤 Creating default admin user..."
-# WARN: The seeded Argon2 hash below corresponds to 'demo-admin-2026!'.
+# WARN: The seeded password below is 'demo-admin-2026!'.
 # Anyone reading the repository knows these default credentials. Check that this
 # dev instance isn't exposed to untrusted networks.
+# Generate hash dynamically
+ADMIN_HASH=$(echo -n "demo-admin-2026!" | cargo run --bin hgen -q | tail -n 1)
+
 # Fallback to python UUID or kernel uuid if uuidgen missing
 ADMIN_UUID=$(uuidgen 2>/dev/null || cat /proc/sys/kernel/random/uuid 2>/dev/null || python3 -c 'import uuid; print(uuid.uuid4())' 2>/dev/null || { echo "❌ Could not generate a UUID. Please install uuidgen."; exit 1; })
 SAFE_UUID=$(printf '%q' "$ADMIN_UUID" | tr -cd 'a-fA-F0-9-')
@@ -81,7 +84,7 @@ if ! [[ "$SAFE_UUID" =~ ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F
 fi
 
 sqlite3 sqlite.db <<EOF || echo "⚠️ Could not create user (may already exist)"
-INSERT INTO users (id, username, password_hash) VALUES ('${SAFE_UUID}', 'admin', '\$argon2id\$v=19\$m=19456,t=2,p=1\$eZjB8IC9MeFUwBfPULedVA\$INlXdgAcRKilnu3//TUQ3ds00iBb5rMTw39vBfOwK30') ON CONFLICT (username) DO NOTHING;
+INSERT INTO users (id, username, password_hash) VALUES ('${SAFE_UUID}', 'admin', '${ADMIN_HASH}') ON CONFLICT (username) DO NOTHING;
 EOF
 
 echo ""
