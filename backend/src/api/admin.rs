@@ -70,17 +70,13 @@ impl tower_governor::key_extractor::KeyExtractor for TrustedProxyIpKeyExtractor 
             .get::<axum::extract::ConnectInfo<std::net::SocketAddr>>()
             .map(|ci| ci.0.ip());
 
-        let is_trusted_proxy = peer_ip.is_some_and(|ip| {
-            ip.is_loopback()
-                || ip.is_unspecified()
-                || match ip {
-                    std::net::IpAddr::V4(ipv4) => ipv4.is_private(),
-                    std::net::IpAddr::V6(ipv6) => {
-                        (ipv6.segments()[0] & 0xfe00) == 0xfc00
-                            || (ipv6.segments()[0] & 0xffc0) == 0xfe80
-                    }
-                }
-        });
+        let trusted_ips: Vec<std::net::IpAddr> = std::env::var("TRUSTED_PROXY_IPS")
+            .unwrap_or_default()
+            .split(',')
+            .filter_map(|s| s.trim().parse().ok())
+            .collect();
+
+        let is_trusted_proxy = peer_ip.is_some_and(|ip| trusted_ips.contains(&ip));
 
         if is_trusted_proxy {
             if let Some(real_ip) = req.headers().get("X-Real-IP").and_then(|h| h.to_str().ok()) {
@@ -113,7 +109,7 @@ pub fn router(state: crate::state::AppState) -> Router<crate::state::AppState> {
         tower_governor::governor::GovernorConfigBuilder::default()
             .key_extractor(TrustedProxyIpKeyExtractor)
             .per_second(1)
-            .burst_size(3)
+            .burst_size(1)
             .finish()
             .unwrap(),
     );
@@ -121,7 +117,7 @@ pub fn router(state: crate::state::AppState) -> Router<crate::state::AppState> {
         tower_governor::governor::GovernorConfigBuilder::default()
             .key_extractor(TrustedProxyIpKeyExtractor)
             .per_second(1)
-            .burst_size(3)
+            .burst_size(1)
             .finish()
             .unwrap(),
     );
@@ -271,6 +267,18 @@ async fn change_password(
     headers: HeaderMap,
     req: Request<Body>,
 ) -> Result<StatusCode, (StatusCode, String)> {
+    let content_type = headers
+        .get(header::CONTENT_TYPE)
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("");
+
+    if !content_type.contains("application/json") {
+        return Err((
+            StatusCode::UNSUPPORTED_MEDIA_TYPE,
+            "Unsupported content type".to_string(),
+        ));
+    }
+
     let bytes = to_bytes(req.into_body(), 16 * 1024)
         .await
         .map_err(|_| (StatusCode::BAD_REQUEST, "Invalid request body".to_string()))?;
@@ -291,6 +299,13 @@ async fn change_password(
         &validation,
     )
     .map_err(|_| (StatusCode::UNAUTHORIZED, "Invalid token".to_string()))?;
+
+    if req.current_password.is_empty() || req.current_password.len() > 128 {
+        return Err((
+            StatusCode::BAD_REQUEST,
+            "Invalid current password length".to_string(),
+        ));
+    }
 
     let char_count = req.new_password.chars().count();
     let byte_count = req.new_password.len();

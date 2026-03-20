@@ -11,7 +11,9 @@ pub fn init_jwt_secret() {
 pub fn get_jwt_secret() -> &'static [u8] {
     JWT_SECRET.get_or_init(|| {
         std::env::var("JWT_SECRET")
-            .expect("JWT_SECRET environment variable must be set")
+            .unwrap_or_else(|_| {
+                panic!("JWT_SECRET environment variable must be set. If this is a frontend/WASM build, the 'ssr' feature may have been incorrectly enabled.");
+            })
             .into_bytes()
     })
 }

@@ -72,7 +72,12 @@ echo "👤 Creating default admin user..."
 # Anyone reading the repository knows these default credentials. Check that this
 # dev instance isn't exposed to untrusted networks.
 # Generate hash dynamically
-ADMIN_HASH=$(echo -n "demo-admin-2026!" | cargo run --bin hgen -q | tail -n 1)
+ADMIN_HASH=$(echo -n "demo-admin-2026!" | cargo run --quiet --bin hgen 2>/dev/null | tail -n 1)
+
+if ! [[ "$ADMIN_HASH" =~ ^\$argon2 ]]; then
+  echo "❌ hgen failed or produced unexpected output"
+  exit 1
+fi
 
 # Fallback to python UUID or kernel uuid if uuidgen missing
 ADMIN_UUID=$(uuidgen 2>/dev/null || cat /proc/sys/kernel/random/uuid 2>/dev/null || python3 -c 'import uuid; print(uuid.uuid4())' 2>/dev/null || { echo "❌ Could not generate a UUID. Please install uuidgen."; exit 1; })
@@ -83,9 +88,7 @@ if ! [[ "$SAFE_UUID" =~ ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F
   exit 1
 fi
 
-sqlite3 sqlite.db <<EOF || echo "⚠️ Could not create user (may already exist)"
-INSERT INTO users (id, username, password_hash) VALUES ('${SAFE_UUID}', 'admin', '${ADMIN_HASH}') ON CONFLICT (username) DO NOTHING;
-EOF
+sqlite3 sqlite.db "INSERT INTO users (id, username, password_hash) VALUES ('$SAFE_UUID', 'admin', '$ADMIN_HASH') ON CONFLICT (username) DO NOTHING;" || echo "⚠️ Could not create user (may already exist)"
 
 echo ""
 echo "✅ Setup complete!"
