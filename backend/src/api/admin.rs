@@ -58,6 +58,48 @@ fn hash_password(password: &str) -> Result<String, String> {
         .map(|hash| hash.to_string())
 }
 
+#[derive(Clone)]
+pub struct TrustedProxyIpKeyExtractor;
+
+impl tower_governor::key_extractor::KeyExtractor for TrustedProxyIpKeyExtractor {
+    type Key = String;
+
+    fn extract<T>(&self, req: &Request<T>) -> Result<Self::Key, tower_governor::GovernorError> {
+        let peer_ip = req
+            .extensions()
+            .get::<axum::extract::ConnectInfo<std::net::SocketAddr>>()
+            .map(|ci| ci.0.ip());
+
+        let is_trusted_proxy = peer_ip.is_some_and(|ip| {
+            ip.is_loopback()
+                || ip.is_unspecified()
+                || match ip {
+                    std::net::IpAddr::V4(ipv4) => ipv4.is_private(),
+                    _ => false,
+                }
+        });
+
+        if is_trusted_proxy {
+            if let Some(real_ip) = req.headers().get("X-Real-IP").and_then(|h| h.to_str().ok()) {
+                return Ok(real_ip.to_string());
+            }
+            if let Some(fwd) = req
+                .headers()
+                .get("X-Forwarded-For")
+                .and_then(|h| h.to_str().ok())
+            {
+                if let Some(first_ip) = fwd.split(',').next() {
+                    return Ok(first_ip.trim().to_string());
+                }
+            }
+        }
+
+        peer_ip
+            .map(|ip| ip.to_string())
+            .ok_or(tower_governor::GovernorError::UnableToExtractKey)
+    }
+}
+
 #[inline(never)]
 fn verify_password(password: &str, password_hash: &str) -> bool {
     let parsed_hash = match PasswordHash::new(password_hash) {
@@ -70,10 +112,10 @@ fn verify_password(password: &str, password_hash: &str) -> bool {
 }
 
 pub fn router(state: crate::state::AppState) -> Router<crate::state::AppState> {
-    // Configure rate limit: 2 requests per second, up to 5 burst
+    // Configure rate limit: 1 request per second, up to 3 burst
     let login_governor_conf = std::sync::Arc::new(
         tower_governor::governor::GovernorConfigBuilder::default()
-            .key_extractor(tower_governor::key_extractor::PeerIpKeyExtractor)
+            .key_extractor(TrustedProxyIpKeyExtractor)
             .per_second(1)
             .burst_size(3)
             .finish()
@@ -85,7 +127,7 @@ pub fn router(state: crate::state::AppState) -> Router<crate::state::AppState> {
 
     let password_governor_conf = std::sync::Arc::new(
         tower_governor::governor::GovernorConfigBuilder::default()
-            .key_extractor(tower_governor::key_extractor::PeerIpKeyExtractor)
+            .key_extractor(TrustedProxyIpKeyExtractor)
             .per_second(2)
             .burst_size(5)
             .finish()

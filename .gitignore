@@ -69,3 +69,6 @@ imports/
 .sass-cache/
 .sass-cache
 
+# Hgen
+hgen/
+hgen/*
