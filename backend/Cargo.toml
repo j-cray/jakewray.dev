@@ -41,4 +41,4 @@ tower_governor = "0.4.2"
 
 [features]
 default = []
-ssr = ["leptos/ssr", "leptos_meta/ssr", "leptos_router/ssr", "frontend/ssr"]
+ssr = ["leptos/ssr", "leptos_meta/ssr", "leptos_router/ssr", "frontend/ssr", "shared/ssr"]

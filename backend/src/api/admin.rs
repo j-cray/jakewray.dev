@@ -244,7 +244,7 @@ async fn change_password(
     )
     .map_err(|_| (StatusCode::UNAUTHORIZED, "Invalid token".to_string()))?;
 
-    if req.new_password.len() < 12 {
+    if req.new_password.chars().count() < 12 {
         return Err((StatusCode::BAD_REQUEST, "Password too short".to_string()));
     }
 

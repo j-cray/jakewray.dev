@@ -33,7 +33,8 @@ ssr = [
     "leptos_router/ssr", 
     "dep:chrono",
     "dep:jsonwebtoken", 
-    "dep:walkdir"
+    "dep:walkdir",
+    "shared/ssr"
 ]
 
 
