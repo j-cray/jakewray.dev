@@ -12,6 +12,7 @@ fi
 
 # Check dependencies
 command -v cargo &> /dev/null || { echo "❌ cargo not found. Install Rust from https://rustup.rs/"; exit 1; }
+command -v sqlite3 &> /dev/null || { echo "❌ sqlite3 not found"; exit 1; }
 
 # Check for container runtime
 CONTAINER_CMD=""

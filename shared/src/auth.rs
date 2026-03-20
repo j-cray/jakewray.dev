@@ -1,5 +1,9 @@
 use std::sync::OnceLock;
 
+pub const ARGON2_M_COST: u32 = 19456;
+pub const ARGON2_T_COST: u32 = 2;
+pub const ARGON2_P_COST: u32 = 1;
+
 static JWT_SECRET: OnceLock<Vec<u8>> = OnceLock::new();
 
 /// Required initialization: Call early if you want to fail fast on startup,

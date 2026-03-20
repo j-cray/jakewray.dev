@@ -75,10 +75,18 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         tracing::warn!("=====================================================================");
     }
 
-    if std::env::var("ENVIRONMENT").as_deref() == Ok("production")
-        && std::env::var("TRUSTED_PROXY_IPS").is_err()
-    {
-        panic!("TRUSTED_PROXY_IPS must be set in production. Otherwise, all users behind a proxy will share a single rate-limit bucket.");
+    if std::env::var("ENVIRONMENT").as_deref() == Ok("production") {
+        match std::env::var("TRUSTED_PROXY_IPS").as_deref() {
+            Err(_) => panic!("TRUSTED_PROXY_IPS must be set in production. Otherwise, all users behind a proxy will share a single rate-limit bucket."),
+            Ok("172.18.0.2,172.18.0.3") | Ok("172.18.0.2, 172.18.0.3") => {
+                tracing::warn!("=====================================================================");
+                tracing::warn!("WARNING: TRUSTED_PROXY_IPS is set to the default Docker bridge IPs.");
+                tracing::warn!("Container IPs can change on restart. Rate limiting may fail open if these are incorrect.");
+                tracing::warn!("Please verify these IPs post-deploy or use a more robust mechanism.");
+                tracing::warn!("=====================================================================");
+            }
+            Ok(_) => {}
+        }
     }
 
     // Build LeptosOptions from environment/config

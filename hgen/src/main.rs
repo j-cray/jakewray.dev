@@ -16,9 +16,9 @@ fn main() {
     let password = password.trim_end_matches('\n').trim_end_matches('\r');
     let salt = SaltString::generate(&mut OsRng);
     let params = argon2::Params::new(
-        19456,
-        2,
-        1,
+        shared::auth::ARGON2_M_COST,
+        shared::auth::ARGON2_T_COST,
+        shared::auth::ARGON2_P_COST,
         Some(argon2::Params::DEFAULT_OUTPUT_LEN),
     ).unwrap();
     let argon2 = Argon2::new(

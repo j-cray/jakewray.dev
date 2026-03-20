@@ -43,7 +43,7 @@ async fn list_articles(
     Query(query): Query<Pagination>,
 ) -> Result<Json<Vec<Article>>, axum::http::StatusCode> {
     let limit = query.limit.unwrap_or(20).min(50);
-    let offset = query.offset.unwrap_or(0).min(100_000);
+    let offset = query.offset.unwrap_or(0).min(10_000);
     match sqlx::query("SELECT id, wp_id, slug, title, subtitle, excerpt, content, cover_image_url, author, published_at, origin FROM articles ORDER BY published_at DESC LIMIT ? OFFSET ?")
         .bind(limit)
         .bind(offset)
@@ -86,7 +86,7 @@ async fn list_blog_posts(
     Query(query): Query<Pagination>,
 ) -> Result<Json<Vec<BlogPost>>, axum::http::StatusCode> {
     let limit = query.limit.unwrap_or(20).min(50);
-    let offset = query.offset.unwrap_or(0).min(100_000);
+    let offset = query.offset.unwrap_or(0).min(10_000);
     match sqlx::query("SELECT id, slug, title, content, published_at, tags FROM blog_posts ORDER BY published_at DESC LIMIT ? OFFSET ?")
         .bind(limit)
         .bind(offset)

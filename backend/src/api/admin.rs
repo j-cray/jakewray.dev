@@ -52,16 +52,11 @@ struct UserRow {
     password_hash: String,
 }
 
-// Pin Argon2 parameters (m=19456, t=2, p=1) to prevent timing discrepancies if defaults ever change.
-const ARGON2_M_COST: u32 = 19456;
-const ARGON2_T_COST: u32 = 2;
-const ARGON2_P_COST: u32 = 1;
-
 fn get_argon2() -> Argon2<'static> {
     let params = argon2::Params::new(
-        ARGON2_M_COST,
-        ARGON2_T_COST,
-        ARGON2_P_COST,
+        shared::auth::ARGON2_M_COST,
+        shared::auth::ARGON2_T_COST,
+        shared::auth::ARGON2_P_COST,
         Some(argon2::Params::DEFAULT_OUTPUT_LEN),
     )
     .expect("Valid Argon2 parameters");
@@ -362,11 +357,12 @@ async fn change_password(
     let req: ChangePasswordRequest = serde_json::from_slice(&bytes)
         .map_err(|_| (StatusCode::BAD_REQUEST, "Invalid JSON".to_string()))?;
 
+    let current_char_count = req.current_password.chars().count();
     let current_byte_count = req.current_password.len();
-    if current_byte_count > 128 {
+    if current_char_count < 12 || current_byte_count > 128 {
         return Err((
             StatusCode::BAD_REQUEST,
-            "Current password length must be no more than 128 bytes (for Argon2 processing).".to_string(),
+            "Current password length must be at least 12 characters and no more than 128 bytes (for Argon2 processing).".to_string(),
         ));
     }
 
