@@ -72,7 +72,7 @@ echo "👤 Creating default admin user..."
 # Anyone reading the repository knows these default credentials. Check that this
 # dev instance isn't exposed to untrusted networks.
 # Generate hash dynamically
-ADMIN_HASH=$(echo -n "demo-admin-2026!" | cargo run --quiet --bin hgen 2>/dev/null | tail -n 1)
+ADMIN_HASH=$(echo -n "demo-admin-2026!" | (cd hgen && cargo run --quiet 2>/dev/null) | tail -n 1)
 
 if ! [[ "$ADMIN_HASH" =~ ^\$argon2 ]]; then
   echo "❌ hgen failed or produced unexpected output"

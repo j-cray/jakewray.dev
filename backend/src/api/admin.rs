@@ -19,6 +19,7 @@ use chrono::{Duration, Utc};
 use jsonwebtoken::{encode, EncodingKey, Header};
 use serde::{Deserialize, Serialize};
 use sqlx::SqlitePool;
+use std::sync::OnceLock;
 
 #[derive(Serialize, Deserialize)]
 pub struct Claims {
@@ -70,11 +71,14 @@ impl tower_governor::key_extractor::KeyExtractor for TrustedProxyIpKeyExtractor 
             .get::<axum::extract::ConnectInfo<std::net::SocketAddr>>()
             .map(|ci| ci.0.ip());
 
-        let trusted_ips: Vec<std::net::IpAddr> = std::env::var("TRUSTED_PROXY_IPS")
-            .unwrap_or_default()
-            .split(',')
-            .filter_map(|s| s.trim().parse().ok())
-            .collect();
+        static TRUSTED_PROXY_IPS: OnceLock<Vec<std::net::IpAddr>> = OnceLock::new();
+        let trusted_ips = TRUSTED_PROXY_IPS.get_or_init(|| {
+            std::env::var("TRUSTED_PROXY_IPS")
+                .unwrap_or_default()
+                .split(',')
+                .filter_map(|s| s.trim().parse().ok())
+                .collect()
+        });
 
         let is_trusted_proxy = peer_ip.is_some_and(|ip| trusted_ips.contains(&ip));
 
@@ -105,7 +109,7 @@ fn verify_password(password: &str, password_hash: &str) -> bool {
 
 pub fn router(state: crate::state::AppState) -> Router<crate::state::AppState> {
     // Configure rate limit: 1 request per second, up to 3 burst
-    let login_rate_limit_conf = std::sync::Arc::new(
+    let rate_limit_conf = std::sync::Arc::new(
         tower_governor::governor::GovernorConfigBuilder::default()
             .key_extractor(TrustedProxyIpKeyExtractor)
             .per_second(1)
@@ -113,20 +117,17 @@ pub fn router(state: crate::state::AppState) -> Router<crate::state::AppState> {
             .finish()
             .unwrap(),
     );
-    let password_rate_limit_conf = std::sync::Arc::new(
-        tower_governor::governor::GovernorConfigBuilder::default()
-            .key_extractor(TrustedProxyIpKeyExtractor)
-            .per_second(1)
-            .burst_size(1)
-            .finish()
-            .unwrap(),
-    );
+
     let login_governor_layer = tower_governor::GovernorLayer {
-        config: login_rate_limit_conf,
+        config: rate_limit_conf.clone(),
     };
 
     let password_governor_layer = tower_governor::GovernorLayer {
-        config: password_rate_limit_conf,
+        config: rate_limit_conf.clone(),
+    };
+
+    let me_governor_layer = tower_governor::GovernorLayer {
+        config: rate_limit_conf,
     };
 
     Router::new()
@@ -135,7 +136,7 @@ pub fn router(state: crate::state::AppState) -> Router<crate::state::AppState> {
             "/password",
             post(change_password).route_layer(password_governor_layer),
         )
-        .route("/me", get(me))
+        .route("/me", get(me).route_layer(me_governor_layer))
         .with_state(state)
 }
 
@@ -279,12 +280,6 @@ async fn change_password(
         ));
     }
 
-    let bytes = to_bytes(req.into_body(), 16 * 1024)
-        .await
-        .map_err(|_| (StatusCode::BAD_REQUEST, "Invalid request body".to_string()))?;
-
-    let req: ChangePasswordRequest = serde_json::from_slice(&bytes)
-        .map_err(|_| (StatusCode::BAD_REQUEST, "Invalid JSON".to_string()))?;
     let token = headers
         .get("Authorization")
         .and_then(|h| h.to_str().ok())
@@ -299,6 +294,13 @@ async fn change_password(
         &validation,
     )
     .map_err(|_| (StatusCode::UNAUTHORIZED, "Invalid token".to_string()))?;
+
+    let bytes = to_bytes(req.into_body(), 16 * 1024)
+        .await
+        .map_err(|_| (StatusCode::BAD_REQUEST, "Invalid request body".to_string()))?;
+
+    let req: ChangePasswordRequest = serde_json::from_slice(&bytes)
+        .map_err(|_| (StatusCode::BAD_REQUEST, "Invalid JSON".to_string()))?;
 
     if req.current_password.is_empty() || req.current_password.len() > 128 {
         return Err((
