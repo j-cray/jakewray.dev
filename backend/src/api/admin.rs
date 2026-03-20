@@ -93,6 +93,8 @@ impl tower_governor::key_extractor::KeyExtractor for TrustedProxyIpKeyExtractor 
                 .get("X-Forwarded-For")
                 .and_then(|h| h.to_str().ok())
             {
+                // We pick the rightmost IP (next_back) because trustworthy proxies append client IPs to the end.
+                // If a proxy replaces the header outright instead of appending, this still yields the correct single IP.
                 if let Some(last_ip) = forwarded_for.split(',').next_back() {
                     if let Ok(parsed_ip) = last_ip.trim().parse::<std::net::IpAddr>() {
                         return Ok(parsed_ip.to_string());
@@ -123,26 +125,21 @@ fn verify_password(password: &str, password_hash: &str) -> bool {
 }
 
 pub fn router(state: crate::state::AppState) -> Router<crate::state::AppState> {
+    let shared_governor_config = std::sync::Arc::new(
+        tower_governor::governor::GovernorConfigBuilder::default()
+            .key_extractor(TrustedProxyIpKeyExtractor)
+            .per_second(1)
+            .burst_size(1)
+            .finish()
+            .unwrap(),
+    );
+
     let login_governor_layer = tower_governor::GovernorLayer {
-        config: std::sync::Arc::new(
-            tower_governor::governor::GovernorConfigBuilder::default()
-                .key_extractor(TrustedProxyIpKeyExtractor)
-                .per_second(1)
-                .burst_size(1)
-                .finish()
-                .unwrap(),
-        ),
+        config: shared_governor_config.clone(),
     };
 
     let password_governor_layer = tower_governor::GovernorLayer {
-        config: std::sync::Arc::new(
-            tower_governor::governor::GovernorConfigBuilder::default()
-                .key_extractor(TrustedProxyIpKeyExtractor)
-                .per_second(1)
-                .burst_size(1)
-                .finish()
-                .unwrap(),
-        ),
+        config: shared_governor_config.clone(),
     };
 
     let me_governor_layer = tower_governor::GovernorLayer {
@@ -371,12 +368,17 @@ async fn change_password(
             )
         })?;
 
-    let user = user.ok_or((
-        StatusCode::FORBIDDEN,
-        "Invalid current password".to_string(),
-    ))?;
+    let (hash_to_verify, is_valid_user) = match user {
+        Some(ref u) => (u.password_hash.as_str(), true),
+        None => {
+            static DUMMY_HASH: &str = "$argon2id$v=19$m=19456,t=2,p=1$75vBQ9LN4IAiHrViVOPI4w$L1wC8aj0h6PO/I8xVshCOB0TjOa9CTkfx8dIKA/0FVY";
+            (DUMMY_HASH, false)
+        }
+    };
 
-    if !verify_password(&req.current_password, &user.password_hash) {
+    let password_match = verify_password(&req.current_password, hash_to_verify);
+
+    if !is_valid_user || !password_match {
         return Err((
             StatusCode::FORBIDDEN,
             "Invalid current password".to_string(),

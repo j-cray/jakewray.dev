@@ -1,6 +1,7 @@
 -- Users (Admin)
 CREATE TABLE users (
-    id TEXT PRIMARY KEY,
+    -- Note: (random() & 3) + 1 provides perfectly uniform UUID variant bits
+    id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(4))) || '-' || lower(hex(randomblob(2))) || '-4' || substr(lower(hex(randomblob(2))),2) || '-' || substr('89ab', (random() & 3) + 1, 1) || substr(lower(hex(randomblob(2))),2) || '-' || lower(hex(randomblob(6)))),
     username TEXT NOT NULL UNIQUE,
     password_hash TEXT NOT NULL,
     created_at DATETIME NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))

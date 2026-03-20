@@ -2,6 +2,7 @@ services:
   portfolio:
     build: .
     restart: always
+    user: "1000:1000"
     environment:
       # 4 slashes are intentional for an absolute path: sqlite:////app/data/sqlite.db
       - DATABASE_URL=sqlite:////app/data/sqlite.db
