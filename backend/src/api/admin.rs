@@ -88,6 +88,17 @@ impl tower_governor::key_extractor::KeyExtractor for TrustedProxyIpKeyExtractor 
                     return Ok(parsed_ip.to_string());
                 }
             }
+            if let Some(forwarded_for) = req.headers().get("X-Forwarded-For").and_then(|h| h.to_str().ok()) {
+                if let Some(first_ip) = forwarded_for.split(',').next() {
+                    if let Ok(parsed_ip) = first_ip.trim().parse::<std::net::IpAddr>() {
+                        return Ok(parsed_ip.to_string());
+                    }
+                }
+            }
+            tracing::warn!(
+                "TRUSTED_PROXY_IPS allowed proxy IP {}, but no valid X-Real-IP or X-Forwarded-For header was found. Rate limiting will apply to the proxy IP.",
+                peer_ip.unwrap()
+            );
         }
 
         peer_ip
@@ -198,16 +209,19 @@ async fn login(
                 )
             })?;
 
-    let is_invalid = match user {
-        Some(ref u) => !verify_password(&req.password, &u.password_hash),
+    let (hash_to_verify, is_valid_user) = match user {
+        Some(ref u) => (u.password_hash.as_str(), true),
         None => {
+            // To prevent early-return timing leaks, we always verify a password hash.
+            // If the user doesn't exist, we use a dummy hash. The dummy hash's source
+            // password is irrelevant as it's only used to consume time.
             static DUMMY_HASH: &str = "$argon2id$v=19$m=19456,t=2,p=1$75vBQ9LN4IAiHrViVOPI4w$L1wC8aj0h6PO/I8xVshCOB0TjOa9CTkfx8dIKA/0FVY";
-            // Note: This does not provide a robust timing-safe guarantee against advanced analysis,
-            // but prevents trivial early-return optimization timing differences.
-            let _ = std::hint::black_box(verify_password(&req.password, DUMMY_HASH));
-            true
+            (DUMMY_HASH, false)
         }
     };
+
+    let password_match = verify_password(&req.password, hash_to_verify);
+    let is_invalid = !is_valid_user || !password_match;
 
     if is_invalid {
         if content_type.contains("application/x-www-form-urlencoded")
@@ -278,10 +292,11 @@ async fn me(headers: HeaderMap) -> Result<Json<serde_json::Value>, StatusCode> {
 
 async fn change_password(
     State(pool): State<SqlitePool>,
-    headers: HeaderMap,
     req: Request<Body>,
 ) -> Result<StatusCode, (StatusCode, String)> {
-    let content_type = headers
+    let (parts, body) = req.into_parts();
+    let content_type = parts
+        .headers
         .get(header::CONTENT_TYPE)
         .and_then(|v| v.to_str().ok())
         .unwrap_or("");
@@ -293,7 +308,8 @@ async fn change_password(
         ));
     }
 
-    let token = headers
+    let token = parts
+        .headers
         .get("Authorization")
         .and_then(|h| h.to_str().ok())
         .and_then(|s| s.strip_prefix("Bearer "))
@@ -308,7 +324,7 @@ async fn change_password(
     )
     .map_err(|_| (StatusCode::UNAUTHORIZED, "Invalid token".to_string()))?;
 
-    let bytes = to_bytes(req.into_body(), 16 * 1024)
+    let bytes = to_bytes(body, 16 * 1024)
         .await
         .map_err(|_| (StatusCode::BAD_REQUEST, "Invalid request body".to_string()))?;
 

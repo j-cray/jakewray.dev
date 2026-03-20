@@ -8,10 +8,21 @@ pub struct Pagination {
     pub offset: Option<u32>,
 }
 pub fn router(state: crate::state::AppState) -> Router<crate::state::AppState> {
+    let public_governor_layer = tower_governor::GovernorLayer {
+        config: std::sync::Arc::new(
+            tower_governor::governor::GovernorConfigBuilder::default()
+                .key_extractor(crate::api::admin::TrustedProxyIpKeyExtractor)
+                .per_second(5)
+                .burst_size(20)
+                .finish()
+                .unwrap(),
+        ),
+    };
+
     Router::new()
         .route("/health", get(health_check))
-        .route("/api/articles", get(list_articles))
-        .route("/api/blog", get(list_blog_posts))
+        .route("/api/articles", get(list_articles).route_layer(public_governor_layer.clone()))
+        .route("/api/blog", get(list_blog_posts).route_layer(public_governor_layer))
         .with_state(state)
 }
 
@@ -26,7 +37,7 @@ async fn list_articles(
     Query(query): Query<Pagination>,
 ) -> Result<Json<Vec<Article>>, axum::http::StatusCode> {
     let limit = query.limit.unwrap_or(20).min(50);
-    let offset = query.offset.unwrap_or(0);
+    let offset = query.offset.unwrap_or(0).min(100_000);
     match sqlx::query("SELECT id, wp_id, slug, title, subtitle, excerpt, content, cover_image_url, author, published_at, origin FROM articles ORDER BY published_at DESC LIMIT ? OFFSET ?")
         .bind(limit)
         .bind(offset)
@@ -69,7 +80,7 @@ async fn list_blog_posts(
     Query(query): Query<Pagination>,
 ) -> Result<Json<Vec<BlogPost>>, axum::http::StatusCode> {
     let limit = query.limit.unwrap_or(20).min(50);
-    let offset = query.offset.unwrap_or(0);
+    let offset = query.offset.unwrap_or(0).min(100_000);
     match sqlx::query("SELECT id, slug, title, content, published_at, tags FROM blog_posts ORDER BY published_at DESC LIMIT ? OFFSET ?")
         .bind(limit)
         .bind(offset)

@@ -220,18 +220,25 @@ fn linkify_images(html: &str) -> String {
             };
 
             if let Some(src_url) = src {
-                let wrapper_start = format!(
-                    "<a href=\"{}\" target=\"_blank\" class=\"article-image-link\">",
-                    src_url
-                );
-                let wrapper_end = "</a>";
+                let is_safe_scheme = src_url.starts_with("http://")
+                    || src_url.starts_with("https://")
+                    || src_url.starts_with("data:image/")
+                    || src_url.starts_with('/');
 
-                // Replace strict range
-                let new_content = format!("{}{}{}", wrapper_start, img_tag, wrapper_end);
-                out.replace_range(abs_open..abs_close, &new_content);
+                if is_safe_scheme {
+                    let wrapper_start = format!(
+                        "<a href=\"{}\" target=\"_blank\" class=\"article-image-link\">",
+                        src_url
+                    );
+                    let wrapper_end = "</a>";
 
-                search_pos = abs_open + new_content.len();
-                continue;
+                    // Replace strict range
+                    let new_content = format!("{}{}{}", wrapper_start, img_tag, wrapper_end);
+                    out.replace_range(abs_open..abs_close, &new_content);
+
+                    search_pos = abs_open + new_content.len();
+                    continue;
+                }
             }
             search_pos = abs_close;
         } else {
