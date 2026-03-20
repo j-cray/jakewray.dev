@@ -13,7 +13,7 @@ use argon2::{
 fn main() {
     let mut password = String::new();
     std::io::stdin().read_line(&mut password).expect("Failed to read password");
-    let password = password.trim_end();
+    let password = password.trim();
     let salt = SaltString::generate(&mut OsRng);
     let argon2 = Argon2::default();
     let hash = argon2.hash_password(password.as_bytes(), &salt).unwrap();

@@ -88,18 +88,6 @@ impl tower_governor::key_extractor::KeyExtractor for TrustedProxyIpKeyExtractor 
                     return Ok(real_ip.to_string());
                 }
             }
-            if let Some(fwd) = req
-                .headers()
-                .get("X-Forwarded-For")
-                .and_then(|h| h.to_str().ok())
-            {
-                if let Some(first_ip) = fwd.split(',').next() {
-                    let ip_str = first_ip.trim();
-                    if ip_str.parse::<std::net::IpAddr>().is_ok() {
-                        return Ok(ip_str.to_string());
-                    }
-                }
-            }
         }
 
         peer_ip
@@ -121,7 +109,7 @@ fn verify_password(password: &str, password_hash: &str) -> bool {
 
 pub fn router(state: crate::state::AppState) -> Router<crate::state::AppState> {
     // Configure rate limit: 1 request per second, up to 3 burst
-    let login_governor_conf = std::sync::Arc::new(
+    let rate_limit_conf = std::sync::Arc::new(
         tower_governor::governor::GovernorConfigBuilder::default()
             .key_extractor(TrustedProxyIpKeyExtractor)
             .per_second(1)
@@ -130,19 +118,11 @@ pub fn router(state: crate::state::AppState) -> Router<crate::state::AppState> {
             .unwrap(),
     );
     let login_governor_layer = tower_governor::GovernorLayer {
-        config: login_governor_conf,
+        config: rate_limit_conf.clone(),
     };
 
-    let password_governor_conf = std::sync::Arc::new(
-        tower_governor::governor::GovernorConfigBuilder::default()
-            .key_extractor(TrustedProxyIpKeyExtractor)
-            .per_second(1)
-            .burst_size(3)
-            .finish()
-            .unwrap(),
-    );
     let password_governor_layer = tower_governor::GovernorLayer {
-        config: password_governor_conf,
+        config: rate_limit_conf,
     };
 
     Router::new()
@@ -298,8 +278,11 @@ async fn change_password(
     )
     .map_err(|_| (StatusCode::UNAUTHORIZED, "Invalid token".to_string()))?;
 
-    if req.new_password.chars().count() < 12 {
-        return Err((StatusCode::BAD_REQUEST, "Password too short".to_string()));
+    if req.new_password.len() < 12 || req.new_password.len() > 128 {
+        return Err((
+            StatusCode::BAD_REQUEST,
+            "Password length must be between 12 and 128 bytes".to_string(),
+        ));
     }
 
     let user_id = &token_data.claims.sub;
