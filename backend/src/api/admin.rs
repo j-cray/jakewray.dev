@@ -149,7 +149,7 @@ fn verify_password(password: &str, password_hash: &str) -> bool {
 pub fn router(state: crate::state::AppState) -> Router<crate::state::AppState> {
     // NOTE: tower_governor uses in-memory state. A server restart will reset all rate limit counters.
     // Burst windows completely refresh across restarts.
-    let shared_auth_governor_config = std::sync::Arc::new(
+    let login_governor_config = std::sync::Arc::new(
         tower_governor::governor::GovernorConfigBuilder::default()
             .key_extractor(TrustedProxyIpKeyExtractor)
             .per_second(1)
@@ -159,11 +159,20 @@ pub fn router(state: crate::state::AppState) -> Router<crate::state::AppState> {
     );
 
     let login_governor_layer = tower_governor::GovernorLayer {
-        config: shared_auth_governor_config.clone(),
+        config: login_governor_config,
     };
 
+    let password_governor_config = std::sync::Arc::new(
+        tower_governor::governor::GovernorConfigBuilder::default()
+            .key_extractor(TrustedProxyIpKeyExtractor)
+            .per_second(1)
+            .burst_size(1)
+            .finish()
+            .unwrap(),
+    );
+
     let password_governor_layer = tower_governor::GovernorLayer {
-        config: shared_auth_governor_config.clone(),
+        config: password_governor_config,
     };
 
     let me_governor_layer = tower_governor::GovernorLayer {
@@ -353,12 +362,11 @@ async fn change_password(
     let req: ChangePasswordRequest = serde_json::from_slice(&bytes)
         .map_err(|_| (StatusCode::BAD_REQUEST, "Invalid JSON".to_string()))?;
 
-    let current_char_count = req.current_password.chars().count();
     let current_byte_count = req.current_password.len();
-    if current_char_count < 12 || current_byte_count > 128 {
+    if current_byte_count > 128 {
         return Err((
             StatusCode::BAD_REQUEST,
-            "Current password length must be at least 12 characters and no more than 128 bytes (for Argon2 processing).".to_string(),
+            "Current password length must be no more than 128 bytes (for Argon2 processing).".to_string(),
         ));
     }
 

@@ -10,8 +10,9 @@ echo "Remote Build Target: $TARGET"
 export DOCKER_BUILDKIT=1
 export COMPOSE_DOCKER_CLI_BUILD=1
 
-# Generate .env file with defaults for production
-cat <<EOF > .env
+if [ ! -f .env ]; then
+    echo "Generating new .env file with defaults..."
+    cat <<EOF > .env
 DOMAIN_NAME=jakewray.dev
 LEPTOS_SITE_ADDR=0.0.0.0:3000
 RUST_LOG=info
@@ -20,6 +21,9 @@ ENVIRONMENT=production
 JWT_SECRET=$(openssl rand -base64 48 | tr -d '\n')
 TRUSTED_PROXY_IPS=172.18.0.2,172.18.0.3
 EOF
+else
+    echo "Using existing .env file."
+fi
 
 if [ "$TARGET" = "all" ] || [ "$TARGET" = "backend" ]; then
     echo "Building chef base image (with cache)..."
