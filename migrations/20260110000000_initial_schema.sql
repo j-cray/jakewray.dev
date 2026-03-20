@@ -1,5 +1,6 @@
 -- Users (Admin)
 CREATE TABLE users (
+    -- Note: random() >> 1 is used in UUID generation to prevent INT64_MIN overflow in abs()
     id UUID PRIMARY KEY DEFAULT (lower(hex(randomblob(4))) || '-' || lower(hex(randomblob(2))) || '-4' || substr(lower(hex(randomblob(2))),2) || '-' || substr('89ab', (abs(random() >> 1) % 4) + 1, 1) || substr(lower(hex(randomblob(2))),2) || '-' || lower(hex(randomblob(6)))),
     username TEXT NOT NULL UNIQUE,
     password_hash TEXT NOT NULL,
@@ -8,6 +9,7 @@ CREATE TABLE users (
 
 -- Articles (Journalism - Imported/Synced)
 CREATE TABLE articles (
+    -- Note: random() >> 1 is used in UUID generation to prevent INT64_MIN overflow in abs()
     id UUID PRIMARY KEY DEFAULT (lower(hex(randomblob(4))) || '-' || lower(hex(randomblob(2))) || '-4' || substr(lower(hex(randomblob(2))),2) || '-' || substr('89ab', (abs(random() >> 1) % 4) + 1, 1) || substr(lower(hex(randomblob(2))),2) || '-' || lower(hex(randomblob(6)))),
     wp_id BIGINT UNIQUE, -- External ID from WordPress
     slug TEXT NOT NULL UNIQUE,
@@ -25,6 +27,7 @@ CREATE TABLE articles (
 
 -- Personal Blog Posts
 CREATE TABLE blog_posts (
+    -- Note: random() >> 1 is used in UUID generation to prevent INT64_MIN overflow in abs()
     id UUID PRIMARY KEY DEFAULT (lower(hex(randomblob(4))) || '-' || lower(hex(randomblob(2))) || '-4' || substr(lower(hex(randomblob(2))),2) || '-' || substr('89ab', (abs(random() >> 1) % 4) + 1, 1) || substr(lower(hex(randomblob(2))),2) || '-' || lower(hex(randomblob(6)))),
     slug TEXT NOT NULL UNIQUE,
     title TEXT NOT NULL,
@@ -37,6 +40,7 @@ CREATE TABLE blog_posts (
 
 -- Creative Writing (Stories, Novels, Poetry)
 CREATE TABLE creative_works (
+    -- Note: random() >> 1 is used in UUID generation to prevent INT64_MIN overflow in abs()
     id UUID PRIMARY KEY DEFAULT (lower(hex(randomblob(4))) || '-' || lower(hex(randomblob(2))) || '-4' || substr(lower(hex(randomblob(2))),2) || '-' || substr('89ab', (abs(random() >> 1) % 4) + 1, 1) || substr(lower(hex(randomblob(2))),2) || '-' || lower(hex(randomblob(6)))),
     slug TEXT NOT NULL UNIQUE,
     title TEXT NOT NULL,
@@ -52,6 +56,7 @@ CREATE TABLE creative_works (
 
 
 CREATE TABLE media_items (
+    -- Note: random() >> 1 is used in UUID generation to prevent INT64_MIN overflow in abs()
     id UUID PRIMARY KEY DEFAULT (lower(hex(randomblob(4))) || '-' || lower(hex(randomblob(2))) || '-4' || substr(lower(hex(randomblob(2))),2) || '-' || substr('89ab', (abs(random() >> 1) % 4) + 1, 1) || substr(lower(hex(randomblob(2))),2) || '-' || lower(hex(randomblob(6)))),
     title TEXT,
     description TEXT,
@@ -65,6 +70,7 @@ CREATE TABLE media_items (
 
 -- Music
 CREATE TABLE music_tracks (
+    -- Note: random() >> 1 is used in UUID generation to prevent INT64_MIN overflow in abs()
     id UUID PRIMARY KEY DEFAULT (lower(hex(randomblob(4))) || '-' || lower(hex(randomblob(2))) || '-4' || substr(lower(hex(randomblob(2))),2) || '-' || substr('89ab', (abs(random() >> 1) % 4) + 1, 1) || substr(lower(hex(randomblob(2))),2) || '-' || lower(hex(randomblob(6)))),
     title TEXT NOT NULL,
     description TEXT,
@@ -76,6 +82,7 @@ CREATE TABLE music_tracks (
 
 -- Programming Projects
 CREATE TABLE projects (
+    -- Note: random() >> 1 is used in UUID generation to prevent INT64_MIN overflow in abs()
     id UUID PRIMARY KEY DEFAULT (lower(hex(randomblob(4))) || '-' || lower(hex(randomblob(2))) || '-4' || substr(lower(hex(randomblob(2))),2) || '-' || substr('89ab', (abs(random() >> 1) % 4) + 1, 1) || substr(lower(hex(randomblob(2))),2) || '-' || lower(hex(randomblob(6)))),
     name TEXT NOT NULL,
     description TEXT,

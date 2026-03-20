@@ -5,6 +5,11 @@ set -e
 
 echo "🚀 Setting up local development environment..."
 
+if [ "$NODE_ENV" = "production" ] || [[ "$DATABASE_URL" == *"production"* ]]; then
+  echo "❌ Error: Production environment detected. Setup script aborted."
+  exit 1
+fi
+
 # Check dependencies
 command -v cargo &> /dev/null || { echo "❌ cargo not found. Install Rust from https://rustup.rs/"; exit 1; }
 
@@ -54,7 +59,9 @@ echo ""
 echo "⏳ Running database migrations..."
 # create an empty sqlite database file if it doesn't exist
 touch sqlite.db
-export DATABASE_URL="sqlite://sqlite.db"
+if [ -z "$DATABASE_URL" ]; then
+  export DATABASE_URL="sqlite://sqlite.db"
+fi
 
 cargo sqlx migrate run -D "$DATABASE_URL" || true
 

@@ -36,7 +36,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .init();
 
     // Initialize JWT Secret early so it panics at startup if missing
-    api::admin::init_jwt_secret();
+    shared::auth::init_jwt_secret();
 
     // Improved error handling for DATABASE_URL
     let database_url = std::env::var("DATABASE_URL")

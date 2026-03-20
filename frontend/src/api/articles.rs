@@ -45,19 +45,9 @@ pub mod ssr_utils {
             _exp: usize,
         }
 
-        use std::sync::OnceLock;
-        static JWT_SECRET: OnceLock<Vec<u8>> = OnceLock::new();
-
-        // WARN: Synchronize this secret with backend/src/api/admin.rs
-        let secret = JWT_SECRET.get_or_init(|| {
-            std::env::var("JWT_SECRET")
-                .expect("JWT_SECRET environment variable must be set")
-                .into_bytes()
-        });
-
         let token_data = decode::<Claims>(
             token,
-            &DecodingKey::from_secret(secret),
+            &DecodingKey::from_secret(shared::auth::get_jwt_secret()),
             &Validation::new(Algorithm::HS256),
         )
         .map_err(|_| ServerFnError::new("Invalid token"))?;

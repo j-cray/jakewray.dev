@@ -20,23 +20,6 @@ use jsonwebtoken::{encode, EncodingKey, Header};
 use serde::{Deserialize, Serialize};
 use sqlx::SqlitePool;
 
-use std::sync::OnceLock;
-
-static JWT_SECRET: OnceLock<Vec<u8>> = OnceLock::new();
-
-pub fn init_jwt_secret() {
-    let secret = std::env::var("JWT_SECRET")
-        .expect("JWT_SECRET environment variable must be set")
-        .into_bytes();
-    JWT_SECRET
-        .set(secret)
-        .expect("JWT_SECRET initialized twice");
-}
-
-fn get_jwt_secret() -> &'static [u8] {
-    JWT_SECRET.get().expect("JWT_SECRET not initialized")
-}
-
 #[derive(Serialize, Deserialize)]
 pub struct Claims {
     sub: String,
@@ -87,7 +70,7 @@ fn verify_password(password: &str, password_hash: &str) -> bool {
 
 pub fn router(state: crate::state::AppState) -> Router<crate::state::AppState> {
     // Configure rate limit: 2 requests per second, up to 5 burst
-    let governor_conf = std::sync::Arc::new(
+    let login_governor_conf = std::sync::Arc::new(
         tower_governor::governor::GovernorConfigBuilder::default()
             .key_extractor(tower_governor::key_extractor::SmartIpKeyExtractor)
             .per_second(2)
@@ -95,15 +78,27 @@ pub fn router(state: crate::state::AppState) -> Router<crate::state::AppState> {
             .finish()
             .unwrap(),
     );
-    let governor_layer = tower_governor::GovernorLayer {
-        config: governor_conf,
+    let login_governor_layer = tower_governor::GovernorLayer {
+        config: login_governor_conf,
+    };
+
+    let password_governor_conf = std::sync::Arc::new(
+        tower_governor::governor::GovernorConfigBuilder::default()
+            .key_extractor(tower_governor::key_extractor::SmartIpKeyExtractor)
+            .per_second(2)
+            .burst_size(5)
+            .finish()
+            .unwrap(),
+    );
+    let password_governor_layer = tower_governor::GovernorLayer {
+        config: password_governor_conf,
     };
 
     Router::new()
-        .route("/login", post(login).route_layer(governor_layer.clone()))
+        .route("/login", post(login).route_layer(login_governor_layer))
         .route(
             "/password",
-            post(change_password).route_layer(governor_layer),
+            post(change_password).route_layer(password_governor_layer),
         )
         .route("/me", get(me))
         .with_state(state)
@@ -148,7 +143,8 @@ async fn login(
             .bind(&req.username)
             .fetch_optional(&pool)
             .await
-            .map_err(|_| {
+            .map_err(|e| {
+                tracing::error!("Database error during login fetch: {}", e);
                 (
                     StatusCode::INTERNAL_SERVER_ERROR,
                     "Database error".to_string(),
@@ -186,9 +182,10 @@ async fn login(
     let token = encode(
         &Header::default(),
         &claims,
-        &EncodingKey::from_secret(get_jwt_secret()),
+        &EncodingKey::from_secret(shared::auth::get_jwt_secret()),
     )
-    .map_err(|_| {
+    .map_err(|e| {
+        tracing::error!("Token generation failed: {}", e);
         (
             StatusCode::INTERNAL_SERVER_ERROR,
             "Token generation failed".to_string(),
@@ -219,7 +216,7 @@ async fn me(headers: HeaderMap) -> Result<Json<serde_json::Value>, StatusCode> {
     let validation = jsonwebtoken::Validation::new(jsonwebtoken::Algorithm::HS256);
     let _token_data = jsonwebtoken::decode::<Claims>(
         token,
-        &jsonwebtoken::DecodingKey::from_secret(get_jwt_secret()),
+        &jsonwebtoken::DecodingKey::from_secret(shared::auth::get_jwt_secret()),
         &validation,
     )
     .map_err(|_| StatusCode::UNAUTHORIZED)?;
@@ -242,7 +239,7 @@ async fn change_password(
     let validation = jsonwebtoken::Validation::new(jsonwebtoken::Algorithm::HS256);
     let token_data = jsonwebtoken::decode::<Claims>(
         token,
-        &jsonwebtoken::DecodingKey::from_secret(get_jwt_secret()),
+        &jsonwebtoken::DecodingKey::from_secret(shared::auth::get_jwt_secret()),
         &validation,
     )
     .map_err(|_| (StatusCode::UNAUTHORIZED, "Invalid token".to_string()))?;
@@ -258,7 +255,8 @@ async fn change_password(
         .bind(user_id)
         .fetch_optional(&pool)
         .await
-        .map_err(|_| {
+        .map_err(|e| {
+            tracing::error!("Database error fetching user for password change: {}", e);
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 "Database error".to_string(),
@@ -275,7 +273,8 @@ async fn change_password(
     }
 
     // Hash new password and update
-    let new_hash = hash_password(&req.new_password).map_err(|_| {
+    let new_hash = hash_password(&req.new_password).map_err(|e| {
+        tracing::error!("Failed to hash new password: {}", e);
         (
             StatusCode::INTERNAL_SERVER_ERROR,
             "Failed to hash password".to_string(),
@@ -287,7 +286,8 @@ async fn change_password(
         .bind(user_id)
         .execute(&pool)
         .await
-        .map_err(|_| {
+        .map_err(|e| {
+            tracing::error!("Database update failed for password change: {}", e);
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 "Database update failed".to_string(),
