@@ -3,6 +3,7 @@ services:
     build: .
     restart: always
     environment:
+      # 4 slashes are intentional for an absolute path: sqlite:////app/data/sqlite.db
       - DATABASE_URL=sqlite:////app/data/sqlite.db
       - LEPTOS_SITE_ADDR=0.0.0.0:3000
       - RUST_LOG=info

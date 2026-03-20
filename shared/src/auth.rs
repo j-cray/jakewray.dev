@@ -2,6 +2,8 @@ use std::sync::OnceLock;
 
 static JWT_SECRET: OnceLock<Vec<u8>> = OnceLock::new();
 
+/// Required initialization: Must be called at application startup before `get_jwt_secret()` is used,
+/// otherwise `get_jwt_secret()` will panic.
 pub fn init_jwt_secret() {
     let secret = std::env::var("JWT_SECRET")
         .expect("JWT_SECRET environment variable must be set")

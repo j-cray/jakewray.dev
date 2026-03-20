@@ -58,6 +58,7 @@ fn hash_password(password: &str) -> Result<String, String> {
         .map(|hash| hash.to_string())
 }
 
+#[inline(never)]
 fn verify_password(password: &str, password_hash: &str) -> bool {
     let parsed_hash = match PasswordHash::new(password_hash) {
         Ok(h) => h,
@@ -73,8 +74,8 @@ pub fn router(state: crate::state::AppState) -> Router<crate::state::AppState> {
     let login_governor_conf = std::sync::Arc::new(
         tower_governor::governor::GovernorConfigBuilder::default()
             .key_extractor(tower_governor::key_extractor::SmartIpKeyExtractor)
-            .per_second(2)
-            .burst_size(5)
+            .per_second(1)
+            .burst_size(3)
             .finish()
             .unwrap(),
     );

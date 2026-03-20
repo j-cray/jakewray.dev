@@ -5,7 +5,7 @@ set -e
 
 echo "🚀 Setting up local development environment..."
 
-if [ "$NODE_ENV" = "production" ] || [[ "$DATABASE_URL" == *"production"* ]]; then
+if [ "$APP_ENV" = "production" ] || [[ "$DATABASE_URL" == *"/app/data"* ]]; then
   echo "❌ Error: Production environment detected. Setup script aborted."
   exit 1
 fi
@@ -77,7 +77,7 @@ if ! [[ "$SAFE_UUID" =~ ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F
 fi
 
 sqlite3 sqlite.db <<EOF || echo "⚠️ Could not create user (may already exist)"
-INSERT INTO users (id, username, password_hash) VALUES ('${SAFE_UUID}', 'admin', '\$argon2id\$v=19\$m=19456,t=2,p=1\$Ewiz6jCZu9NGQaAJtWRLqg\$Fn5yB19PZG+eTq/f1oKbw+tsqvhwuAnMI3TpQCIg9vI') ON CONFLICT (username) DO NOTHING;
+INSERT INTO users (id, username, password_hash) VALUES ('${SAFE_UUID}', 'admin', '\$argon2id\$v=19\$m=19456,t=2,p=1\$eZjB8IC9MeFUwBfPULedVA\$INlXdgAcRKilnu3//TUQ3ds00iBb5rMTw39vBfOwK30') ON CONFLICT (username) DO NOTHING;
 EOF
 
 echo ""
