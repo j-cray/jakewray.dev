@@ -73,7 +73,7 @@ pub fn router(state: crate::state::AppState) -> Router<crate::state::AppState> {
     // Configure rate limit: 2 requests per second, up to 5 burst
     let login_governor_conf = std::sync::Arc::new(
         tower_governor::governor::GovernorConfigBuilder::default()
-            .key_extractor(tower_governor::key_extractor::SmartIpKeyExtractor)
+            .key_extractor(tower_governor::key_extractor::PeerIpKeyExtractor)
             .per_second(1)
             .burst_size(3)
             .finish()
@@ -85,7 +85,7 @@ pub fn router(state: crate::state::AppState) -> Router<crate::state::AppState> {
 
     let password_governor_conf = std::sync::Arc::new(
         tower_governor::governor::GovernorConfigBuilder::default()
-            .key_extractor(tower_governor::key_extractor::SmartIpKeyExtractor)
+            .key_extractor(tower_governor::key_extractor::PeerIpKeyExtractor)
             .per_second(2)
             .burst_size(5)
             .finish()

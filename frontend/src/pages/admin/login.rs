@@ -41,6 +41,7 @@ pub fn AdminLoginPage() -> impl IntoView {
         let navigate = use_navigate();
         move |ev: leptos::ev::SubmitEvent| {
             ev.prevent_default();
+            #[cfg(debug_assertions)]
             web_sys::console::log_1(&"[Login] Form submitted".into());
             _set_loading.set(true);
             set_error.set("".to_string());
@@ -60,6 +61,7 @@ pub fn AdminLoginPage() -> impl IntoView {
                     password: password_val.clone(),
                 };
 
+                #[cfg(debug_assertions)]
                 web_sys::console::log_1(&"[Login] Sending POST /admin/login".into());
 
                 let result = async {
@@ -67,6 +69,7 @@ pub fn AdminLoginPage() -> impl IntoView {
                         .header("Content-Type", "application/json")
                         .json(&req)
                         .map_err(|e| {
+                            #[cfg(debug_assertions)]
                             web_sys::console::log_1(
                                 &format!("[Login] Serialize error: {:?}", e).into(),
                             );
@@ -75,12 +78,14 @@ pub fn AdminLoginPage() -> impl IntoView {
                         .send()
                         .await
                         .map_err(|e| {
+                            #[cfg(debug_assertions)]
                             web_sys::console::log_1(
                                 &format!("[Login] Network error: {:?}", e).into(),
                             );
                             "Failed to connect to server".to_string()
                         })?;
 
+                    #[cfg(debug_assertions)]
                     web_sys::console::log_1(
                         &format!("[Login] Response status: {}", resp.status()).into(),
                     );
@@ -90,10 +95,12 @@ pub fn AdminLoginPage() -> impl IntoView {
                     }
 
                     let data: LoginResponse = resp.json().await.map_err(|e| {
+                        #[cfg(debug_assertions)]
                         web_sys::console::log_1(&format!("[Login] Parse error: {:?}", e).into());
                         "Failed to parse response".to_string()
                     })?;
 
+                    #[cfg(debug_assertions)]
                     web_sys::console::log_1(
                         &"[Login] Token received, storing in localStorage".into(),
                     );
@@ -109,10 +116,12 @@ pub fn AdminLoginPage() -> impl IntoView {
 
                 match result {
                     Ok(()) => {
+                        #[cfg(debug_assertions)]
                         web_sys::console::log_1(&"[Login] Success, navigating to dashboard".into());
                         navigate("/admin/dashboard", Default::default())
                     }
                     Err(msg) => {
+                        #[cfg(debug_assertions)]
                         web_sys::console::log_1(&format!("[Login] Error: {}", msg).into());
                         set_error.set(msg);
                     }
