@@ -127,6 +127,7 @@ impl tower_governor::key_extractor::KeyExtractor for TrustedProxyIpKeyExtractor 
                 // will put its own IP rightmost, making all traffic share one rate limit bucket.
                 if let Some(last_ip) = forwarded_for.split(',').next_back() {
                     if let Ok(parsed_ip) = last_ip.trim().parse::<std::net::IpAddr>() {
+                        tracing::debug!("Extracted client IP {} from X-Forwarded-For rightmost entry. Multi-hop proxies (e.g. Cloudflare) may cause all clients to share this IP.", parsed_ip);
                         return Ok(parsed_ip.to_string());
                     }
                 }
@@ -155,9 +156,11 @@ fn verify_password(password: &str, password_hash: &str) -> bool {
 }
 
 pub fn router(state: crate::state::AppState) -> Router<crate::state::AppState> {
-    // NOTE: tower_governor uses in-memory state. A server restart will reset all rate limit counters.
+    // KNOWN LIMITATION: tower_governor uses in-memory state. A server restart will reset all rate limit counters.
     // Burst windows completely refresh across restarts. Therefore, the effective rate limiting
-    // window ONLY covers uptime, not absolute calendar time.
+    // window ONLY covers uptime, not absolute calendar time. An attacker who can trigger or observe
+    // restarts could reset their login throttle window. For a low-traffic personal site, this is an
+    // acceptable trade-off to avoid the complexity of a distributed rate limiter like Redis.
     tracing::info!("Initializing rate limiters. Warning: In-memory rate limiter state resets on restart. Frequent restarts may bypass burst limits.");
     let login_governor_config = std::sync::Arc::new(
         tower_governor::governor::GovernorConfigBuilder::default()
@@ -315,7 +318,10 @@ async fn login(
     }
 }
 
-async fn me(headers: HeaderMap) -> Result<Json<serde_json::Value>, StatusCode> {
+async fn me(
+    headers: HeaderMap,
+    peer_info: Option<axum::extract::ConnectInfo<std::net::SocketAddr>>,
+) -> Result<Json<serde_json::Value>, StatusCode> {
     let token = headers
         .get("Authorization")
         .and_then(|h| h.to_str().ok())
@@ -328,7 +334,13 @@ async fn me(headers: HeaderMap) -> Result<Json<serde_json::Value>, StatusCode> {
         &jsonwebtoken::DecodingKey::from_secret(shared::auth::get_jwt_secret()),
         &validation,
     )
-    .map_err(|_| StatusCode::UNAUTHORIZED)?;
+    .map_err(|e| {
+        let ip = peer_info
+            .map(|ci| ci.0.ip().to_string())
+            .unwrap_or_else(|| "unknown".to_string());
+        tracing::warn!("Invalid token on /me from {}: {}", ip, e);
+        StatusCode::UNAUTHORIZED
+    })?;
 
     Ok(Json(serde_json::json!({
         "authenticated": true
@@ -390,7 +402,7 @@ async fn change_password(
     if char_count < 12 || byte_count > 128 {
         return Err((
             StatusCode::BAD_REQUEST,
-            "New password length must be at least 12 characters and no more than 128 bytes (for Argon2 processing).".to_string(),
+            "New password length must be at least 12 characters and no more than 128 bytes (policy limit).".to_string(),
         ));
     }
 

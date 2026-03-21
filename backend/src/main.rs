@@ -78,6 +78,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     if std::env::var("ENVIRONMENT").as_deref() == Ok("production") {
         match std::env::var("TRUSTED_PROXY_IPS").as_deref() {
             Err(_) => panic!("TRUSTED_PROXY_IPS must be set in production. Otherwise, all users behind a proxy will share a single rate-limit bucket."),
+            Ok(ips) if ips.trim().is_empty() => panic!("TRUSTED_PROXY_IPS is set but empty. This will cause all proxies to be untrusted, collapsing rate limits."),
             Ok("172.18.0.2,172.18.0.3") | Ok("172.18.0.2, 172.18.0.3") => {
                 tracing::warn!("=====================================================================");
                 tracing::warn!("WARNING: TRUSTED_PROXY_IPS is set to the default Docker bridge IPs.");
