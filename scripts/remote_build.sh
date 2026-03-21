@@ -19,6 +19,8 @@ RUST_LOG=info
 DATABASE_URL=sqlite:////app/data/sqlite.db
 ENVIRONMENT=production
 JWT_SECRET=$(openssl rand -base64 48 | tr -d '\n')
+# Warning: Ephemeral Docker Bridge IPs change on restart.
+# In production, use the Docker network name resolved at startup, or assign fixed IPs with --ip.
 TRUSTED_PROXY_IPS=172.18.0.2,172.18.0.3
 EOF
 else

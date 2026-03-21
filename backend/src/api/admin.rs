@@ -62,15 +62,18 @@ struct UserRow {
     password_hash: String,
 }
 
-fn get_argon2() -> Argon2<'static> {
-    let params = argon2::Params::new(
-        shared::auth::ARGON2_M_COST,
-        shared::auth::ARGON2_T_COST,
-        shared::auth::ARGON2_P_COST,
-        Some(argon2::Params::DEFAULT_OUTPUT_LEN),
-    )
-    .expect("Valid Argon2 parameters");
-    Argon2::new(argon2::Algorithm::Argon2id, argon2::Version::V0x13, params)
+fn get_argon2() -> &'static Argon2<'static> {
+    static ARGON2: OnceLock<Argon2<'static>> = OnceLock::new();
+    ARGON2.get_or_init(|| {
+        let params = argon2::Params::new(
+            shared::auth::ARGON2_M_COST,
+            shared::auth::ARGON2_T_COST,
+            shared::auth::ARGON2_P_COST,
+            Some(argon2::Params::DEFAULT_OUTPUT_LEN),
+        )
+        .expect("Valid Argon2 parameters");
+        Argon2::new(argon2::Algorithm::Argon2id, argon2::Version::V0x13, params)
+    })
 }
 
 fn hash_password(password: &str) -> Result<String, String> {
@@ -155,6 +158,7 @@ pub fn router(state: crate::state::AppState) -> Router<crate::state::AppState> {
     // NOTE: tower_governor uses in-memory state. A server restart will reset all rate limit counters.
     // Burst windows completely refresh across restarts. Therefore, the effective rate limiting
     // window ONLY covers uptime, not absolute calendar time.
+    tracing::info!("Initializing rate limiters. Warning: In-memory rate limiter state resets on restart. Frequent restarts may bypass burst limits.");
     let login_governor_config = std::sync::Arc::new(
         tower_governor::governor::GovernorConfigBuilder::default()
             .key_extractor(TrustedProxyIpKeyExtractor)
@@ -319,7 +323,7 @@ async fn me(headers: HeaderMap) -> Result<Json<serde_json::Value>, StatusCode> {
         .ok_or(StatusCode::UNAUTHORIZED)?;
 
     let validation = jsonwebtoken::Validation::new(jsonwebtoken::Algorithm::HS256);
-    let token_data = jsonwebtoken::decode::<Claims>(
+    let _token_data = jsonwebtoken::decode::<Claims>(
         token,
         &jsonwebtoken::DecodingKey::from_secret(shared::auth::get_jwt_secret()),
         &validation,
@@ -327,8 +331,7 @@ async fn me(headers: HeaderMap) -> Result<Json<serde_json::Value>, StatusCode> {
     .map_err(|_| StatusCode::UNAUTHORIZED)?;
 
     Ok(Json(serde_json::json!({
-        "authenticated": true,
-        "sub": token_data.claims.sub
+        "authenticated": true
     })))
 }
 
@@ -373,12 +376,12 @@ async fn change_password(
     let req: ChangePasswordRequest = serde_json::from_slice(&bytes)
         .map_err(|_| (StatusCode::BAD_REQUEST, "Invalid JSON".to_string()))?;
 
-    let current_char_count = req.current_password.chars().count();
     let current_byte_count = req.current_password.len();
-    if current_char_count < 12 || current_byte_count > 128 {
+    if current_byte_count > 128 {
         return Err((
             StatusCode::BAD_REQUEST,
-            "Current password length must be at least 12 characters and no more than 128 bytes (for Argon2 processing).".to_string(),
+            "Current password length must be no more than 128 bytes (for Argon2 processing)."
+                .to_string(),
         ));
     }
 
