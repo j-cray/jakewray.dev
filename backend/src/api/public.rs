@@ -19,6 +19,9 @@ pub fn router(state: crate::state::AppState) -> Router<crate::state::AppState> {
         ),
     };
 
+    // NOTE: Cloning `GovernorLayer` clones the underlying `Arc<GovernorConfig>`.
+    // Both `/api/articles` and `/api/blog` share the exact same rate limit bucket per IP.
+    // Bursting one endpoint will exhaust the quota for the other. This is intentional.
     Router::new()
         .route("/health", get(health_check))
         .route(

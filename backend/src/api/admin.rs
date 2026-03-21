@@ -21,7 +21,17 @@ use serde::{Deserialize, Serialize};
 use sqlx::SqlitePool;
 use std::sync::OnceLock;
 
-const DUMMY_HASH: &str = "$argon2id$v=19$m=19456,t=2,p=1$75vBQ9LN4IAiHrViVOPI4w$L1wC8aj0h6PO/I8xVshCOB0TjOa9CTkfx8dIKA/0FVY";
+fn get_dummy_hash() -> &'static str {
+    static DUMMY_HASH: OnceLock<String> = OnceLock::new();
+    DUMMY_HASH.get_or_init(|| {
+        let password = "dummy-password-that-will-never-match";
+        let salt = SaltString::generate(&mut OsRng);
+        get_argon2()
+            .hash_password(password.as_bytes(), &salt)
+            .expect("Failed to generate dummy hash")
+            .to_string()
+    })
+}
 
 #[derive(Serialize, Deserialize)]
 pub struct Claims {
@@ -110,8 +120,8 @@ impl tower_governor::key_extractor::KeyExtractor for TrustedProxyIpKeyExtractor 
             {
                 // We pick the rightmost IP (next_back) under the exact assumption that the trusted Nginx configuration
                 // uses `proxy_add_x_forwarded_for`, which appends the connecting client's IP to the right.
-                // NOTE: If intermediate proxies exist between Nginx and this backend that are NOT in TRUSTED_PROXY_IPS,
-                // the rightmost IP will be the last untrusted proxy's IP, not the true client.
+                // NOTE: This assumes Nginx is the ONLY intermediate proxy. Any CDN or external load balancer
+                // will put its own IP rightmost, making all traffic share one rate limit bucket.
                 if let Some(last_ip) = forwarded_for.split(',').next_back() {
                     if let Ok(parsed_ip) = last_ip.trim().parse::<std::net::IpAddr>() {
                         return Ok(parsed_ip.to_string());
@@ -143,7 +153,8 @@ fn verify_password(password: &str, password_hash: &str) -> bool {
 
 pub fn router(state: crate::state::AppState) -> Router<crate::state::AppState> {
     // NOTE: tower_governor uses in-memory state. A server restart will reset all rate limit counters.
-    // Burst windows completely refresh across restarts.
+    // Burst windows completely refresh across restarts. Therefore, the effective rate limiting
+    // window ONLY covers uptime, not absolute calendar time.
     let login_governor_config = std::sync::Arc::new(
         tower_governor::governor::GovernorConfigBuilder::default()
             .key_extractor(TrustedProxyIpKeyExtractor)
@@ -225,6 +236,11 @@ async fn login(
         ));
     };
 
+    // Prevent extremely long passwords from exhausting Argon2 CPU time.
+    if req.password.len() > 128 {
+        return Err((StatusCode::BAD_REQUEST, "Password too long".to_string()));
+    }
+
     let user: Option<UserRow> =
         sqlx::query_as("SELECT id, password_hash FROM users WHERE username = ?")
             .bind(&req.username)
@@ -244,7 +260,7 @@ async fn login(
             // To prevent early-return timing leaks, we always verify a password hash.
             // If the user doesn't exist, we use a dummy hash. The dummy hash's source
             // password is irrelevant as it's only used to consume time.
-            (DUMMY_HASH, false)
+            (get_dummy_hash(), false)
         }
     };
 
@@ -397,7 +413,7 @@ async fn change_password(
 
     let (hash_to_verify, is_valid_user) = match user {
         Some(ref u) => (u.password_hash.as_str(), true),
-        None => (DUMMY_HASH, false),
+        None => (get_dummy_hash(), false),
     };
 
     let password_match = verify_password(&req.current_password, hash_to_verify);
