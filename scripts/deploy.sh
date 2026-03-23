@@ -48,7 +48,7 @@ rsync -avz --info=progress2 \
     --exclude '.DS_Store' \
     -e "ssh -i ~/.ssh/google_compute_engine -o StrictHostKeyChecking=no" \
     ./ \
-    jake-user@$IP:~/app/
+    "jake-user@$IP:~/app/"
 
 # 2. SSH and Deploy
 echo "Starting remote configuration and build..."
