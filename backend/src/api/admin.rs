@@ -271,7 +271,7 @@ async fn login(
         }
     };
 
-    let password_match = verify_password(&req.password, hash_to_verify);
+    let password_match = std::hint::black_box(verify_password(&req.password, hash_to_verify));
     let is_invalid = !is_valid_user || !password_match;
 
     if is_invalid {
@@ -343,7 +343,8 @@ async fn me(
     })?;
 
     Ok(Json(serde_json::json!({
-        "authenticated": true
+        "authenticated": true,
+        "user_id": _token_data.claims.sub
     })))
 }
 
@@ -431,7 +432,8 @@ async fn change_password(
         None => (get_dummy_hash(), false),
     };
 
-    let password_match = verify_password(&req.current_password, hash_to_verify);
+    let password_match =
+        std::hint::black_box(verify_password(&req.current_password, hash_to_verify));
 
     if !is_valid_user || !password_match {
         return Err((
