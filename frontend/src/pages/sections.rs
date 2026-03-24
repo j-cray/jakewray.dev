@@ -399,6 +399,7 @@ pub fn JournalismArticlePage() -> impl IntoView {
             web_sys::console::log_1(&"Checking auth token...".into());
             if let Ok(Some(storage)) = web_sys::window().unwrap().local_storage() {
                 if let Ok(Some(t)) = storage.get_item("admin_token") {
+                    #[cfg(debug_assertions)]
                     web_sys::console::log_1(&format!("Found token: {}", t).into());
                     if !t.is_empty() {
                         _set_token.set(t);

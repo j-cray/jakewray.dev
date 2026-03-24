@@ -5,10 +5,8 @@ use argon2::{
 use axum::body::to_bytes;
 use axum::body::Body;
 use axum::http::{header, Request};
-use axum::response::Html;
 use axum::response::IntoResponse;
 use axum::response::Json;
-use axum::response::Redirect;
 use axum::{
     extract::State,
     http::{HeaderMap, StatusCode},
@@ -159,9 +157,9 @@ impl tower_governor::key_extractor::KeyExtractor for TrustedProxyIpKeyExtractor 
             );
         }
 
-        Ok(peer_ip
+        peer_ip
             .map(|ip| ip.to_string())
-            .unwrap_or_else(|| "unknown".to_string()))
+            .ok_or(tower_governor::GovernorError::UnableToExtractKey)
     }
 }
 
@@ -237,29 +235,19 @@ async fn login(
         .get(header::CONTENT_TYPE)
         .and_then(|v| v.to_str().ok())
         .unwrap_or("");
-    let accept = parts
-        .headers
-        .get(header::ACCEPT)
-        .and_then(|v| v.to_str().ok())
-        .unwrap_or("");
     let bytes = to_bytes(body, 16 * 1024)
         .await
         .map_err(|_| (StatusCode::BAD_REQUEST, "Invalid request body".to_string()))?;
 
-    let req: LoginRequest = if content_type.contains("application/json") {
-        serde_json::from_slice(&bytes)
-            .map_err(|_| (StatusCode::BAD_REQUEST, "Invalid JSON".to_string()))?
-    } else if content_type.contains("application/x-www-form-urlencoded")
-        || content_type.contains("multipart/form-data")
-    {
-        serde_urlencoded::from_bytes(&bytes)
-            .map_err(|_| (StatusCode::BAD_REQUEST, "Invalid form data".to_string()))?
-    } else {
+    if !content_type.contains("application/json") {
         return Err((
             StatusCode::UNSUPPORTED_MEDIA_TYPE,
             "Unsupported content type".to_string(),
         ));
-    };
+    }
+
+    let req: LoginRequest = serde_json::from_slice(&bytes)
+        .map_err(|_| (StatusCode::BAD_REQUEST, "Invalid JSON".to_string()))?;
 
     // Prevent extremely long passwords from exhausting Argon2 CPU time.
     if req.password.len() > 128 {
@@ -293,19 +281,12 @@ async fn login(
     let is_invalid = !is_valid_user || !password_match;
 
     if is_invalid {
-        if content_type.contains("application/x-www-form-urlencoded")
-            || content_type.contains("multipart/form-data")
-            || accept.contains("text/html")
-        {
-            return Ok(Redirect::to("/admin/login?error=invalid").into_response());
-        }
-
         return Err((StatusCode::UNAUTHORIZED, "Invalid credentials".to_string()));
     }
 
     let exp = (Utc::now() + Duration::hours(24)).timestamp() as usize;
     let claims = Claims {
-        sub: user.unwrap().id,
+        sub: user.expect("is_valid_user guarantees Some").id,
         exp,
     };
 
@@ -322,18 +303,7 @@ async fn login(
         )
     })?;
 
-    if content_type.contains("application/x-www-form-urlencoded")
-        || content_type.contains("multipart/form-data")
-        || accept.contains("text/html")
-    {
-        let html = format!(
-            r#"<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta http-equiv="refresh" content="0; url=/admin/dashboard"></head><body><script>localStorage.setItem("admin_token","{}");location.replace("/admin/dashboard");</script></body></html>"#,
-            token
-        );
-        Ok(Html(html).into_response())
-    } else {
-        Ok(Json(LoginResponse { token }).into_response())
-    }
+    Ok(Json(LoginResponse { token }).into_response())
 }
 
 async fn me(
@@ -420,12 +390,11 @@ async fn change_password(
         ));
     }
 
-    let char_count = req.new_password.chars().count();
     let byte_count = req.new_password.len();
-    if char_count < 12 || byte_count > 128 {
+    if !(12..=128).contains(&byte_count) {
         return Err((
             StatusCode::BAD_REQUEST,
-            "New password length must be at least 12 characters and no more than 128 bytes (policy limit).".to_string(),
+            "New password length must be at least 12 bytes and no more than 128 bytes (policy limit).".to_string(),
         ));
     }
 
