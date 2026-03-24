@@ -152,7 +152,7 @@ fn map_article_row(row: sqlx::sqlite::SqliteRow) -> Result<Article, sqlx::Error>
         content: row.try_get("content")?,
         cover_image_url: row.try_get("cover_image_url")?,
         author: row.try_get("author")?,
-        published_at: row.try_get("published_at")?,
+        published_at: parse_flexible_datetime(row.try_get("published_at")?)?,
         origin,
     })
 }
@@ -175,7 +175,21 @@ fn map_blog_post_row(row: sqlx::sqlite::SqliteRow) -> Result<BlogPost, sqlx::Err
         slug: row.try_get("slug")?,
         title: row.try_get("title")?,
         content: row.try_get("content")?,
-        published_at: row.try_get("published_at")?,
+        published_at: parse_flexible_datetime(row.try_get("published_at")?)?,
         tags,
     })
+}
+
+fn parse_flexible_datetime(dt_str: String) -> Result<chrono::DateTime<chrono::Utc>, sqlx::Error> {
+    chrono::DateTime::parse_from_rfc3339(&dt_str)
+        .map(|dt| dt.with_timezone(&chrono::Utc))
+        .or_else(|_| {
+            chrono::NaiveDateTime::parse_from_str(&dt_str, "%Y-%m-%d %H:%M:%S")
+                .map(|ndt| ndt.and_utc())
+        })
+        .or_else(|_| {
+            chrono::NaiveDateTime::parse_from_str(&dt_str, "%Y-%m-%d %H:%M:%S%.f")
+                .map(|ndt| ndt.and_utc())
+        })
+        .map_err(|e| sqlx::Error::Decode(Box::new(e)))
 }

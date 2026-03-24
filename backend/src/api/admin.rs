@@ -111,16 +111,7 @@ pub fn router(state: crate::state::AppState) -> Router<crate::state::AppState> {
     // acceptable trade-off to avoid the complexity of a distributed rate limiter like Redis. It is recommended
     // to pair this with an OS-level fail2ban or log-based alerting to compensate.
     tracing::info!("Initializing rate limiters. Warning: In-memory rate limiter state resets on restart. Frequent restarts may bypass burst limits.");
-    let login_governor_config = std::sync::Arc::new(
-        tower_governor::governor::GovernorConfigBuilder::default()
-            .key_extractor(crate::api::TrustedProxyIpKeyExtractor)
-            .per_second(1)
-            .burst_size(1)
-            .finish()
-            .unwrap(),
-    );
-
-    let password_governor_config = std::sync::Arc::new(
+    let auth_governor_config = std::sync::Arc::new(
         tower_governor::governor::GovernorConfigBuilder::default()
             .key_extractor(crate::api::TrustedProxyIpKeyExtractor)
             .per_second(1)
@@ -130,11 +121,11 @@ pub fn router(state: crate::state::AppState) -> Router<crate::state::AppState> {
     );
 
     let login_governor_layer = tower_governor::GovernorLayer {
-        config: login_governor_config,
+        config: auth_governor_config.clone(),
     };
 
     let password_governor_layer = tower_governor::GovernorLayer {
-        config: password_governor_config,
+        config: auth_governor_config,
     };
 
     let me_governor_layer = tower_governor::GovernorLayer {
@@ -334,17 +325,18 @@ async fn change_password(
         ));
     }
 
-    let user_id = uuid::Uuid::parse_str(&token_data.claims.sub).map_err(|e| {
-        tracing::error!("Valid JWT contained invalid UUID string: {}", e);
-        (
+    let user_id_str = &token_data.claims.sub;
+    if uuid::Uuid::parse_str(user_id_str).is_err() {
+        tracing::error!("Valid JWT contained invalid UUID string: {}", user_id_str);
+        return Err((
             StatusCode::INTERNAL_SERVER_ERROR,
             "Invalid token payload".to_string(),
-        )
-    })?;
+        ));
+    }
 
     // Verify current password
     let user: Option<UserRow> = sqlx::query_as("SELECT id, password_hash FROM users WHERE id = ?")
-        .bind(user_id.to_string())
+        .bind(user_id_str)
         .fetch_optional(&pool)
         .await
         .map_err(|e| {
@@ -380,7 +372,7 @@ async fn change_password(
 
     sqlx::query("UPDATE users SET password_hash = ? WHERE id = ?")
         .bind(new_hash)
-        .bind(user_id.to_string())
+        .bind(user_id_str)
         .execute(&pool)
         .await
         .map_err(|e| {

@@ -46,6 +46,10 @@ impl tower_governor::key_extractor::KeyExtractor for TrustedProxyIpKeyExtractor 
 
         if is_trusted_proxy {
             // Priority 1: X-Real-IP
+            // SECURITY NOTE: We unconditionally trust X-Real-IP here because `is_trusted_proxy`
+            // confirmed this request came from our trusted local reverse proxy. This behavior
+            // assumes that Nginx is explicitly configured with `proxy_set_header X-Real-IP $remote_addr;`
+            // to overwrite any potentially forged X-Real-IP header sent by the client.
             if let Some(real_ip) = req.headers().get("X-Real-IP").and_then(|h| h.to_str().ok()) {
                 if let Ok(parsed_ip) = real_ip.trim().parse::<std::net::IpAddr>() {
                     return Ok(parsed_ip.to_string());
