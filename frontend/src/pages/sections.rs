@@ -239,9 +239,11 @@ fn linkify_images(html: &str) -> String {
                         safe_url
                     );
                     let wrapper_end = "</a>";
+                    let safe_img_tag =
+                        format!("<img src=\"{}\" alt=\"Article Image\" />", safe_url);
 
                     // Replace strict range
-                    let new_content = format!("{}{}{}", wrapper_start, img_tag, wrapper_end);
+                    let new_content = format!("{}{}{}", wrapper_start, safe_img_tag, wrapper_end);
                     out.replace_range(abs_open..abs_close, &new_content);
 
                     search_pos = abs_open + new_content.len();

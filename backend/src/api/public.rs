@@ -48,16 +48,24 @@ use sqlx::Row;
 async fn list_articles(
     State(pool): State<SqlitePool>,
     Query(query): Query<Pagination>,
-) -> Result<Json<Vec<Article>>, axum::http::StatusCode> {
+) -> Result<Json<Vec<Article>>, (axum::http::StatusCode, String)> {
     let limit = query.limit.unwrap_or(20).min(50);
 
     if query.before.is_some() && query.offset.is_some() {
-        return Err(axum::http::StatusCode::BAD_REQUEST);
+        return Err((
+            axum::http::StatusCode::BAD_REQUEST,
+            "Cannot use 'before' and 'offset' together".to_string(),
+        ));
     }
 
     let rows_res = if let Some(before) = query.before {
         let dt = chrono::DateTime::parse_from_rfc3339(&before)
-            .map_err(|_| axum::http::StatusCode::BAD_REQUEST)?
+            .map_err(|_| {
+                (
+                    axum::http::StatusCode::BAD_REQUEST,
+                    "Invalid 'before' date format".to_string(),
+                )
+            })?
             .to_utc();
         let normalized = dt.format("%Y-%m-%dT%H:%M:%3fZ").to_string();
         sqlx::query("SELECT id, wp_id, slug, title, subtitle, excerpt, content, cover_image_url, author, published_at, origin FROM articles WHERE published_at < ? ORDER BY published_at DESC LIMIT ?")
@@ -69,7 +77,10 @@ async fn list_articles(
     } else {
         let offset = query.offset.unwrap_or(0);
         if offset > 10_000 {
-            return Err(axum::http::StatusCode::BAD_REQUEST);
+            return Err((
+                axum::http::StatusCode::BAD_REQUEST,
+                "Offset too large".to_string(),
+            ));
         }
         sqlx::query("SELECT id, wp_id, slug, title, subtitle, excerpt, content, cover_image_url, author, published_at, origin FROM articles ORDER BY published_at DESC LIMIT ? OFFSET ?")
             .bind(limit)
@@ -83,7 +94,10 @@ async fn list_articles(
         Ok(articles) => Ok(Json(articles)),
         Err(e) => {
             tracing::error!("Failed to fetch articles: {}", e);
-            Err(axum::http::StatusCode::INTERNAL_SERVER_ERROR)
+            Err((
+                axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+                "Database error".to_string(),
+            ))
         }
     }
 }
@@ -91,16 +105,24 @@ async fn list_articles(
 async fn list_blog_posts(
     State(pool): State<SqlitePool>,
     Query(query): Query<Pagination>,
-) -> Result<Json<Vec<BlogPost>>, axum::http::StatusCode> {
+) -> Result<Json<Vec<BlogPost>>, (axum::http::StatusCode, String)> {
     let limit = query.limit.unwrap_or(20).min(50);
 
     if query.before.is_some() && query.offset.is_some() {
-        return Err(axum::http::StatusCode::BAD_REQUEST);
+        return Err((
+            axum::http::StatusCode::BAD_REQUEST,
+            "Cannot use 'before' and 'offset' together".to_string(),
+        ));
     }
 
     let rows_res = if let Some(before) = query.before {
         let dt = chrono::DateTime::parse_from_rfc3339(&before)
-            .map_err(|_| axum::http::StatusCode::BAD_REQUEST)?
+            .map_err(|_| {
+                (
+                    axum::http::StatusCode::BAD_REQUEST,
+                    "Invalid 'before' date format".to_string(),
+                )
+            })?
             .to_utc();
         let normalized = dt.format("%Y-%m-%dT%H:%M:%3fZ").to_string();
         sqlx::query("SELECT id, slug, title, content, published_at, tags FROM blog_posts WHERE published_at < ? ORDER BY published_at DESC LIMIT ?")
@@ -112,7 +134,10 @@ async fn list_blog_posts(
     } else {
         let offset = query.offset.unwrap_or(0);
         if offset > 10_000 {
-            return Err(axum::http::StatusCode::BAD_REQUEST);
+            return Err((
+                axum::http::StatusCode::BAD_REQUEST,
+                "Offset too large".to_string(),
+            ));
         }
         sqlx::query("SELECT id, slug, title, content, published_at, tags FROM blog_posts ORDER BY published_at DESC LIMIT ? OFFSET ?")
             .bind(limit)
@@ -126,7 +151,10 @@ async fn list_blog_posts(
         Ok(posts) => Ok(Json(posts)),
         Err(e) => {
             tracing::error!("Failed to fetch blog posts: {}", e);
-            Err(axum::http::StatusCode::INTERNAL_SERVER_ERROR)
+            Err((
+                axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+                "Database error".to_string(),
+            ))
         }
     }
 }
@@ -183,5 +211,9 @@ fn map_blog_post_row(row: sqlx::sqlite::SqliteRow) -> Result<BlogPost, sqlx::Err
 fn parse_flexible_datetime(dt_str: String) -> Result<chrono::DateTime<chrono::Utc>, sqlx::Error> {
     chrono::DateTime::parse_from_rfc3339(&dt_str)
         .map(|dt| dt.with_timezone(&chrono::Utc))
+        .or_else(|_| {
+            chrono::NaiveDateTime::parse_from_str(&dt_str, "%Y-%m-%d %H:%M:%S")
+                .map(|ndt| ndt.and_utc())
+        })
         .map_err(|e| sqlx::Error::Decode(Box::new(e)))
 }
