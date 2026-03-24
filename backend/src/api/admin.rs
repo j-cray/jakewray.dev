@@ -90,7 +90,13 @@ fn hash_password(password: &str) -> Result<String, String> {
 fn verify_password(password: &str, password_hash: &str) -> bool {
     let parsed_hash = match PasswordHash::new(password_hash) {
         Ok(h) => h,
-        Err(_) => return false,
+        Err(_) => {
+            tracing::error!("Failed to parse password hash!");
+            let dummy = get_dummy_hash();
+            let parsed_dummy = PasswordHash::new(dummy).unwrap();
+            let _ = get_argon2().verify_password(password.as_bytes(), &parsed_dummy);
+            return false;
+        }
     };
     get_argon2()
         .verify_password(password.as_bytes(), &parsed_hash)
@@ -105,26 +111,21 @@ pub fn router(state: crate::state::AppState) -> Router<crate::state::AppState> {
     // acceptable trade-off to avoid the complexity of a distributed rate limiter like Redis. It is recommended
     // to pair this with an OS-level fail2ban or log-based alerting to compensate.
     tracing::info!("Initializing rate limiters. Warning: In-memory rate limiter state resets on restart. Frequent restarts may bypass burst limits.");
+    let auth_governor_config = std::sync::Arc::new(
+        tower_governor::governor::GovernorConfigBuilder::default()
+            .key_extractor(crate::api::TrustedProxyIpKeyExtractor)
+            .per_second(1)
+            .burst_size(1)
+            .finish()
+            .unwrap(),
+    );
+
     let login_governor_layer = tower_governor::GovernorLayer {
-        config: std::sync::Arc::new(
-            tower_governor::governor::GovernorConfigBuilder::default()
-                .key_extractor(crate::api::TrustedProxyIpKeyExtractor)
-                .per_second(1)
-                .burst_size(1)
-                .finish()
-                .unwrap(),
-        ),
+        config: auth_governor_config.clone(),
     };
 
     let password_governor_layer = tower_governor::GovernorLayer {
-        config: std::sync::Arc::new(
-            tower_governor::governor::GovernorConfigBuilder::default()
-                .key_extractor(crate::api::TrustedProxyIpKeyExtractor)
-                .per_second(1)
-                .burst_size(1)
-                .finish()
-                .unwrap(),
-        ),
+        config: auth_governor_config.clone(),
     };
 
     let me_governor_layer = tower_governor::GovernorLayer {
@@ -248,7 +249,7 @@ async fn me(
         .ok_or(StatusCode::UNAUTHORIZED)?;
 
     let validation = jsonwebtoken::Validation::new(jsonwebtoken::Algorithm::HS256);
-    let token_data = jsonwebtoken::decode::<Claims>(
+    let _token_data = jsonwebtoken::decode::<Claims>(
         token,
         &jsonwebtoken::DecodingKey::from_secret(shared::auth::get_jwt_secret()),
         &validation,
@@ -263,7 +264,6 @@ async fn me(
 
     Ok(Json(serde_json::json!({
         "authenticated": true,
-        "user_id": token_data.claims.sub
     })))
 }
 

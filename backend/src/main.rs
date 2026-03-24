@@ -89,11 +89,25 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 let default_ips = ips.split(',').map(|s| s.trim()).filter(|s| !s.is_empty());
                 let mut has_private = false;
                 for ip_str in default_ips {
-                    if let Ok(std::net::IpAddr::V4(v4)) = ip_str.parse::<std::net::IpAddr>() {
-                        let octets = v4.octets();
-                        if octets[0] == 10 || (octets[0] == 172 && (16..=31).contains(&octets[1])) || (octets[0] == 192 && octets[1] == 168) {
+                    if let Ok(ip) = ip_str.parse::<std::net::IpAddr>() {
+                        if ip.is_loopback() {
                             has_private = true;
                             break;
+                        }
+                        match ip {
+                            std::net::IpAddr::V4(v4) => {
+                                let octets = v4.octets();
+                                if octets[0] == 10 || (octets[0] == 172 && (16..=31).contains(&octets[1])) || (octets[0] == 192 && octets[1] == 168) {
+                                    has_private = true;
+                                    break;
+                                }
+                            }
+                            std::net::IpAddr::V6(v6) => {
+                                if (v6.segments()[0] & 0xfe00) == 0xfc00 {
+                                    has_private = true;
+                                    break;
+                                }
+                            }
                         }
                     }
                 }

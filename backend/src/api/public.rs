@@ -9,21 +9,26 @@ pub struct Pagination {
     pub before: Option<String>,
 }
 pub fn router(state: crate::state::AppState) -> Router<crate::state::AppState> {
-    let common_governor_config = std::sync::Arc::new(
-        tower_governor::governor::GovernorConfigBuilder::default()
-            .key_extractor(crate::api::TrustedProxyIpKeyExtractor)
-            .per_second(5)
-            .burst_size(20)
-            .finish()
-            .unwrap(),
-    );
-
     let articles_governor_layer = tower_governor::GovernorLayer {
-        config: common_governor_config.clone(),
+        config: std::sync::Arc::new(
+            tower_governor::governor::GovernorConfigBuilder::default()
+                .key_extractor(crate::api::TrustedProxyIpKeyExtractor)
+                .per_second(5)
+                .burst_size(20)
+                .finish()
+                .unwrap(),
+        ),
     };
 
     let blog_governor_layer = tower_governor::GovernorLayer {
-        config: common_governor_config.clone(),
+        config: std::sync::Arc::new(
+            tower_governor::governor::GovernorConfigBuilder::default()
+                .key_extractor(crate::api::TrustedProxyIpKeyExtractor)
+                .per_second(5)
+                .burst_size(20)
+                .finish()
+                .unwrap(),
+        ),
     };
 
     Router::new()
@@ -56,11 +61,12 @@ async fn list_articles(
     }
 
     let rows_res = if let Some(before) = query.before {
-        if chrono::DateTime::parse_from_rfc3339(&before).is_err() {
-            return Err(axum::http::StatusCode::BAD_REQUEST);
-        }
+        let dt = chrono::DateTime::parse_from_rfc3339(&before)
+            .map_err(|_| axum::http::StatusCode::BAD_REQUEST)?
+            .to_utc();
+        let normalized = dt.format("%Y-%m-%dT%H:%M:%6f").to_string() + "Z";
         sqlx::query("SELECT id, wp_id, slug, title, subtitle, excerpt, content, cover_image_url, author, published_at, origin FROM articles WHERE published_at < ? ORDER BY published_at DESC LIMIT ?")
-            .bind(before)
+            .bind(normalized)
             .bind(limit)
             .try_map(map_article_row)
             .fetch_all(&pool)
@@ -98,11 +104,12 @@ async fn list_blog_posts(
     }
 
     let rows_res = if let Some(before) = query.before {
-        if chrono::DateTime::parse_from_rfc3339(&before).is_err() {
-            return Err(axum::http::StatusCode::BAD_REQUEST);
-        }
+        let dt = chrono::DateTime::parse_from_rfc3339(&before)
+            .map_err(|_| axum::http::StatusCode::BAD_REQUEST)?
+            .to_utc();
+        let normalized = dt.format("%Y-%m-%dT%H:%M:%6f").to_string() + "Z";
         sqlx::query("SELECT id, slug, title, content, published_at, tags FROM blog_posts WHERE published_at < ? ORDER BY published_at DESC LIMIT ?")
-            .bind(before)
+            .bind(normalized)
             .bind(limit)
             .try_map(map_blog_post_row)
             .fetch_all(&pool)
