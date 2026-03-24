@@ -35,7 +35,7 @@ For first-time SSL setup on the server:
 
 ### Quick Start with Nix (Recommended)
 ```bash
-direnv allow          # Load development environment  
+direnv allow          # Load development environment
 ./scripts/setup-dev.sh # Setup database
 cargo leptos watch    # Start dev server
 ```
@@ -51,7 +51,7 @@ cargo leptos watch
 
 ## Project Structure
 - `backend/` - Server-side Rust code
-- `frontend/` - Client-side Leptos components  
+- `frontend/` - Client-side Leptos components
 - `shared/` - Shared types and utilities
 - `flake.nix` - Nix development environment
 - `.envrc` - direnv configuration
@@ -61,8 +61,7 @@ cargo leptos watch
 - [x] **HTTPS/SSL** - Let's Encrypt certificates
 - [x] **Authentication** - Password-protected admin panel
 - [x] **Theme** - Modern indigo design
-- [ ] **Admin features** - Post creation, sync manager
-- [ ] **Content sync** - Import from terracestandard.com
+- [ ] **Admin features** - Post creation
 - [ ] **Media library** - Photo/video management
 - [x] **Password hashing** - Argon2 implementation
 - [ ] **Password reset** - Email-based recovery

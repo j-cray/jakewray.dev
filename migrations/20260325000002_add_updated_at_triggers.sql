@@ -3,6 +3,7 @@
 CREATE TRIGGER update_articles_updated_at
 AFTER UPDATE ON articles
 FOR EACH ROW
+WHEN NEW.updated_at IS OLD.updated_at
 BEGIN
     UPDATE articles SET updated_at = (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')) WHERE id = NEW.id;
 END;
@@ -10,6 +11,7 @@ END;
 CREATE TRIGGER update_blog_posts_updated_at
 AFTER UPDATE ON blog_posts
 FOR EACH ROW
+WHEN NEW.updated_at IS OLD.updated_at
 BEGIN
     UPDATE blog_posts SET updated_at = (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')) WHERE id = NEW.id;
 END;
@@ -17,6 +19,7 @@ END;
 CREATE TRIGGER update_creative_works_updated_at
 AFTER UPDATE ON creative_works
 FOR EACH ROW
+WHEN NEW.updated_at IS OLD.updated_at
 BEGIN
     UPDATE creative_works SET updated_at = (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')) WHERE id = NEW.id;
 END;
@@ -24,6 +27,7 @@ END;
 CREATE TRIGGER update_media_items_updated_at
 AFTER UPDATE ON media_items
 FOR EACH ROW
+WHEN NEW.updated_at IS OLD.updated_at
 BEGIN
     UPDATE media_items SET updated_at = (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')) WHERE id = NEW.id;
 END;
@@ -31,6 +35,7 @@ END;
 CREATE TRIGGER update_music_tracks_updated_at
 AFTER UPDATE ON music_tracks
 FOR EACH ROW
+WHEN NEW.updated_at IS OLD.updated_at
 BEGIN
     UPDATE music_tracks SET updated_at = (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')) WHERE id = NEW.id;
 END;
@@ -38,6 +43,7 @@ END;
 CREATE TRIGGER update_projects_updated_at
 AFTER UPDATE ON projects
 FOR EACH ROW
+WHEN NEW.updated_at IS OLD.updated_at
 BEGIN
     UPDATE projects SET updated_at = (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')) WHERE id = NEW.id;
 END;

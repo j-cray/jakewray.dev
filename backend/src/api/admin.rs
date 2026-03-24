@@ -260,26 +260,9 @@ async fn me(
     )
     .map_err(|e| {
         let proxy_ip = peer_addr.ip().to_string();
-        let is_trusted_proxy = crate::api::get_trusted_proxies().contains(&peer_addr.ip());
 
-        let client_ip = if is_trusted_proxy {
-            let real_ip = headers
-                .get("X-Real-IP")
-                .and_then(|h| h.to_str().ok())
-                .map(|s| s.trim().to_string());
-
-            let forwarded_for = headers
-                .get("X-Forwarded-For")
-                .and_then(|h| h.to_str().ok())
-                .and_then(|s| s.split(',').next_back())
-                .map(|s| s.trim().to_string());
-
-            real_ip
-                .or(forwarded_for)
-                .unwrap_or_else(|| "unknown".to_string())
-        } else {
-            proxy_ip.clone()
-        };
+        let client_ip = crate::api::extract_client_ip(&headers, Some(peer_addr.ip()))
+            .unwrap_or_else(|| proxy_ip.clone());
         let safe_client_ip = client_ip.replace(['\n', '\r'], " ");
 
         tracing::warn!(
@@ -293,6 +276,7 @@ async fn me(
 
     Ok(Json(serde_json::json!({
         "authenticated": true,
+        "sub": _token_data.claims.sub
     })))
 }
 

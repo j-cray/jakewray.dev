@@ -92,7 +92,12 @@ if ! [[ "$SAFE_UUID" =~ ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F
   exit 1
 fi
 
-printf "INSERT INTO users (id, username, password_hash) VALUES ('%s', 'admin', '%s') ON CONFLICT (username) DO NOTHING;\n" "$SAFE_UUID" "$ADMIN_HASH" | sqlite3 sqlite.db
+ESCAPED_HASH="${ADMIN_HASH//\'/\'\'}"
+sqlite3 sqlite.db <<EOF
+.param set @id '$SAFE_UUID'
+.param set @hash '$ESCAPED_HASH'
+INSERT INTO users (id, username, password_hash) VALUES (@id, 'admin', @hash) ON CONFLICT (username) DO NOTHING;
+EOF
 if [ $? -ne 0 ]; then
   echo "⚠️ Could not create user (may already exist)"
 fi
