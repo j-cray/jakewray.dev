@@ -1,6 +1,7 @@
 [workspace]
 resolver = "2"
 members = ["frontend", "backend", "shared"]
+# 'hgen' is a standalone utility excluded from the workspace so it doesn't build by default.
 exclude = ["hgen"]
 
 [workspace.dependencies]

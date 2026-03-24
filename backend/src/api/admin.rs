@@ -101,7 +101,23 @@ impl tower_governor::key_extractor::KeyExtractor for TrustedProxyIpKeyExtractor 
             std::env::var("TRUSTED_PROXY_IPS")
                 .unwrap_or_default()
                 .split(',')
-                .filter_map(|s| s.trim().parse().ok())
+                .filter_map(|s| {
+                    let trimmed = s.trim();
+                    if trimmed.is_empty() {
+                        return None;
+                    }
+                    match trimmed.parse() {
+                        Ok(ip) => Some(ip),
+                        Err(e) => {
+                            tracing::warn!(
+                                "Invalid IP address in TRUSTED_PROXY_IPS '{}': {}",
+                                trimmed,
+                                e
+                            );
+                            None
+                        }
+                    }
+                })
                 .collect()
         });
 
@@ -122,7 +138,8 @@ impl tower_governor::key_extractor::KeyExtractor for TrustedProxyIpKeyExtractor 
                 .and_then(|h| h.to_str().ok())
             {
                 // We pick the rightmost IP (next_back) under the exact assumption that the trusted Nginx configuration
-                // uses `proxy_add_x_forwarded_for`, which appends the connecting client's IP to the right.
+                // uses `proxy_add_x_forwarded_for`, which appends the connecting peer's IP (the hop right before Nginx) to the right.
+                // We pick the rightmost IP because that is the most trusted hop added by our reverse proxy, preventing client-side spoofing.
                 // NOTE: This assumes Nginx is the ONLY intermediate proxy. Any CDN or external load balancer
                 // will put its own IP rightmost, making all traffic share one rate limit bucket.
                 if let Some(last_ip) = forwarded_for.split(',').next_back() {
@@ -322,6 +339,10 @@ async fn me(
     headers: HeaderMap,
     peer_info: Option<axum::extract::ConnectInfo<std::net::SocketAddr>>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
+    // Design Note: The /me endpoint validates the JWT cryptographically but does not query the database.
+    // This means a deleted user's JWT remains valid until expiration (24h). For a single-admin personal site,
+    // this is an acceptable performance trade-off. `change_password` does perform a DB lookup.
+
     let token = headers
         .get("Authorization")
         .and_then(|h| h.to_str().ok())
@@ -329,7 +350,7 @@ async fn me(
         .ok_or(StatusCode::UNAUTHORIZED)?;
 
     let validation = jsonwebtoken::Validation::new(jsonwebtoken::Algorithm::HS256);
-    let _token_data = jsonwebtoken::decode::<Claims>(
+    let token_data = jsonwebtoken::decode::<Claims>(
         token,
         &jsonwebtoken::DecodingKey::from_secret(shared::auth::get_jwt_secret()),
         &validation,
@@ -344,7 +365,7 @@ async fn me(
 
     Ok(Json(serde_json::json!({
         "authenticated": true,
-        "user_id": _token_data.claims.sub
+        "user_id": token_data.claims.sub
     })))
 }
 

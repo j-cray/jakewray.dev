@@ -222,7 +222,10 @@ fn linkify_images(html: &str) -> String {
             if let Some(src_url) = src {
                 let is_safe_scheme = src_url.starts_with("http://")
                     || src_url.starts_with("https://")
-                    || src_url.starts_with("data:image/")
+                    || src_url.starts_with("data:image/png")
+                    || src_url.starts_with("data:image/jpeg")
+                    || src_url.starts_with("data:image/gif")
+                    || src_url.starts_with("data:image/webp")
                     || src_url.starts_with('/');
 
                 if is_safe_scheme {

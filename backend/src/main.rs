@@ -51,8 +51,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // With WAL mode, SQLite allows concurrent readers, but all writers are still
     // serialized with a single write lock. Setting max_connections(5) helps with concurrent
-    // reads. We explicitly set min_connections(1) to reflect the serialized write constraint,
-    // though the pool handles queuing writes against each other up to the busy timeout.
+    // reads. We explicitly set min_connections(1) to keep one connection warm
+    // to avoid cold-start latency.
     let pool = SqlitePoolOptions::new()
         .max_connections(5)
         .min_connections(1)
