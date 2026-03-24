@@ -10,6 +10,11 @@ echo "Remote Build Target: $TARGET"
 export DOCKER_BUILDKIT=1
 export COMPOSE_DOCKER_CLI_BUILD=1
 
+ensure_data_dir() {
+    echo "Ensuring data directory exists..."
+    mkdir -p data && chmod 700 data && sudo chown 1000:1000 data
+}
+
 if [ ! -f .env ]; then
     echo "Generating new .env file with defaults..."
     cat <<EOF > .env
@@ -20,7 +25,7 @@ DATABASE_URL=sqlite:////app/data/sqlite.db
 ENVIRONMENT=production
 JWT_SECRET=$(openssl rand -base64 48 | tr -d '\n')
 # Warning: Ephemeral Docker Bridge IPs change on restart.
-# In production, use the Docker network name resolved at startup, or assign fixed IPs with --ip.
+# In production, use the Docker network name resolved at startup, or assign fixed IPs with --ip via docker-compose.
 TRUSTED_PROXY_IPS=172.18.0.2,172.18.0.3
 EOF
 else
@@ -34,21 +39,20 @@ if [ "$TARGET" = "all" ] || [ "$TARGET" = "backend" ]; then
         --cache-from portfolio-chef:latest \
         -t portfolio-chef .
 
-    echo "Ensuring data directory exists..."
-    mkdir -p data && chmod 700 data && sudo chown 1000:1000 data
+    ensure_data_dir
 fi
 
 if [ "$TARGET" = "all" ]; then
     echo "Building and starting ALL services with BuildKit caching..."
     sudo DOCKER_BUILDKIT=1 docker compose -f compose.prod.yaml build \
         --build-arg BUILDKIT_INLINE_CACHE=1
-    mkdir -p data && chmod 700 data && sudo chown 1000:1000 data
+    ensure_data_dir
     sudo docker compose -f compose.prod.yaml up -d --remove-orphans
 elif [ "$TARGET" = "backend" ]; then
     echo "Building and restarting BACKEND (portfolio) service with caching..."
     sudo DOCKER_BUILDKIT=1 docker compose -f compose.prod.yaml build \
         --build-arg BUILDKIT_INLINE_CACHE=1 portfolio
-    mkdir -p data && chmod 700 data && sudo chown 1000:1000 data
+    ensure_data_dir
     sudo docker compose -f compose.prod.yaml up -d --no-deps portfolio
 elif [ "$TARGET" = "frontend" ]; then
     echo "Frontend is part of the backend binary in this setup (SSR)."

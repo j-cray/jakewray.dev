@@ -246,6 +246,20 @@ fn linkify_images(html: &str) -> String {
 
                     search_pos = abs_open + new_content.len();
                     continue;
+                } else {
+                    #[cfg(not(target_arch = "wasm32"))]
+                    tracing::debug!(
+                        "Skipped unsafe image scheme in journalism article: {}",
+                        src_url
+                    );
+                    #[cfg(target_arch = "wasm32")]
+                    web_sys::console::log_1(
+                        &format!(
+                            "Skipped unsafe image scheme in journalism article: {}",
+                            src_url
+                        )
+                        .into(),
+                    );
                 }
             }
             search_pos = abs_close;

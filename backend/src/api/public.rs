@@ -49,6 +49,9 @@ async fn list_articles(
     let limit = query.limit.unwrap_or(20).min(50);
 
     let rows_res = if let Some(before) = query.before {
+        if chrono::DateTime::parse_from_rfc3339(&before).is_err() {
+            return Err(axum::http::StatusCode::BAD_REQUEST);
+        }
         sqlx::query("SELECT id, wp_id, slug, title, subtitle, excerpt, content, cover_image_url, author, published_at, origin FROM articles WHERE published_at < ? ORDER BY published_at DESC LIMIT ?")
             .bind(before)
             .bind(limit)
@@ -128,6 +131,9 @@ async fn list_blog_posts(
     let limit = query.limit.unwrap_or(20).min(50);
 
     let rows_res = if let Some(before) = query.before {
+        if chrono::DateTime::parse_from_rfc3339(&before).is_err() {
+            return Err(axum::http::StatusCode::BAD_REQUEST);
+        }
         sqlx::query("SELECT id, slug, title, content, published_at, tags FROM blog_posts WHERE published_at < ? ORDER BY published_at DESC LIMIT ?")
             .bind(before)
             .bind(limit)

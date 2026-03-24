@@ -13,7 +13,10 @@ use argon2::{
 fn main() {
     let mut password = String::new();
     std::io::stdin().read_line(&mut password).expect("Failed to read password");
-    let password = password.strip_suffix("\r\n").or_else(|| password.strip_suffix("\n")).unwrap_or(&password);
+    let password = password
+        .strip_suffix("\r\n")
+        .or_else(|| password.strip_suffix("\n"))
+        .unwrap_or(&password);
     let salt = SaltString::generate(&mut OsRng);
     let params = argon2::Params::new(
         shared::auth::ARGON2_M_COST,

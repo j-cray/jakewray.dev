@@ -184,21 +184,26 @@ pub fn router(state: crate::state::AppState) -> Router<crate::state::AppState> {
     // acceptable trade-off to avoid the complexity of a distributed rate limiter like Redis. It is recommended
     // to pair this with an OS-level fail2ban or log-based alerting to compensate.
     tracing::info!("Initializing rate limiters. Warning: In-memory rate limiter state resets on restart. Frequent restarts may bypass burst limits.");
-    let auth_governor_config = std::sync::Arc::new(
-        tower_governor::governor::GovernorConfigBuilder::default()
-            .key_extractor(TrustedProxyIpKeyExtractor)
-            .per_second(1)
-            .burst_size(1)
-            .finish()
-            .unwrap(),
-    );
-
     let login_governor_layer = tower_governor::GovernorLayer {
-        config: auth_governor_config.clone(),
+        config: std::sync::Arc::new(
+            tower_governor::governor::GovernorConfigBuilder::default()
+                .key_extractor(TrustedProxyIpKeyExtractor)
+                .per_second(1)
+                .burst_size(1)
+                .finish()
+                .unwrap(),
+        ),
     };
 
     let password_governor_layer = tower_governor::GovernorLayer {
-        config: auth_governor_config,
+        config: std::sync::Arc::new(
+            tower_governor::governor::GovernorConfigBuilder::default()
+                .key_extractor(TrustedProxyIpKeyExtractor)
+                .per_second(1)
+                .burst_size(1)
+                .finish()
+                .unwrap(),
+        ),
     };
 
     let me_governor_layer = tower_governor::GovernorLayer {
@@ -424,23 +429,26 @@ async fn change_password(
         ));
     }
 
-    let user_id_res = uuid::Uuid::parse_str(&token_data.claims.sub);
+    let user_id = uuid::Uuid::parse_str(&token_data.claims.sub).map_err(|e| {
+        tracing::error!("Valid JWT contained invalid UUID string: {}", e);
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "Invalid token payload".to_string(),
+        )
+    })?;
 
     // Verify current password
-    let user: Option<UserRow> = match &user_id_res {
-        Ok(id) => sqlx::query_as("SELECT id, password_hash FROM users WHERE id = ?")
-            .bind(id.to_string())
-            .fetch_optional(&pool)
-            .await
-            .map_err(|e| {
-                tracing::error!("Database error fetching user for password change: {}", e);
-                (
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    "Database error".to_string(),
-                )
-            })?,
-        Err(_) => None,
-    };
+    let user: Option<UserRow> = sqlx::query_as("SELECT id, password_hash FROM users WHERE id = ?")
+        .bind(user_id.to_string())
+        .fetch_optional(&pool)
+        .await
+        .map_err(|e| {
+            tracing::error!("Database error fetching user for password change: {}", e);
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "Database error".to_string(),
+            )
+        })?;
 
     let (hash_to_verify, is_valid_user) = match user {
         Some(ref u) => (u.password_hash.as_str(), true),
@@ -448,10 +456,6 @@ async fn change_password(
     };
 
     let password_match = verify_password(&req.current_password, hash_to_verify);
-
-    if user_id_res.is_err() {
-        return Err((StatusCode::UNAUTHORIZED, "Invalid token".to_string()));
-    }
 
     if !is_valid_user || !password_match {
         return Err((
@@ -471,7 +475,7 @@ async fn change_password(
 
     sqlx::query("UPDATE users SET password_hash = ? WHERE id = ?")
         .bind(new_hash)
-        .bind(user_id_res.unwrap().to_string())
+        .bind(user_id.to_string())
         .execute(&pool)
         .await
         .map_err(|e| {

@@ -90,7 +90,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 for ip_str in default_ips {
                     if let Ok(std::net::IpAddr::V4(v4)) = ip_str.parse::<std::net::IpAddr>() {
                         let octets = v4.octets();
-                        if octets[0] == 10 || (octets[0] == 172 && (16..=31).contains(&octets[1])) {
+                        if octets[0] == 10 || (octets[0] == 172 && (16..=31).contains(&octets[1])) || (octets[0] == 192 && octets[1] == 168) {
                             has_private = true;
                             break;
                         }
@@ -101,7 +101,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     tracing::warn!("=====================================================================");
                     tracing::warn!("WARNING: TRUSTED_PROXY_IPS contains private (e.g., Docker bridge) IPs.");
                     tracing::warn!("Container IPs can change on restart. Rate limiting may fail open if these are incorrect.");
-                    tracing::warn!("Please verify these IPs post-deploy or use a more robust mechanism.");
+                    tracing::warn!("Please verify these IPs post-deploy or use a more robust mechanism like static IPs (--ip) or docker network inspect.");
                     tracing::warn!("=====================================================================");
                 }
             }
