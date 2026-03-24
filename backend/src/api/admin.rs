@@ -108,8 +108,8 @@ pub fn router(state: crate::state::AppState) -> Router<crate::state::AppState> {
     // Burst windows completely refresh across restarts. Therefore, the effective rate limiting
     // window ONLY covers uptime, not absolute calendar time. An attacker who can trigger or observe
     // restarts could reset their login throttle window. For a low-traffic personal site, this is an
-    // acceptable trade-off to avoid the complexity of a distributed rate limiter like Redis. It is recommended
-    // to pair this with an OS-level fail2ban or log-based alerting to compensate.
+    // acceptable trade-off to avoid the complexity of a distributed rate limiter like Redis. It is REQUIRED
+    // to pair this with an OS-level fail2ban or log-based alerting to compensate for the login endpoint.
     tracing::info!("Initializing rate limiters. Warning: In-memory rate limiter state resets on restart. Frequent restarts may bypass burst limits.");
     let login_governor_config = std::sync::Arc::new(
         tower_governor::governor::GovernorConfigBuilder::default()
@@ -264,8 +264,28 @@ async fn me(
         &validation,
     )
     .map_err(|e| {
-        let ip = peer_addr.ip().to_string();
-        tracing::warn!("Invalid token on /me from {}: {}", ip, e);
+        let real_ip = headers
+            .get("X-Real-IP")
+            .and_then(|h| h.to_str().ok())
+            .map(|s| s.trim().to_string());
+
+        let forwarded_for = headers
+            .get("X-Forwarded-For")
+            .and_then(|h| h.to_str().ok())
+            .and_then(|s| s.split(',').next_back())
+            .map(|s| s.trim().to_string());
+
+        let client_ip = real_ip
+            .or(forwarded_for)
+            .unwrap_or_else(|| "unknown".to_string());
+        let proxy_ip = peer_addr.ip().to_string();
+
+        tracing::warn!(
+            "Invalid token on /me from client IP {} (via proxy {}): {}",
+            client_ip,
+            proxy_ip,
+            e
+        );
         StatusCode::UNAUTHORIZED
     })?;
 
