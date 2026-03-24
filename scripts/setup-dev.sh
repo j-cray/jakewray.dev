@@ -92,9 +92,8 @@ if ! [[ "$SAFE_UUID" =~ ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F
   exit 1
 fi
 
-ESCAPED_HASH="${ADMIN_HASH//\'/\'\'}"
-sqlite3 sqlite.db \
-  "INSERT INTO users (id, username, password_hash) VALUES ('$SAFE_UUID', 'admin', '$ESCAPED_HASH') ON CONFLICT (username) DO NOTHING;" || echo "⚠️ Could not create user (may already exist)"
+sqlite3 sqlite.db "$(printf "INSERT INTO users (id, username, password_hash) VALUES ('%s', 'admin', '%s') ON CONFLICT (username) DO NOTHING;" \
+  "$SAFE_UUID" "$(printf '%s' "$ADMIN_HASH" | sed "s/'/''/g")")" || echo "⚠️ Could not create user (may already exist)"
 
 echo ""
 echo "✅ Setup complete!"

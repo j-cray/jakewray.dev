@@ -9,26 +9,21 @@ pub struct Pagination {
     pub before: Option<String>,
 }
 pub fn router(state: crate::state::AppState) -> Router<crate::state::AppState> {
+    let public_governor_config = std::sync::Arc::new(
+        tower_governor::governor::GovernorConfigBuilder::default()
+            .key_extractor(crate::api::TrustedProxyIpKeyExtractor)
+            .per_second(5)
+            .burst_size(20)
+            .finish()
+            .unwrap(),
+    );
+
     let articles_governor_layer = tower_governor::GovernorLayer {
-        config: std::sync::Arc::new(
-            tower_governor::governor::GovernorConfigBuilder::default()
-                .key_extractor(crate::api::TrustedProxyIpKeyExtractor)
-                .per_second(5)
-                .burst_size(20)
-                .finish()
-                .unwrap(),
-        ),
+        config: public_governor_config.clone(),
     };
 
     let blog_governor_layer = tower_governor::GovernorLayer {
-        config: std::sync::Arc::new(
-            tower_governor::governor::GovernorConfigBuilder::default()
-                .key_extractor(crate::api::TrustedProxyIpKeyExtractor)
-                .per_second(5)
-                .burst_size(20)
-                .finish()
-                .unwrap(),
-        ),
+        config: public_governor_config,
     };
 
     Router::new()
@@ -64,7 +59,7 @@ async fn list_articles(
         let dt = chrono::DateTime::parse_from_rfc3339(&before)
             .map_err(|_| axum::http::StatusCode::BAD_REQUEST)?
             .to_utc();
-        let normalized = dt.format("%Y-%m-%dT%H:%M:%6f").to_string() + "Z";
+        let normalized = dt.format("%Y-%m-%dT%H:%M:%3fZ").to_string();
         sqlx::query("SELECT id, wp_id, slug, title, subtitle, excerpt, content, cover_image_url, author, published_at, origin FROM articles WHERE published_at < ? ORDER BY published_at DESC LIMIT ?")
             .bind(normalized)
             .bind(limit)
@@ -107,7 +102,7 @@ async fn list_blog_posts(
         let dt = chrono::DateTime::parse_from_rfc3339(&before)
             .map_err(|_| axum::http::StatusCode::BAD_REQUEST)?
             .to_utc();
-        let normalized = dt.format("%Y-%m-%dT%H:%M:%6f").to_string() + "Z";
+        let normalized = dt.format("%Y-%m-%dT%H:%M:%3fZ").to_string();
         sqlx::query("SELECT id, slug, title, content, published_at, tags FROM blog_posts WHERE published_at < ? ORDER BY published_at DESC LIMIT ?")
             .bind(normalized)
             .bind(limit)
