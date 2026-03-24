@@ -396,6 +396,7 @@ pub fn JournalismArticlePage() -> impl IntoView {
     Effect::new(move || {
         #[cfg(target_arch = "wasm32")]
         {
+            #[cfg(debug_assertions)]
             web_sys::console::log_1(&"Checking auth token...".into());
             if let Ok(Some(storage)) = web_sys::window().unwrap().local_storage() {
                 if let Ok(Some(t)) = storage.get_item("admin_token") {
@@ -404,9 +405,11 @@ pub fn JournalismArticlePage() -> impl IntoView {
                     if !t.is_empty() {
                         _set_token.set(t);
                         _set_is_admin.set(true);
+                        #[cfg(debug_assertions)]
                         web_sys::console::log_1(&"Admin mode enabled".into());
                     }
                 } else {
+                    #[cfg(debug_assertions)]
                     web_sys::console::log_1(&"No token found in localStorage".into());
                 }
             }

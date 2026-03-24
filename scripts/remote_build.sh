@@ -25,7 +25,8 @@ DATABASE_URL=sqlite:////app/data/sqlite.db
 ENVIRONMENT=production
 JWT_SECRET=$(openssl rand -base64 48 | tr -d '\n')
 # Warning: Ephemeral Docker Bridge IPs change on restart.
-# In production, use the Docker network name resolved at startup, or assign fixed IPs with --ip via docker-compose.
+# Run \`docker network inspect jakewraydev_default\` to find the proxy IP,
+# or assign a static IP to the proxy container in compose.prod.yaml.
 TRUSTED_PROXY_IPS=172.18.0.2,172.18.0.3
 EOF
 else

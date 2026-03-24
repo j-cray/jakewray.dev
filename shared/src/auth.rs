@@ -19,7 +19,7 @@ pub fn get_jwt_secret() -> &'static [u8] {
                 panic!("JWT_SECRET environment variable must be set. If this is a frontend/WASM build, the 'ssr' feature may have been incorrectly enabled.");
             });
         if secret.len() < 32 {
-            panic!("JWT_SECRET must be at least 32 characters long for security.");
+            panic!("JWT_SECRET must be at least 32 bytes long for security.");
         }
         secret.into_bytes()
     })
