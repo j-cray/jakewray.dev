@@ -323,7 +323,7 @@ pub fn JournalismPage() -> impl IntoView {
                                         let preview_text = extract_body_preview(&article.content_html)
                                             .unwrap_or_else(|| article.excerpt.clone());
                                         let image = article.images.first().cloned();
-                                        let thumb_src = image.clone().unwrap_or_else(|| "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='400' height='300' viewBox='0 0 400 300'><rect width='400' height='300' fill='%23e5e7eb'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' fill='%239ca3af' font-size='16' font-family='Inter, sans-serif'>Image coming soon</text></svg>".to_string());
+                                        let has_image = image.is_some();
                                         let date = extract_printed_date(&article.content_html)
                                             .unwrap_or_else(|| article.display_date.clone());
                                         let date = format_cp_style(&date);
@@ -331,8 +331,17 @@ pub fn JournalismPage() -> impl IntoView {
                                         view! {
                                             <A href=format!("/journalism/{}", slug) attr:class="journalism-card">
                                                 <div class="journalism-thumb">
-                                                    <img src=thumb_src class="journalism-img" alt="article thumbnail"/>
-                                                    {image.is_none().then(|| view! { <div class="journalism-placeholder-text">"Image coming soon"</div> })}
+                                                    {if has_image {
+                                                        view! { <img src=image.clone().unwrap() class="journalism-img" alt="article thumbnail"/> }.into_any()
+                                                    } else {
+                                                        view! {
+                                                            <svg class="journalism-img" xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300">
+                                                                <rect width="400" height="300" fill="#e5e7eb"/>
+                                                                <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="#9ca3af" font-size="16" font-family="Inter, sans-serif">"Image coming soon"</text>
+                                                            </svg>
+                                                        }.into_any()
+                                                    }}
+                                                    {(!has_image).then(|| view! { <div class="journalism-placeholder-text">"Image coming soon"</div> })}
                                                 </div>
                                                 <div class="journalism-body">
                                                     <p class="journalism-date">{date}</p>

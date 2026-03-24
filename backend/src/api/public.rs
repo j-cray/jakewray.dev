@@ -6,6 +6,7 @@ use sqlx::SqlitePool;
 pub struct Pagination {
     pub limit: Option<u32>,
     pub offset: Option<u32>,
+    pub before: Option<String>,
 }
 pub fn router(state: crate::state::AppState) -> Router<crate::state::AppState> {
     let public_governor_layer = tower_governor::GovernorLayer {
@@ -46,39 +47,72 @@ async fn list_articles(
     Query(query): Query<Pagination>,
 ) -> Result<Json<Vec<Article>>, axum::http::StatusCode> {
     let limit = query.limit.unwrap_or(20).min(50);
-    let offset = query.offset.unwrap_or(0);
-    if offset > 10_000 {
-        return Err(axum::http::StatusCode::BAD_REQUEST);
-    }
-    match sqlx::query("SELECT id, wp_id, slug, title, subtitle, excerpt, content, cover_image_url, author, published_at, origin FROM articles ORDER BY published_at DESC LIMIT ? OFFSET ?")
-        .bind(limit)
-        .bind(offset)
-        .try_map(|row: sqlx::sqlite::SqliteRow| {
-            let origin_str: String = row.try_get("origin")?;
-            let origin = match origin_str.as_str() {
-                "imported" => shared::Origin::Imported,
-                "synced" => shared::Origin::Synced,
-                _ => shared::Origin::Local,
-            };
-            let id_str: String = row.try_get("id")?;
-            let id = id_str.parse::<uuid::Uuid>().map_err(|e| sqlx::Error::Decode(Box::new(e)))?;
-            Ok(Article {
-                id,
-                wp_id: row.try_get("wp_id")?,
-                slug: row.try_get("slug")?,
-                title: row.try_get("title")?,
-                subtitle: row.try_get("subtitle")?,
-                excerpt: row.try_get("excerpt")?,
-                content: row.try_get("content")?,
-                cover_image_url: row.try_get("cover_image_url")?,
-                author: row.try_get("author")?,
-                published_at: row.try_get("published_at")?,
-                origin,
+
+    let rows_res = if let Some(before) = query.before {
+        sqlx::query("SELECT id, wp_id, slug, title, subtitle, excerpt, content, cover_image_url, author, published_at, origin FROM articles WHERE published_at < ? ORDER BY published_at DESC LIMIT ?")
+            .bind(before)
+            .bind(limit)
+            .try_map(|row: sqlx::sqlite::SqliteRow| {
+                let origin_str: String = row.try_get("origin")?;
+                let origin = match origin_str.as_str() {
+                    "imported" => shared::Origin::Imported,
+                    "synced" => shared::Origin::Synced,
+                    _ => shared::Origin::Local,
+                };
+                let id_str: String = row.try_get("id")?;
+                let id = id_str.parse::<uuid::Uuid>().map_err(|e| sqlx::Error::Decode(Box::new(e)))?;
+                Ok(Article {
+                    id,
+                    wp_id: row.try_get("wp_id")?,
+                    slug: row.try_get("slug")?,
+                    title: row.try_get("title")?,
+                    subtitle: row.try_get("subtitle")?,
+                    excerpt: row.try_get("excerpt")?,
+                    content: row.try_get("content")?,
+                    cover_image_url: row.try_get("cover_image_url")?,
+                    author: row.try_get("author")?,
+                    published_at: row.try_get("published_at")?,
+                    origin,
+                })
             })
-        })
-        .fetch_all(&pool)
-        .await
-    {
+            .fetch_all(&pool)
+            .await
+    } else {
+        let offset = query.offset.unwrap_or(0);
+        if offset > 10_000 {
+            return Err(axum::http::StatusCode::BAD_REQUEST);
+        }
+        sqlx::query("SELECT id, wp_id, slug, title, subtitle, excerpt, content, cover_image_url, author, published_at, origin FROM articles ORDER BY published_at DESC LIMIT ? OFFSET ?")
+            .bind(limit)
+            .bind(offset)
+            .try_map(|row: sqlx::sqlite::SqliteRow| {
+                let origin_str: String = row.try_get("origin")?;
+                let origin = match origin_str.as_str() {
+                    "imported" => shared::Origin::Imported,
+                    "synced" => shared::Origin::Synced,
+                    _ => shared::Origin::Local,
+                };
+                let id_str: String = row.try_get("id")?;
+                let id = id_str.parse::<uuid::Uuid>().map_err(|e| sqlx::Error::Decode(Box::new(e)))?;
+                Ok(Article {
+                    id,
+                    wp_id: row.try_get("wp_id")?,
+                    slug: row.try_get("slug")?,
+                    title: row.try_get("title")?,
+                    subtitle: row.try_get("subtitle")?,
+                    excerpt: row.try_get("excerpt")?,
+                    content: row.try_get("content")?,
+                    cover_image_url: row.try_get("cover_image_url")?,
+                    author: row.try_get("author")?,
+                    published_at: row.try_get("published_at")?,
+                    origin,
+                })
+            })
+            .fetch_all(&pool)
+            .await
+    };
+
+    match rows_res {
         Ok(articles) => Ok(Json(articles)),
         Err(e) => {
             tracing::error!("Failed to fetch articles: {}", e);
@@ -92,36 +126,66 @@ async fn list_blog_posts(
     Query(query): Query<Pagination>,
 ) -> Result<Json<Vec<BlogPost>>, axum::http::StatusCode> {
     let limit = query.limit.unwrap_or(20).min(50);
-    let offset = query.offset.unwrap_or(0);
-    if offset > 10_000 {
-        return Err(axum::http::StatusCode::BAD_REQUEST);
-    }
-    match sqlx::query("SELECT id, slug, title, content, published_at, tags FROM blog_posts ORDER BY published_at DESC LIMIT ? OFFSET ?")
-        .bind(limit)
-        .bind(offset)
-        .try_map(|row: sqlx::sqlite::SqliteRow| {
-            let tags_str: Option<String> = row.try_get("tags")?;
-            let tags = match tags_str {
-                Some(s) => match serde_json::from_str(&s) {
-                    Ok(t) => Some(t),
-                    Err(e) => return Err(sqlx::Error::Decode(Box::new(e))),
-                },
-                None => None,
-            };
-            let id_str: String = row.try_get("id")?;
-            let id = id_str.parse::<uuid::Uuid>().map_err(|e| sqlx::Error::Decode(Box::new(e)))?;
-            Ok(BlogPost {
-                id,
-                slug: row.try_get("slug")?,
-                title: row.try_get("title")?,
-                content: row.try_get("content")?,
-                published_at: row.try_get("published_at")?,
-                tags,
+
+    let rows_res = if let Some(before) = query.before {
+        sqlx::query("SELECT id, slug, title, content, published_at, tags FROM blog_posts WHERE published_at < ? ORDER BY published_at DESC LIMIT ?")
+            .bind(before)
+            .bind(limit)
+            .try_map(|row: sqlx::sqlite::SqliteRow| {
+                let tags_str: Option<String> = row.try_get("tags")?;
+                let tags = match tags_str {
+                    Some(s) => match serde_json::from_str(&s) {
+                        Ok(t) => Some(t),
+                        Err(e) => return Err(sqlx::Error::Decode(Box::new(e))),
+                    },
+                    None => None,
+                };
+                let id_str: String = row.try_get("id")?;
+                let id = id_str.parse::<uuid::Uuid>().map_err(|e| sqlx::Error::Decode(Box::new(e)))?;
+                Ok(BlogPost {
+                    id,
+                    slug: row.try_get("slug")?,
+                    title: row.try_get("title")?,
+                    content: row.try_get("content")?,
+                    published_at: row.try_get("published_at")?,
+                    tags,
+                })
             })
-        })
-        .fetch_all(&pool)
-        .await
-    {
+            .fetch_all(&pool)
+            .await
+    } else {
+        let offset = query.offset.unwrap_or(0);
+        if offset > 10_000 {
+            return Err(axum::http::StatusCode::BAD_REQUEST);
+        }
+        sqlx::query("SELECT id, slug, title, content, published_at, tags FROM blog_posts ORDER BY published_at DESC LIMIT ? OFFSET ?")
+            .bind(limit)
+            .bind(offset)
+            .try_map(|row: sqlx::sqlite::SqliteRow| {
+                let tags_str: Option<String> = row.try_get("tags")?;
+                let tags = match tags_str {
+                    Some(s) => match serde_json::from_str(&s) {
+                        Ok(t) => Some(t),
+                        Err(e) => return Err(sqlx::Error::Decode(Box::new(e))),
+                    },
+                    None => None,
+                };
+                let id_str: String = row.try_get("id")?;
+                let id = id_str.parse::<uuid::Uuid>().map_err(|e| sqlx::Error::Decode(Box::new(e)))?;
+                Ok(BlogPost {
+                    id,
+                    slug: row.try_get("slug")?,
+                    title: row.try_get("title")?,
+                    content: row.try_get("content")?,
+                    published_at: row.try_get("published_at")?,
+                    tags,
+                })
+            })
+            .fetch_all(&pool)
+            .await
+    };
+
+    match rows_res {
         Ok(posts) => Ok(Json(posts)),
         Err(e) => {
             tracing::error!("Failed to fetch blog posts: {}", e);

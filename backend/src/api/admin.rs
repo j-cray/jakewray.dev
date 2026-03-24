@@ -124,7 +124,14 @@ impl tower_governor::key_extractor::KeyExtractor for TrustedProxyIpKeyExtractor 
         let is_trusted_proxy = peer_ip.is_some_and(|ip| trusted_ips.contains(&ip));
 
         if is_trusted_proxy {
-            // Priority 1: X-Forwarded-For
+            // Priority 1: X-Real-IP
+            if let Some(real_ip) = req.headers().get("X-Real-IP").and_then(|h| h.to_str().ok()) {
+                if let Ok(parsed_ip) = real_ip.trim().parse::<std::net::IpAddr>() {
+                    return Ok(parsed_ip.to_string());
+                }
+            }
+
+            // Priority 2: X-Forwarded-For
             if let Some(forwarded_for) = req
                 .headers()
                 .get("X-Forwarded-For")
@@ -137,7 +144,11 @@ impl tower_governor::key_extractor::KeyExtractor for TrustedProxyIpKeyExtractor 
                 // will put its own IP rightmost, making all traffic share one rate limit bucket.
                 if let Some(last_ip) = forwarded_for.split(',').next_back() {
                     if let Ok(parsed_ip) = last_ip.trim().parse::<std::net::IpAddr>() {
-                        tracing::debug!("Extracted client IP {} from X-Forwarded-For rightmost entry. Multi-hop proxies (e.g. Cloudflare) may cause all clients to share this IP.", parsed_ip);
+                        if Some(parsed_ip) == peer_ip {
+                            tracing::warn!("X-Forwarded-For rightmost IP {} matches the proxy peer IP. This usually indicates a CDN or external load balancer is stripping or improperly appending headers, collapsing all clients into one rate-limit bucket.", parsed_ip);
+                        } else {
+                            tracing::debug!("Extracted client IP {} from X-Forwarded-For rightmost entry. Multi-hop proxies (e.g. Cloudflare) may cause all clients to share this IP.", parsed_ip);
+                        }
                         return Ok(parsed_ip.to_string());
                     }
                 }
@@ -173,7 +184,7 @@ pub fn router(state: crate::state::AppState) -> Router<crate::state::AppState> {
     // acceptable trade-off to avoid the complexity of a distributed rate limiter like Redis. It is recommended
     // to pair this with an OS-level fail2ban or log-based alerting to compensate.
     tracing::info!("Initializing rate limiters. Warning: In-memory rate limiter state resets on restart. Frequent restarts may bypass burst limits.");
-    let login_governor_config = std::sync::Arc::new(
+    let auth_governor_config = std::sync::Arc::new(
         tower_governor::governor::GovernorConfigBuilder::default()
             .key_extractor(TrustedProxyIpKeyExtractor)
             .per_second(1)
@@ -183,20 +194,11 @@ pub fn router(state: crate::state::AppState) -> Router<crate::state::AppState> {
     );
 
     let login_governor_layer = tower_governor::GovernorLayer {
-        config: login_governor_config,
+        config: auth_governor_config.clone(),
     };
 
-    let password_governor_config = std::sync::Arc::new(
-        tower_governor::governor::GovernorConfigBuilder::default()
-            .key_extractor(TrustedProxyIpKeyExtractor)
-            .per_second(1)
-            .burst_size(1)
-            .finish()
-            .unwrap(),
-    );
-
     let password_governor_layer = tower_governor::GovernorLayer {
-        config: password_governor_config,
+        config: auth_governor_config,
     };
 
     let me_governor_layer = tower_governor::GovernorLayer {
@@ -448,10 +450,7 @@ async fn change_password(
     let password_match = verify_password(&req.current_password, hash_to_verify);
 
     if user_id_res.is_err() {
-        return Err((
-            StatusCode::UNAUTHORIZED,
-            "Invalid token".to_string(),
-        ));
+        return Err((StatusCode::UNAUTHORIZED, "Invalid token".to_string()));
     }
 
     if !is_valid_user || !password_match {

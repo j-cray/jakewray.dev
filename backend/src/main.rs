@@ -84,14 +84,27 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         match std::env::var("TRUSTED_PROXY_IPS").as_deref() {
             Err(_) => panic!("TRUSTED_PROXY_IPS must be set in production. Otherwise, all users behind a proxy will share a single rate-limit bucket."),
             Ok(ips) if ips.trim().is_empty() => panic!("TRUSTED_PROXY_IPS is set but empty. This will cause all proxies to be untrusted, collapsing rate limits."),
-            Ok("172.18.0.2,172.18.0.3") | Ok("172.18.0.2, 172.18.0.3") => {
-                tracing::warn!("=====================================================================");
-                tracing::warn!("WARNING: TRUSTED_PROXY_IPS is set to the default Docker bridge IPs.");
-                tracing::warn!("Container IPs can change on restart. Rate limiting may fail open if these are incorrect.");
-                tracing::warn!("Please verify these IPs post-deploy or use a more robust mechanism.");
-                tracing::warn!("=====================================================================");
+            Ok(ips) => {
+                let default_ips = ips.split(',').map(|s| s.trim()).filter(|s| !s.is_empty());
+                let mut has_private = false;
+                for ip_str in default_ips {
+                    if let Ok(std::net::IpAddr::V4(v4)) = ip_str.parse::<std::net::IpAddr>() {
+                        let octets = v4.octets();
+                        if octets[0] == 10 || (octets[0] == 172 && (16..=31).contains(&octets[1])) {
+                            has_private = true;
+                            break;
+                        }
+                    }
+                }
+
+                if has_private {
+                    tracing::warn!("=====================================================================");
+                    tracing::warn!("WARNING: TRUSTED_PROXY_IPS contains private (e.g., Docker bridge) IPs.");
+                    tracing::warn!("Container IPs can change on restart. Rate limiting may fail open if these are incorrect.");
+                    tracing::warn!("Please verify these IPs post-deploy or use a more robust mechanism.");
+                    tracing::warn!("=====================================================================");
+                }
             }
-            Ok(_) => {}
         }
     }
 
