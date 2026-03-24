@@ -102,8 +102,7 @@ impl tower_governor::key_extractor::KeyExtractor for TrustedProxyIpKeyExtractor 
 
         let peer_ip = connect_info.map(|ci| ci.0.ip());
 
-        extract_client_ip(req.headers(), peer_ip)
-            .ok_or(tower_governor::GovernorError::UnableToExtractKey)
+        Ok(extract_client_ip(req.headers(), peer_ip).unwrap_or_else(|| "0.0.0.0".to_string()))
     }
 }
 

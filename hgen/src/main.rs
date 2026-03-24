@@ -12,7 +12,7 @@ use argon2::{
 };
 fn main() {
     let mut password = String::new();
-    std::io::stdin().read_line(&mut password).expect("Failed to read password");
+    std::io::Read::read_to_string(&mut std::io::stdin(), &mut password).expect("Failed to read password");
     let password = password.trim_end_matches(['\r', '\n']);
     let salt = SaltString::generate(&mut OsRng);
     let params = argon2::Params::new(

@@ -249,7 +249,7 @@ async fn login(
 
 async fn me(
     headers: HeaderMap,
-    axum::extract::ConnectInfo(peer_addr): axum::extract::ConnectInfo<std::net::SocketAddr>,
+    connect_info: Option<axum::extract::ConnectInfo<std::net::SocketAddr>>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     // Design Note: The /me endpoint validates the JWT cryptographically but does not query the database.
     // This means a deleted user's JWT remains valid until expiration (24h). For a single-admin personal site,
@@ -268,9 +268,12 @@ async fn me(
         &validation,
     )
     .map_err(|e| {
-        let proxy_ip = peer_addr.ip().to_string();
+        let proxy_ip = connect_info
+            .as_ref()
+            .map(|ci| ci.0.ip().to_string())
+            .unwrap_or_else(|| "unknown".to_string());
 
-        let client_ip = crate::api::extract_client_ip(&headers, Some(peer_addr.ip()))
+        let client_ip = crate::api::extract_client_ip(&headers, connect_info.map(|ci| ci.0.ip()))
             .unwrap_or_else(|| proxy_ip.clone());
         let safe_client_ip = client_ip.replace(['\n', '\r'], " ");
 

@@ -235,7 +235,7 @@ fn linkify_images(html: &str) -> String {
                         .replace("<", "&lt;")
                         .replace(">", "&gt;");
                     let wrapper_start = format!(
-                        "<a href=\"{}\" target=\"_blank\" class=\"article-image-link\">",
+                        "<a href=\"{}\" target=\"_blank\" rel=\"noopener noreferrer\" class=\"article-image-link\">",
                         safe_url
                     );
                     let wrapper_end = "</a>";
@@ -357,7 +357,7 @@ pub fn JournalismPage() -> impl IntoView {
                                                             </svg>
                                                         }.into_any()
                                                     }}
-                                                    {(!has_image).then(|| view! { <div class="journalism-placeholder-text">"Image coming soon"</div> })}
+                                                    // Removed duplicate placeholder div
                                                 </div>
                                                 <div class="journalism-body">
                                                     <p class="journalism-date">{date}</p>

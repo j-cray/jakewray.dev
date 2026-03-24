@@ -28,6 +28,7 @@ JWT_SECRET=$(openssl rand -base64 48 | tr -d '\n')
 # Run `docker network inspect jakewraydev_default` to find the proxy IP,
 # and manually add TRUSTED_PROXY_IPS=<ip> to this file if using rate limiting.
 EOF
+chmod 600 .env
 else
     echo "Using existing .env file."
 fi
