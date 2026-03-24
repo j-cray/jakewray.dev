@@ -5,6 +5,38 @@ use std::sync::OnceLock;
 pub mod admin;
 mod public;
 
+static TRUSTED_PROXY_IPS: OnceLock<Vec<std::net::IpAddr>> = OnceLock::new();
+
+pub fn init_trusted_proxies() {
+    let _ = get_trusted_proxies();
+}
+
+fn get_trusted_proxies() -> &'static Vec<std::net::IpAddr> {
+    TRUSTED_PROXY_IPS.get_or_init(|| {
+        std::env::var("TRUSTED_PROXY_IPS")
+            .unwrap_or_default()
+            .split(',')
+            .filter_map(|s| {
+                let trimmed = s.trim();
+                if trimmed.is_empty() {
+                    return None;
+                }
+                match trimmed.parse() {
+                    Ok(ip) => Some(ip),
+                    Err(e) => {
+                        tracing::warn!(
+                            "Invalid IP address in TRUSTED_PROXY_IPS '{}': {}",
+                            trimmed,
+                            e
+                        );
+                        None
+                    }
+                }
+            })
+            .collect()
+    })
+}
+
 #[derive(Clone)]
 pub struct TrustedProxyIpKeyExtractor;
 
@@ -17,30 +49,7 @@ impl tower_governor::key_extractor::KeyExtractor for TrustedProxyIpKeyExtractor 
             .get::<axum::extract::ConnectInfo<std::net::SocketAddr>>()
             .map(|ci| ci.0.ip());
 
-        static TRUSTED_PROXY_IPS: OnceLock<Vec<std::net::IpAddr>> = OnceLock::new();
-        let trusted_ips = TRUSTED_PROXY_IPS.get_or_init(|| {
-            std::env::var("TRUSTED_PROXY_IPS")
-                .unwrap_or_default()
-                .split(',')
-                .filter_map(|s| {
-                    let trimmed = s.trim();
-                    if trimmed.is_empty() {
-                        return None;
-                    }
-                    match trimmed.parse() {
-                        Ok(ip) => Some(ip),
-                        Err(e) => {
-                            tracing::warn!(
-                                "Invalid IP address in TRUSTED_PROXY_IPS '{}': {}",
-                                trimmed,
-                                e
-                            );
-                            None
-                        }
-                    }
-                })
-                .collect()
-        });
+        let trusted_ips = get_trusted_proxies();
 
         let is_trusted_proxy = peer_ip.is_some_and(|ip| trusted_ips.contains(&ip));
 

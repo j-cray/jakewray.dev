@@ -111,16 +111,7 @@ pub fn router(state: crate::state::AppState) -> Router<crate::state::AppState> {
     // acceptable trade-off to avoid the complexity of a distributed rate limiter like Redis. It is REQUIRED
     // to pair this with an OS-level fail2ban or log-based alerting to compensate for the login endpoint.
     tracing::info!("Initializing rate limiters. Warning: In-memory rate limiter state resets on restart. Frequent restarts may bypass burst limits.");
-    let login_governor_config = std::sync::Arc::new(
-        tower_governor::governor::GovernorConfigBuilder::default()
-            .key_extractor(crate::api::TrustedProxyIpKeyExtractor)
-            .per_second(1)
-            .burst_size(1)
-            .finish()
-            .unwrap(),
-    );
-
-    let password_governor_config = std::sync::Arc::new(
+    let auth_governor_config = std::sync::Arc::new(
         tower_governor::governor::GovernorConfigBuilder::default()
             .key_extractor(crate::api::TrustedProxyIpKeyExtractor)
             .per_second(1)
@@ -130,11 +121,11 @@ pub fn router(state: crate::state::AppState) -> Router<crate::state::AppState> {
     );
 
     let login_governor_layer = tower_governor::GovernorLayer {
-        config: login_governor_config,
+        config: auth_governor_config.clone(),
     };
 
     let password_governor_layer = tower_governor::GovernorLayer {
-        config: password_governor_config,
+        config: auth_governor_config,
     };
 
     let me_governor_layer = tower_governor::GovernorLayer {
@@ -214,7 +205,11 @@ async fn login(
         }
     };
 
-    let password_match = verify_password(&req.password, hash_to_verify);
+    let hash = hash_to_verify.to_string();
+    let pw = req.password.clone();
+    let password_match = tokio::task::spawn_blocking(move || verify_password(&pw, &hash))
+        .await
+        .unwrap_or(false);
     let is_invalid = !is_valid_user || !password_match;
 
     if is_invalid {
@@ -278,11 +273,12 @@ async fn me(
         let client_ip = real_ip
             .or(forwarded_for)
             .unwrap_or_else(|| "unknown".to_string());
+        let safe_client_ip = client_ip.replace(['\n', '\r'], " ");
         let proxy_ip = peer_addr.ip().to_string();
 
         tracing::warn!(
             "Invalid token on /me from client IP {} (via proxy {}): {}",
-            client_ip,
+            safe_client_ip,
             proxy_ip,
             e
         );
@@ -379,7 +375,11 @@ async fn change_password(
         None => (get_dummy_hash(), false),
     };
 
-    let password_match = verify_password(&req.current_password, hash_to_verify);
+    let hash = hash_to_verify.to_string();
+    let pw = req.current_password.clone();
+    let password_match = tokio::task::spawn_blocking(move || verify_password(&pw, &hash))
+        .await
+        .unwrap_or(false);
 
     if !is_valid_user || !password_match {
         return Err((
@@ -389,13 +389,17 @@ async fn change_password(
     }
 
     // Hash new password and update
-    let new_hash = hash_password(&req.new_password).map_err(|e| {
-        tracing::error!("Failed to hash new password: {}", e);
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            "Failed to hash password".to_string(),
-        )
-    })?;
+    let pw = req.new_password.clone();
+    let new_hash = tokio::task::spawn_blocking(move || hash_password(&pw))
+        .await
+        .unwrap_or_else(|_| Err("Task join failed".to_string()))
+        .map_err(|e| {
+            tracing::error!("Failed to hash new password: {}", e);
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "Failed to hash password".to_string(),
+            )
+        })?;
 
     sqlx::query("UPDATE users SET password_hash = ? WHERE id = ?")
         .bind(new_hash)
