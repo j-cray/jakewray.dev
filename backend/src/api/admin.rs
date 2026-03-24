@@ -125,7 +125,9 @@ impl tower_governor::key_extractor::KeyExtractor for TrustedProxyIpKeyExtractor 
 
         if is_trusted_proxy {
             // Priority 1: X-Real-IP is checked first.
-            // Some proxy configurations use X-Real-IP to explicitly pass the client IP, overriding XFF lists.
+            // WARNING: If Nginx is used, it MUST explicitly strip or override this header from the client
+            // using `proxy_set_header X-Real-IP $remote_addr;`. If it does not, a client behind the
+            // trusted proxy can easily spoof their IP bypassing the rate limiter.
             if let Some(real_ip) = req.headers().get("X-Real-IP").and_then(|h| h.to_str().ok()) {
                 if let Ok(parsed_ip) = real_ip.parse::<std::net::IpAddr>() {
                     return Ok(parsed_ip.to_string());
@@ -177,7 +179,8 @@ pub fn router(state: crate::state::AppState) -> Router<crate::state::AppState> {
     // Burst windows completely refresh across restarts. Therefore, the effective rate limiting
     // window ONLY covers uptime, not absolute calendar time. An attacker who can trigger or observe
     // restarts could reset their login throttle window. For a low-traffic personal site, this is an
-    // acceptable trade-off to avoid the complexity of a distributed rate limiter like Redis.
+    // acceptable trade-off to avoid the complexity of a distributed rate limiter like Redis. It is recommended
+    // to pair this with an OS-level fail2ban or log-based alerting to compensate.
     tracing::info!("Initializing rate limiters. Warning: In-memory rate limiter state resets on restart. Frequent restarts may bypass burst limits.");
     let login_governor_config = std::sync::Arc::new(
         tower_governor::governor::GovernorConfigBuilder::default()
@@ -288,7 +291,7 @@ async fn login(
         }
     };
 
-    let password_match = std::hint::black_box(verify_password(&req.password, hash_to_verify));
+    let password_match = verify_password(&req.password, hash_to_verify);
     let is_invalid = !is_valid_user || !password_match;
 
     if is_invalid {
@@ -428,33 +431,37 @@ async fn change_password(
         ));
     }
 
-    let user_id = uuid::Uuid::parse_str(&token_data.claims.sub).map_err(|_| {
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            "Invalid user ID format in token".to_string(),
-        )
-    })?;
+    let user_id_res = uuid::Uuid::parse_str(&token_data.claims.sub);
 
     // Verify current password
-    let user: Option<UserRow> = sqlx::query_as("SELECT id, password_hash FROM users WHERE id = ?")
-        .bind(user_id.to_string())
-        .fetch_optional(&pool)
-        .await
-        .map_err(|e| {
-            tracing::error!("Database error fetching user for password change: {}", e);
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                "Database error".to_string(),
-            )
-        })?;
+    let user: Option<UserRow> = match &user_id_res {
+        Ok(id) => sqlx::query_as("SELECT id, password_hash FROM users WHERE id = ?")
+            .bind(id.to_string())
+            .fetch_optional(&pool)
+            .await
+            .map_err(|e| {
+                tracing::error!("Database error fetching user for password change: {}", e);
+                (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    "Database error".to_string(),
+                )
+            })?,
+        Err(_) => None,
+    };
 
     let (hash_to_verify, is_valid_user) = match user {
         Some(ref u) => (u.password_hash.as_str(), true),
         None => (get_dummy_hash(), false),
     };
 
-    let password_match =
-        std::hint::black_box(verify_password(&req.current_password, hash_to_verify));
+    let password_match = verify_password(&req.current_password, hash_to_verify);
+
+    if user_id_res.is_err() {
+        return Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "Invalid user ID format in token".to_string(),
+        ));
+    }
 
     if !is_valid_user || !password_match {
         return Err((
@@ -474,7 +481,7 @@ async fn change_password(
 
     sqlx::query("UPDATE users SET password_hash = ? WHERE id = ?")
         .bind(new_hash)
-        .bind(user_id.to_string())
+        .bind(user_id_res.unwrap().to_string())
         .execute(&pool)
         .await
         .map_err(|e| {

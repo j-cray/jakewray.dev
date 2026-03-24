@@ -229,9 +229,14 @@ fn linkify_images(html: &str) -> String {
                     || src_url.starts_with('/');
 
                 if is_safe_scheme {
+                    let safe_url = src_url
+                        .replace("&", "&amp;")
+                        .replace("\"", "&quot;")
+                        .replace("<", "&lt;")
+                        .replace(">", "&gt;");
                     let wrapper_start = format!(
                         "<a href=\"{}\" target=\"_blank\" class=\"article-image-link\">",
-                        src_url
+                        safe_url
                     );
                     let wrapper_end = "</a>";
 

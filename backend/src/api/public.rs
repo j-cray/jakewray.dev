@@ -51,25 +51,25 @@ async fn list_articles(
         .bind(limit)
         .bind(offset)
         .try_map(|row: sqlx::sqlite::SqliteRow| {
-            let origin_str: String = row.get("origin");
+            let origin_str: String = row.try_get("origin")?;
             let origin = match origin_str.as_str() {
                 "imported" => shared::Origin::Imported,
                 "synced" => shared::Origin::Synced,
                 _ => shared::Origin::Local,
             };
-            let id_str: String = row.get("id");
+            let id_str: String = row.try_get("id")?;
             let id = id_str.parse::<uuid::Uuid>().map_err(|e| sqlx::Error::Decode(Box::new(e)))?;
             Ok(Article {
                 id,
-                wp_id: row.get("wp_id"),
-                slug: row.get("slug"),
-                title: row.get("title"),
-                subtitle: row.get("subtitle"),
-                excerpt: row.get("excerpt"),
-                content: row.get("content"),
-                cover_image_url: row.get("cover_image_url"),
-                author: row.get("author"),
-                published_at: row.get("published_at"),
+                wp_id: row.try_get("wp_id")?,
+                slug: row.try_get("slug")?,
+                title: row.try_get("title")?,
+                subtitle: row.try_get("subtitle")?,
+                excerpt: row.try_get("excerpt")?,
+                content: row.try_get("content")?,
+                cover_image_url: row.try_get("cover_image_url")?,
+                author: row.try_get("author")?,
+                published_at: row.try_get("published_at")?,
                 origin,
             })
         })
@@ -94,7 +94,7 @@ async fn list_blog_posts(
         .bind(limit)
         .bind(offset)
         .try_map(|row: sqlx::sqlite::SqliteRow| {
-            let tags_str: Option<String> = row.get("tags");
+            let tags_str: Option<String> = row.try_get("tags")?;
             let tags = match tags_str {
                 Some(s) => match serde_json::from_str(&s) {
                     Ok(t) => Some(t),
@@ -102,14 +102,14 @@ async fn list_blog_posts(
                 },
                 None => None,
             };
-            let id_str: String = row.get("id");
+            let id_str: String = row.try_get("id")?;
             let id = id_str.parse::<uuid::Uuid>().map_err(|e| sqlx::Error::Decode(Box::new(e)))?;
             Ok(BlogPost {
                 id,
-                slug: row.get("slug"),
-                title: row.get("title"),
-                content: row.get("content"),
-                published_at: row.get("published_at"),
+                slug: row.try_get("slug")?,
+                title: row.try_get("title")?,
+                content: row.try_get("content")?,
+                published_at: row.try_get("published_at")?,
                 tags,
             })
         })

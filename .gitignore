@@ -70,5 +70,4 @@ imports/
 .sass-cache
 
 # Hgen
-hgen/
-hgen/*
+hgen/target/
