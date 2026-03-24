@@ -1,7 +1,90 @@
+use axum::http::Request;
 use axum::Router;
+use std::sync::OnceLock;
 
 pub mod admin;
 mod public;
+
+#[derive(Clone)]
+pub struct TrustedProxyIpKeyExtractor;
+
+impl tower_governor::key_extractor::KeyExtractor for TrustedProxyIpKeyExtractor {
+    type Key = String;
+
+    fn extract<T>(&self, req: &Request<T>) -> Result<Self::Key, tower_governor::GovernorError> {
+        let peer_ip = req
+            .extensions()
+            .get::<axum::extract::ConnectInfo<std::net::SocketAddr>>()
+            .map(|ci| ci.0.ip());
+
+        static TRUSTED_PROXY_IPS: OnceLock<Vec<std::net::IpAddr>> = OnceLock::new();
+        let trusted_ips = TRUSTED_PROXY_IPS.get_or_init(|| {
+            std::env::var("TRUSTED_PROXY_IPS")
+                .unwrap_or_default()
+                .split(',')
+                .filter_map(|s| {
+                    let trimmed = s.trim();
+                    if trimmed.is_empty() {
+                        return None;
+                    }
+                    match trimmed.parse() {
+                        Ok(ip) => Some(ip),
+                        Err(e) => {
+                            tracing::warn!(
+                                "Invalid IP address in TRUSTED_PROXY_IPS '{}': {}",
+                                trimmed,
+                                e
+                            );
+                            None
+                        }
+                    }
+                })
+                .collect()
+        });
+
+        let is_trusted_proxy = peer_ip.is_some_and(|ip| trusted_ips.contains(&ip));
+
+        if is_trusted_proxy {
+            // Priority 1: X-Real-IP
+            if let Some(real_ip) = req.headers().get("X-Real-IP").and_then(|h| h.to_str().ok()) {
+                if let Ok(parsed_ip) = real_ip.trim().parse::<std::net::IpAddr>() {
+                    return Ok(parsed_ip.to_string());
+                }
+            }
+
+            // Priority 2: X-Forwarded-For
+            if let Some(forwarded_for) = req
+                .headers()
+                .get("X-Forwarded-For")
+                .and_then(|h| h.to_str().ok())
+            {
+                // We pick the rightmost IP (next_back) under the exact assumption that the trusted Nginx configuration
+                // uses `proxy_add_x_forwarded_for`, which appends the connecting peer's IP (the hop right before Nginx) to the right.
+                // We pick the rightmost IP because that is the most trusted hop added by our reverse proxy, preventing client-side spoofing.
+                // NOTE: This assumes Nginx is the ONLY intermediate proxy. Any CDN or external load balancer
+                // will put its own IP rightmost, making all traffic share one rate limit bucket.
+                if let Some(last_ip) = forwarded_for.split(',').next_back() {
+                    if let Ok(parsed_ip) = last_ip.trim().parse::<std::net::IpAddr>() {
+                        if Some(parsed_ip) == peer_ip {
+                            tracing::warn!("X-Forwarded-For rightmost IP {} matches the proxy peer IP. This usually indicates a CDN or external load balancer is stripping or improperly appending headers, collapsing all clients into one rate-limit bucket.", parsed_ip);
+                        } else {
+                            tracing::debug!("Extracted client IP {} from X-Forwarded-For rightmost entry. Multi-hop proxies (e.g. Cloudflare) may cause all clients to share this IP.", parsed_ip);
+                        }
+                        return Ok(parsed_ip.to_string());
+                    }
+                }
+            }
+            tracing::warn!(
+                "TRUSTED_PROXY_IPS allowed proxy IP {}, but no valid X-Real-IP or X-Forwarded-For header was found. Rate limiting will apply to the proxy IP.",
+                peer_ip.unwrap()
+            );
+        }
+
+        peer_ip
+            .map(|ip| ip.to_string())
+            .ok_or(tower_governor::GovernorError::UnableToExtractKey)
+    }
+}
 
 pub fn router(state: crate::state::AppState) -> Router<crate::state::AppState> {
     Router::new()

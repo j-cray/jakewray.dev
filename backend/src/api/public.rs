@@ -9,26 +9,21 @@ pub struct Pagination {
     pub before: Option<String>,
 }
 pub fn router(state: crate::state::AppState) -> Router<crate::state::AppState> {
+    let common_governor_config = std::sync::Arc::new(
+        tower_governor::governor::GovernorConfigBuilder::default()
+            .key_extractor(crate::api::TrustedProxyIpKeyExtractor)
+            .per_second(5)
+            .burst_size(20)
+            .finish()
+            .unwrap(),
+    );
+
     let articles_governor_layer = tower_governor::GovernorLayer {
-        config: std::sync::Arc::new(
-            tower_governor::governor::GovernorConfigBuilder::default()
-                .key_extractor(crate::api::admin::TrustedProxyIpKeyExtractor)
-                .per_second(5)
-                .burst_size(20)
-                .finish()
-                .unwrap(),
-        ),
+        config: common_governor_config.clone(),
     };
 
     let blog_governor_layer = tower_governor::GovernorLayer {
-        config: std::sync::Arc::new(
-            tower_governor::governor::GovernorConfigBuilder::default()
-                .key_extractor(crate::api::admin::TrustedProxyIpKeyExtractor)
-                .per_second(5)
-                .burst_size(20)
-                .finish()
-                .unwrap(),
-        ),
+        config: common_governor_config.clone(),
     };
 
     Router::new()
@@ -55,6 +50,10 @@ async fn list_articles(
     Query(query): Query<Pagination>,
 ) -> Result<Json<Vec<Article>>, axum::http::StatusCode> {
     let limit = query.limit.unwrap_or(20).min(50);
+
+    if query.before.is_some() && query.offset.is_some() {
+        return Err(axum::http::StatusCode::BAD_REQUEST);
+    }
 
     let rows_res = if let Some(before) = query.before {
         if chrono::DateTime::parse_from_rfc3339(&before).is_err() {
@@ -93,6 +92,10 @@ async fn list_blog_posts(
     Query(query): Query<Pagination>,
 ) -> Result<Json<Vec<BlogPost>>, axum::http::StatusCode> {
     let limit = query.limit.unwrap_or(20).min(50);
+
+    if query.before.is_some() && query.offset.is_some() {
+        return Err(axum::http::StatusCode::BAD_REQUEST);
+    }
 
     let rows_res = if let Some(before) = query.before {
         if chrono::DateTime::parse_from_rfc3339(&before).is_err() {
