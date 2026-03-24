@@ -58,3 +58,8 @@ else
     echo "Unknown target: $TARGET"
     exit 1
 fi
+
+echo "====================================================================="
+echo "WARNING: Check your .env file for TRUSTED_PROXY_IPS."
+echo "Docker bridge IPs may change. Verify them if using rate limiting!"
+echo "====================================================================="

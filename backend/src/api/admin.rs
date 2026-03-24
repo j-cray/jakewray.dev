@@ -124,16 +124,7 @@ impl tower_governor::key_extractor::KeyExtractor for TrustedProxyIpKeyExtractor 
         let is_trusted_proxy = peer_ip.is_some_and(|ip| trusted_ips.contains(&ip));
 
         if is_trusted_proxy {
-            // Priority 1: X-Real-IP is checked first.
-            // WARNING: If Nginx is used, it MUST explicitly strip or override this header from the client
-            // using `proxy_set_header X-Real-IP $remote_addr;`. If it does not, a client behind the
-            // trusted proxy can easily spoof their IP bypassing the rate limiter.
-            if let Some(real_ip) = req.headers().get("X-Real-IP").and_then(|h| h.to_str().ok()) {
-                if let Ok(parsed_ip) = real_ip.parse::<std::net::IpAddr>() {
-                    return Ok(parsed_ip.to_string());
-                }
-            }
-            // Priority 2: X-Forwarded-For
+            // Priority 1: X-Forwarded-For
             if let Some(forwarded_for) = req
                 .headers()
                 .get("X-Forwarded-For")
@@ -157,9 +148,9 @@ impl tower_governor::key_extractor::KeyExtractor for TrustedProxyIpKeyExtractor 
             );
         }
 
-        peer_ip
+        Ok(peer_ip
             .map(|ip| ip.to_string())
-            .ok_or(tower_governor::GovernorError::UnableToExtractKey)
+            .unwrap_or_else(|| "unknown".to_string()))
     }
 }
 
@@ -458,8 +449,8 @@ async fn change_password(
 
     if user_id_res.is_err() {
         return Err((
-            StatusCode::INTERNAL_SERVER_ERROR,
-            "Invalid user ID format in token".to_string(),
+            StatusCode::UNAUTHORIZED,
+            "Invalid token".to_string(),
         ));
     }
 
