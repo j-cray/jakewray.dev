@@ -111,7 +111,16 @@ pub fn router(state: crate::state::AppState) -> Router<crate::state::AppState> {
     // acceptable trade-off to avoid the complexity of a distributed rate limiter like Redis. It is recommended
     // to pair this with an OS-level fail2ban or log-based alerting to compensate.
     tracing::info!("Initializing rate limiters. Warning: In-memory rate limiter state resets on restart. Frequent restarts may bypass burst limits.");
-    let auth_governor_config = std::sync::Arc::new(
+    let login_governor_config = std::sync::Arc::new(
+        tower_governor::governor::GovernorConfigBuilder::default()
+            .key_extractor(crate::api::TrustedProxyIpKeyExtractor)
+            .per_second(1)
+            .burst_size(1)
+            .finish()
+            .unwrap(),
+    );
+
+    let password_governor_config = std::sync::Arc::new(
         tower_governor::governor::GovernorConfigBuilder::default()
             .key_extractor(crate::api::TrustedProxyIpKeyExtractor)
             .per_second(1)
@@ -121,11 +130,11 @@ pub fn router(state: crate::state::AppState) -> Router<crate::state::AppState> {
     );
 
     let login_governor_layer = tower_governor::GovernorLayer {
-        config: auth_governor_config.clone(),
+        config: login_governor_config,
     };
 
     let password_governor_layer = tower_governor::GovernorLayer {
-        config: auth_governor_config,
+        config: password_governor_config,
     };
 
     let me_governor_layer = tower_governor::GovernorLayer {
@@ -236,7 +245,7 @@ async fn login(
 
 async fn me(
     headers: HeaderMap,
-    peer_info: Option<axum::extract::ConnectInfo<std::net::SocketAddr>>,
+    axum::extract::ConnectInfo(peer_addr): axum::extract::ConnectInfo<std::net::SocketAddr>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     // Design Note: The /me endpoint validates the JWT cryptographically but does not query the database.
     // This means a deleted user's JWT remains valid until expiration (24h). For a single-admin personal site,
@@ -255,9 +264,7 @@ async fn me(
         &validation,
     )
     .map_err(|e| {
-        let ip = peer_info
-            .map(|ci| ci.0.ip().to_string())
-            .unwrap_or_else(|| "unknown".to_string());
+        let ip = peer_addr.ip().to_string();
         tracing::warn!("Invalid token on /me from {}: {}", ip, e);
         StatusCode::UNAUTHORIZED
     })?;
