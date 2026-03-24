@@ -8,10 +8,11 @@ mod public;
 static TRUSTED_PROXY_IPS: OnceLock<Vec<std::net::IpAddr>> = OnceLock::new();
 
 pub fn init_trusted_proxies() {
-    let _ = get_trusted_proxies();
+    let ips = get_trusted_proxies();
+    tracing::info!("Initialized TRUSTED_PROXY_IPS: {:?}", ips);
 }
 
-fn get_trusted_proxies() -> &'static Vec<std::net::IpAddr> {
+pub(crate) fn get_trusted_proxies() -> &'static Vec<std::net::IpAddr> {
     TRUSTED_PROXY_IPS.get_or_init(|| {
         std::env::var("TRUSTED_PROXY_IPS")
             .unwrap_or_default()

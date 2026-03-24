@@ -46,7 +46,7 @@ CREATE TABLE creative_works (
     id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(4))) || '-' || lower(hex(randomblob(2))) || '-4' || substr(lower(hex(randomblob(2))),2) || '-' || substr('89ab', (random() & 3) + 1, 1) || substr(lower(hex(randomblob(2))),2) || '-' || lower(hex(randomblob(6)))),
     slug TEXT NOT NULL UNIQUE,
     title TEXT NOT NULL,
-    work_type TEXT NOT NULL, -- 'story', 'novel', 'poetry'
+    work_type TEXT NOT NULL CHECK(work_type IN ('story', 'novel', 'poetry')), -- 'story', 'novel', 'poetry'
     synopsis TEXT,
     content TEXT, -- Full text or chapters (can be JSON if complex)
     status TEXT NOT NULL DEFAULT 'published', -- 'draft', 'published'
@@ -64,8 +64,8 @@ CREATE TABLE media_items (
     description TEXT,
     url TEXT NOT NULL, -- S3 URL or local path
     thumbnail_url TEXT,
-    category TEXT NOT NULL, -- 'photography', 'visual_art', 'video', 'j_school'
-    context TEXT NOT NULL DEFAULT 'personal', -- To distinguish Photojournalism (prof) vs Personal
+    category TEXT NOT NULL CHECK(category IN ('photography', 'visual_art', 'video', 'j_school')), -- 'photography', 'visual_art', 'video', 'j_school'
+    context TEXT NOT NULL DEFAULT 'personal' CHECK(context IN ('personal', 'professional')), -- To distinguish Photojournalism (prof) vs Personal
     taken_at DATETIME,
     created_at DATETIME NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))
 );

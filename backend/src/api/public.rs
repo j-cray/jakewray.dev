@@ -183,13 +183,5 @@ fn map_blog_post_row(row: sqlx::sqlite::SqliteRow) -> Result<BlogPost, sqlx::Err
 fn parse_flexible_datetime(dt_str: String) -> Result<chrono::DateTime<chrono::Utc>, sqlx::Error> {
     chrono::DateTime::parse_from_rfc3339(&dt_str)
         .map(|dt| dt.with_timezone(&chrono::Utc))
-        .or_else(|_| {
-            chrono::NaiveDateTime::parse_from_str(&dt_str, "%Y-%m-%d %H:%M:%S")
-                .map(|ndt| ndt.and_utc())
-        })
-        .or_else(|_| {
-            chrono::NaiveDateTime::parse_from_str(&dt_str, "%Y-%m-%d %H:%M:%S%.f")
-                .map(|ndt| ndt.and_utc())
-        })
         .map_err(|e| sqlx::Error::Decode(Box::new(e)))
 }

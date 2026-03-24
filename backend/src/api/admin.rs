@@ -259,22 +259,28 @@ async fn me(
         &validation,
     )
     .map_err(|e| {
-        let real_ip = headers
-            .get("X-Real-IP")
-            .and_then(|h| h.to_str().ok())
-            .map(|s| s.trim().to_string());
-
-        let forwarded_for = headers
-            .get("X-Forwarded-For")
-            .and_then(|h| h.to_str().ok())
-            .and_then(|s| s.split(',').next_back())
-            .map(|s| s.trim().to_string());
-
-        let client_ip = real_ip
-            .or(forwarded_for)
-            .unwrap_or_else(|| "unknown".to_string());
-        let safe_client_ip = client_ip.replace(['\n', '\r'], " ");
         let proxy_ip = peer_addr.ip().to_string();
+        let is_trusted_proxy = crate::api::get_trusted_proxies().contains(&peer_addr.ip());
+
+        let client_ip = if is_trusted_proxy {
+            let real_ip = headers
+                .get("X-Real-IP")
+                .and_then(|h| h.to_str().ok())
+                .map(|s| s.trim().to_string());
+
+            let forwarded_for = headers
+                .get("X-Forwarded-For")
+                .and_then(|h| h.to_str().ok())
+                .and_then(|s| s.split(',').next_back())
+                .map(|s| s.trim().to_string());
+
+            real_ip
+                .or(forwarded_for)
+                .unwrap_or_else(|| "unknown".to_string())
+        } else {
+            proxy_ip.clone()
+        };
+        let safe_client_ip = client_ip.replace(['\n', '\r'], " ");
 
         tracing::warn!(
             "Invalid token on /me from client IP {} (via proxy {}): {}",
