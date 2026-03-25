@@ -9,7 +9,7 @@ The application is a modern, full-stack Rust web application utilizing Server-Si
 
 - **Frontend**: Leptos (Rust WASM framework)
 - **Backend**: Axum (Rust async web framework)
-- **Database**: PostgreSQL (managed via SQLx)
+- **Database**: SQLite (managed via SQLx)
 - **Styling**: SASS / SCSS
 - **Environment**: Nix (via `flake.nix` and `direnv`)
 - **Deployment**: Managed externally via a meta repo.
@@ -20,7 +20,7 @@ The application is a modern, full-stack Rust web application utilizing Server-Si
 - `frontend/`: Client-side Rust code. Contains Leptos components, routing, and UI logic.
 - `shared/`: Shared types, models, and utilities used by both frontend and backend.
 - `migrations/` & `migration/`: SQLx database migration files.
-- `scripts/`: Automation scripts for local development database setup and remote deployment.
+- `scripts/`: Automation scripts for local development database setup.
 - `style/`: SASS stylesheets.
 - `.github/workflows/`: CI/CD pipelines (Formatting, Linting, Testing, Security Audits, and AI reviews).
 
@@ -41,7 +41,7 @@ The recommended way to run the application in development is via `cargo-leptos`,
 cargo leptos watch
 ```
 
-*Note: Make sure your local PostgreSQL database is running via `docker-compose up -d db` (which is typically handled by `setup-dev.sh`).*
+*Note: Make sure your local SQLite database is initialized via `./scripts/setup-dev.sh`.*
 
 ## Important Architectural Guidelines for AI Assistants
 
