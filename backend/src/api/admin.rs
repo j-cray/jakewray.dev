@@ -111,16 +111,7 @@ pub fn router(state: crate::state::AppState) -> Router<crate::state::AppState> {
     // acceptable trade-off to avoid the complexity of a distributed rate limiter like Redis. It is REQUIRED
     // to pair this with an OS-level fail2ban or log-based alerting to compensate for the login endpoint.
     tracing::info!("Initializing rate limiters. Warning: In-memory rate limiter state resets on restart. Frequent restarts may bypass burst limits.");
-    let login_governor_config = std::sync::Arc::new(
-        tower_governor::governor::GovernorConfigBuilder::default()
-            .key_extractor(crate::api::TrustedProxyIpKeyExtractor)
-            .per_second(1)
-            .burst_size(1)
-            .finish()
-            .unwrap(),
-    );
-
-    let password_governor_config = std::sync::Arc::new(
+    let shared_auth_governor_config = std::sync::Arc::new(
         tower_governor::governor::GovernorConfigBuilder::default()
             .key_extractor(crate::api::TrustedProxyIpKeyExtractor)
             .per_second(1)
@@ -130,11 +121,11 @@ pub fn router(state: crate::state::AppState) -> Router<crate::state::AppState> {
     );
 
     let login_governor_layer = tower_governor::GovernorLayer {
-        config: login_governor_config,
+        config: shared_auth_governor_config.clone(),
     };
 
     let password_governor_layer = tower_governor::GovernorLayer {
-        config: password_governor_config,
+        config: shared_auth_governor_config,
     };
 
     let me_governor_layer = tower_governor::GovernorLayer {

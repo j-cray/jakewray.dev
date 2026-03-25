@@ -68,7 +68,7 @@ pub fn extract_client_ip(
                 if let Ok(parsed_ip) = last_ip.trim().parse::<std::net::IpAddr>() {
                     if Some(parsed_ip) == peer_ip {
                         tracing::warn!("X-Forwarded-For rightmost IP {} matches the proxy peer IP. This usually indicates a CDN or external load balancer is stripping or improperly appending headers, collapsing all clients into one rate-limit bucket.", parsed_ip);
-                        // fall through to peer_ip fallback below
+                        return None;
                     } else {
                         tracing::debug!("Extracted client IP {} from X-Forwarded-For rightmost entry. Multi-hop proxies (e.g. Cloudflare) may cause all clients to share this IP.", parsed_ip);
                         return Some(parsed_ip.to_string());
@@ -102,7 +102,9 @@ impl tower_governor::key_extractor::KeyExtractor for TrustedProxyIpKeyExtractor 
 
         let peer_ip = connect_info.map(|ci| ci.0.ip());
 
-        Ok(extract_client_ip(req.headers(), peer_ip).unwrap_or_else(|| "0.0.0.0".to_string()))
+        let key = extract_client_ip(req.headers(), peer_ip)
+            .ok_or(tower_governor::GovernorError::UnableToExtractKey)?;
+        Ok(key)
     }
 }
 
