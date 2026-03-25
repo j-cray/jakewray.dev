@@ -1,44 +1,27 @@
 name: Claude Code PR Review
 
 on:
-  pull_request:
-    types: [opened, synchronize]
+  issue_comment:
+    types: [created]
 
 jobs:
   review:
+    if: >
+      github.event.issue.pull_request &&
+      contains(github.event.comment.body, '@claude')
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write
       pull-requests: write
+      issues: write
     
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
           
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 'latest'
-          
-      - name: Install Claude Code
-        run: npm install -g @anthropic-ai/claude-code
-
-      - name: Review PR with Claude Code
+      - name: Run Claude Code
+        uses: anthropics/claude-code-action@main
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          if [ -z "$ANTHROPIC_API_KEY" ]; then
-            echo "ANTHROPIC_API_KEY is not set. Please add it to repository secrets."
-            echo "Skipping Claude Code review."
-            exit 0
-          fi
-          
-          echo "Generating PR diff and analyzing with Claude Code..."
-          # Fetch the diff and use claude-code to review it
-          gh pr diff ${{ github.event.pull_request.number }} | claude -p "You are an expert Rust code reviewer. Please review the following pull request diff. Identify bugs, security issues, and performance problems. Focus on the most critical issues. Keep your feedback concise and actionable." > review.txt
-          
-          echo "Posting review comment..."
-          # Comment the review on the PR
-          gh pr comment ${{ github.event.pull_request.number }} -F review.txt
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
