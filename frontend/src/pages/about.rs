@@ -5,7 +5,7 @@ pub fn AboutPage() -> impl IntoView {
     view! {
         <div class="container py-12 max-w-2xl bg-white p-8 rounded-lg shadow-sm border border-gray-100">
             <h1 class="text-4xl mb-6 font-bold text-gray-900 border-b border-gray-100 pb-4">"About Me"</h1>
-            
+
             <div class="prose prose-lg text-gray-700 leading-relaxed">
                 <p class="mb-6">
                     "I am a journalist, developer, and photographer based in Northern British Columbia. I have a passion for uncovering stories that matter and documenting the world around me through both words and images."

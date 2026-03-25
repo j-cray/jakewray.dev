@@ -36,7 +36,7 @@ pub mod ssr_utils {
     // Simple JWT verification helper
     // In a real app, this should be shared with backend logic
     pub fn verify_token(token: &str) -> Result<String, ServerFnError> {
-        use jsonwebtoken::{decode, DecodingKey, Validation, Algorithm};
+        use jsonwebtoken::{decode, Algorithm, DecodingKey, Validation};
         use serde::Deserialize;
 
         #[derive(Deserialize)]
@@ -45,15 +45,12 @@ pub mod ssr_utils {
             _exp: usize,
         }
 
-        // WARN: Synchronize this secret with backend/src/api/admin.rs
-        // Ideally, use an ENV var.
-        let secret = b"change-this-secret-key-in-production-environment";
-
         let token_data = decode::<Claims>(
             token,
-            &DecodingKey::from_secret(secret),
+            &DecodingKey::from_secret(shared::auth::get_jwt_secret()),
             &Validation::new(Algorithm::HS256),
-        ).map_err(|_| ServerFnError::new("Invalid token"))?;
+        )
+        .map_err(|_| ServerFnError::new("Invalid token"))?;
 
         Ok(token_data.claims.sub)
     }
@@ -70,7 +67,7 @@ pub async fn get_articles() -> Result<Vec<Article>, ServerFnError> {
     if let Ok(entries) = fs::read_dir(dir) {
         for entry in entries.flatten() {
             let path = entry.path();
-            if path.extension().map_or(false, |ext| ext == "json") {
+            if path.extension().is_some_and(|ext| ext == "json") {
                 if let Ok(content) = fs::read_to_string(&path) {
                     if let Ok(article) = serde_json::from_str::<Article>(&content) {
                         articles.push(article);
@@ -116,7 +113,9 @@ pub async fn save_article(token: String, article: Article) -> Result<(), ServerF
     }
 
     // Sanitize slug just in case
-    let safe_slug = article.slug.chars()
+    let safe_slug = article
+        .slug
+        .chars()
         .filter(|c| c.is_alphanumeric() || *c == '-')
         .collect::<String>()
         .to_lowercase();
@@ -173,10 +172,12 @@ pub async fn list_media(token: String) -> Result<Vec<MediaItem>, ServerFnError> 
 
     for line in stdout.lines() {
         let line = line.trim();
-        if line.is_empty() || line.ends_with('/') { continue; } // Skip directories
+        if line.is_empty() || line.ends_with('/') {
+            continue;
+        } // Skip directories
 
         if let Some(path) = line.strip_prefix("gs://jakewray-portfolio/") {
-            let name = path.split('/').last().unwrap_or(path).to_string();
+            let name = path.split('/').next_back().unwrap_or(path).to_string();
             items.push(MediaItem {
                 url: format!("{}/{}", base_url, path),
                 name,
@@ -188,17 +189,33 @@ pub async fn list_media(token: String) -> Result<Vec<MediaItem>, ServerFnError> 
 }
 
 #[server(UploadMedia, "/api")]
-pub async fn upload_media(token: String, filename: String, data: Vec<u8>) -> Result<String, ServerFnError> {
+pub async fn upload_media(
+    token: String,
+    filename: String,
+    data: Vec<u8>,
+) -> Result<String, ServerFnError> {
     use self::ssr_utils::verify_token;
-    use std::process::{Command, Stdio};
     use std::io::Write;
+    use std::process::{Command, Stdio};
 
     verify_token(&token)?;
 
     // We'll upload to a 'uploads' folder for manual picking or sorting later
+    let filtered_name: String = filename
+        .chars()
+        .filter(|c| c.is_alphanumeric() || *c == '.' || *c == '-' || *c == '_')
+        .collect();
+
+    if filtered_name.is_empty() {
+        return Err(ServerFnError::new("Invalid filename"));
+    }
+
     let timestamp = chrono::Utc::now().timestamp();
-    let safe_name = format!("{}_{}", timestamp, filename.replace(" ", "_"));
-    let destination = format!("gs://jakewray-portfolio/media/journalism/uploads/{}", safe_name);
+    let safe_name = format!("{}_{}", timestamp, filtered_name);
+    let destination = format!(
+        "gs://jakewray-portfolio/media/journalism/uploads/{}",
+        safe_name
+    );
 
     let mut child = Command::new("gsutil")
         .arg("cp")
@@ -216,5 +233,8 @@ pub async fn upload_media(token: String, filename: String, data: Vec<u8>) -> Res
         return Err(ServerFnError::new("Failed to upload to GCS"));
     }
 
-    Ok(format!("https://storage.googleapis.com/jakewray-portfolio/media/journalism/uploads/{}", safe_name))
+    Ok(format!(
+        "https://storage.googleapis.com/jakewray-portfolio/media/journalism/uploads/{}",
+        safe_name
+    ))
 }

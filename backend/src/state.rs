@@ -1,11 +1,11 @@
 use axum::extract::FromRef;
 use leptos::prelude::LeptosOptions;
-use sqlx::PgPool;
+use sqlx::SqlitePool;
 
 #[derive(Clone)]
 pub struct AppState {
     pub leptos_options: LeptosOptions,
-    pub pool: PgPool,
+    pub pool: SqlitePool,
 }
 
 impl FromRef<AppState> for LeptosOptions {
@@ -14,7 +14,7 @@ impl FromRef<AppState> for LeptosOptions {
     }
 }
 
-impl FromRef<AppState> for PgPool {
+impl FromRef<AppState> for SqlitePool {
     fn from_ref(state: &AppState) -> Self {
         state.pool.clone()
     }

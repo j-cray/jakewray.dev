@@ -1,12 +1,18 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Local development setup script
 
 set -e
 
 echo "🚀 Setting up local development environment..."
 
+if [ "$ENVIRONMENT" = "production" ] || [[ "$DATABASE_URL" == *"/app/data"* ]]; then
+  echo "❌ Error: Production environment detected. Setup script aborted."
+  exit 1
+fi
+
 # Check dependencies
 command -v cargo &> /dev/null || { echo "❌ cargo not found. Install Rust from https://rustup.rs/"; exit 1; }
+command -v sqlite3 &> /dev/null || { echo "❌ sqlite3 not found"; exit 1; }
 
 # Check for container runtime
 CONTAINER_CMD=""
@@ -49,24 +55,52 @@ if [ "$CONTAINER_CMD" = "docker" ] && ! docker ps &> /dev/null; then
   fi
 fi
 
-# Start database
-echo "📦 Starting PostgreSQL database..."
-COMPOSE_CMD="docker-compose"
-if [ "$CONTAINER_CMD" = "podman" ]; then
-  COMPOSE_CMD="podman-compose"
-fi
-
-$COMPOSE_CMD up -d db
-sleep 3
-
+# Try to use existing tools if possible, but no background service is needed for sqlite.
 echo ""
 echo "⏳ Running database migrations..."
-cargo sqlx database create || true
-cargo sqlx migrate run -D "postgres://admin:password@127.0.0.1:5432/portfolio" || true
+# create an empty sqlite database file if it doesn't exist
+touch sqlite.db
+chmod 600 sqlite.db
+if [ -z "$DATABASE_URL" ]; then
+  export DATABASE_URL="sqlite://sqlite.db"
+fi
+
+cargo sqlx migrate run -D "$DATABASE_URL" || true
 
 echo ""
 echo "👤 Creating default admin user..."
-PGPASSWORD=password psql -U admin -h 127.0.0.1 -d portfolio -c "INSERT INTO users (username, password_hash) VALUES ('admin', 'demo-admin-2026!') ON CONFLICT (username) DO NOTHING;" || echo "⚠️ Could not create user (may already exist)"
+# WARN: The seeded password below is 'demo-admin-2026!'.
+# Anyone reading the repository knows these default credentials. Check that this
+# dev instance isn't exposed to untrusted networks.
+# Generate hash dynamically
+if [ ! -x "hgen/target/release/hgen" ]; then
+  (cd hgen && cargo build --release --quiet)
+fi
+ADMIN_HASH=$(echo -n "demo-admin-2026!" | ./hgen/target/release/hgen 2>/dev/null | tail -n 1)
+
+if ! [[ "$ADMIN_HASH" =~ ^\$argon2 ]]; then
+  echo "❌ hgen failed or produced unexpected output"
+  exit 1
+fi
+
+# Fallback to python UUID or kernel uuid if uuidgen missing
+ADMIN_UUID=$(uuidgen 2>/dev/null || cat /proc/sys/kernel/random/uuid 2>/dev/null || python3 -c 'import uuid; print(uuid.uuid4())' 2>/dev/null || { echo "❌ Could not generate a UUID. Please install uuidgen."; exit 1; })
+SAFE_UUID=$(echo "$ADMIN_UUID" | tr -cd 'a-fA-F0-9-')
+
+if ! [[ "$SAFE_UUID" =~ ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$ ]]; then
+  echo "❌ Invalid Admin UUID format generated: $SAFE_UUID"
+  exit 1
+fi
+
+ESCAPED_HASH="${ADMIN_HASH//\'/\'\'}"
+sqlite3 sqlite.db <<EOF
+.param set @id '$SAFE_UUID'
+.param set @hash '$ESCAPED_HASH'
+INSERT INTO users (id, username, password_hash) VALUES (@id, 'admin', @hash) ON CONFLICT (username) DO NOTHING;
+EOF
+if [ $? -ne 0 ]; then
+  echo "⚠️ Could not create user (may already exist)"
+fi
 
 echo ""
 echo "✅ Setup complete!"
@@ -83,5 +117,4 @@ echo "🔐 Default credentials:"
 echo "   Username: admin"
 echo "   Password: demo-admin-2026!"
 echo ""
-echo "🛑 To stop the database:"
-echo "   $COMPOSE_CMD down"
+echo "🛑 Setup complete."

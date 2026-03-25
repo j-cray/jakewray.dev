@@ -21,7 +21,8 @@ jobs:
           components: rustfmt
       - name: Run cargo fmt
         run: cargo fmt --all -- --check
-
+      - name: Run cargo fmt for hgen
+        run: cd hgen && cargo fmt --all -- --check
   clippy:
     name: Lint with Clippy
     runs-on: ubuntu-latest
@@ -33,6 +34,8 @@ jobs:
           components: clippy
       - name: Run cargo clippy
         run: cargo clippy --workspace --all-targets --all-features -- -D warnings
+      - name: Run cargo clippy for hgen
+        run: cd hgen && cargo clippy --all-targets --all-features -- -D warnings
 
   test:
     name: Run Tests
@@ -45,3 +48,7 @@ jobs:
         uses: taiki-e/install-action@nextest
       - name: Run tests with nextest
         run: cargo nextest run --workspace --all-features
+      - name: Check hgen compilation
+        run: cd hgen && cargo check --all-targets --all-features
+      - name: Run tests for hgen
+        run: cd hgen && cargo test

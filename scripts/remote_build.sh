@@ -10,16 +10,28 @@ echo "Remote Build Target: $TARGET"
 export DOCKER_BUILDKIT=1
 export COMPOSE_DOCKER_CLI_BUILD=1
 
-# Generate .env file with defaults for production
-cat <<EOF > .env
-POSTGRES_USER=admin
-POSTGRES_PASSWORD=password
-POSTGRES_DB=portfolio
+ensure_data_dir() {
+    echo "Ensuring data directory exists..."
+    mkdir -p data && chmod 700 data && sudo chown 1000:1000 data
+}
+
+if [ ! -f .env ]; then
+    echo "Generating new .env file with defaults..."
+    cat <<EOF > .env
 DOMAIN_NAME=jakewray.dev
 LEPTOS_SITE_ADDR=0.0.0.0:3000
 RUST_LOG=info
-DATABASE_URL=postgres://admin:password@db:5432/portfolio
+DATABASE_URL=sqlite:////app/data/sqlite.db
+ENVIRONMENT=production
+JWT_SECRET=$(openssl rand -base64 48 | tr -d '\n')
+# Warning: Ephemeral Docker Bridge IPs change on restart.
+# Run `docker network inspect jakewraydev_default` to find the proxy IP,
+# and manually add TRUSTED_PROXY_IPS=<ip> to this file if using rate limiting.
 EOF
+chmod 600 .env
+else
+    echo "Using existing .env file."
+fi
 
 if [ "$TARGET" = "all" ] || [ "$TARGET" = "backend" ]; then
     echo "Building chef base image (with cache)..."
@@ -28,36 +40,20 @@ if [ "$TARGET" = "all" ] || [ "$TARGET" = "backend" ]; then
         --cache-from portfolio-chef:latest \
         -t portfolio-chef .
 
-    echo "Ensuring DB is up for preparation..."
-    sudo docker compose -f compose.prod.yaml up -d db
-    echo "Waiting for DB..."
-    sleep 5
-
-    echo "Running sqlx prepare on server..."
-    DB_CONTAINER=$(sudo docker compose -f compose.prod.yaml ps -q db | head -n1)
-
-    # We use the chef image which has sqlx-cli installed, and mount source code
-    sudo docker run --rm \
-        --network container:$DB_CONTAINER \
-        -v "$(pwd)":/app \
-        -w /app \
-        -u root \
-        -e DATABASE_URL=postgres://admin:password@localhost:5432/portfolio \
-        -e SQLX_OFFLINE=false \
-        portfolio-chef \
-        cargo sqlx prepare --workspace
-    sudo chown -R jake-user:jake-user .
+    ensure_data_dir
 fi
 
 if [ "$TARGET" = "all" ]; then
     echo "Building and starting ALL services with BuildKit caching..."
     sudo DOCKER_BUILDKIT=1 docker compose -f compose.prod.yaml build \
         --build-arg BUILDKIT_INLINE_CACHE=1
+    ensure_data_dir
     sudo docker compose -f compose.prod.yaml up -d --remove-orphans
 elif [ "$TARGET" = "backend" ]; then
     echo "Building and restarting BACKEND (portfolio) service with caching..."
     sudo DOCKER_BUILDKIT=1 docker compose -f compose.prod.yaml build \
         --build-arg BUILDKIT_INLINE_CACHE=1 portfolio
+    ensure_data_dir
     sudo docker compose -f compose.prod.yaml up -d --no-deps portfolio
 elif [ "$TARGET" = "frontend" ]; then
     echo "Frontend is part of the backend binary in this setup (SSR)."
@@ -67,3 +63,8 @@ else
     echo "Unknown target: $TARGET"
     exit 1
 fi
+
+echo "====================================================================="
+echo "WARNING: Check your .env file for TRUSTED_PROXY_IPS."
+echo "Docker bridge IPs may change. Verify them if using rate limiting!"
+echo "====================================================================="

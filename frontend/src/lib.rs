@@ -1,6 +1,6 @@
+pub mod api;
 mod app;
 pub mod components;
-pub mod api;
 pub mod data;
 pub mod pages;
 pub use app::*;

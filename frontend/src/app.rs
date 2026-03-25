@@ -101,7 +101,6 @@ fn AdminRedirect() -> impl IntoView {
     leptos::prelude::Effect::new(move || {
         navigate("/admin/login", Default::default());
     });
-    view! {}
 }
 
 #[component]
