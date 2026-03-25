@@ -40,25 +40,15 @@
             openssl
             
             # Database
-            postgresql
+            sqlite
             sqlx-cli
             
             # Styling
             sass
             dart-sass
             
-            # Container tools
-            docker
-            docker-compose
-            podman
-            podman-compose
-            colima  # Lightweight Docker daemon for macOS
-            
             # Web compilation (optional)
             nodejs
-            
-            # Cloud deployment
-            google-cloud-sdk
             
             # Development tools
             git
@@ -68,21 +58,16 @@
           shellHook = ''
             export RUST_SRC_PATH=${pkgs.rustPlatform.rustLibSrc}
             export RUST_LOG=info
-            export DATABASE_URL="postgres://admin:password@127.0.0.1:5432/portfolio"
-            
-            # Set gcloud project for this repo
-            gcloud config set project jakewray-portfolio 2>/dev/null || true
+            export DATABASE_URL="sqlite://jakewray.db"
             
             echo "🚀 jakewray.dev development environment loaded"
             echo "   Rust: $(rustc --version)"
             echo "   Cargo: $(cargo --version)"
-            echo "   GCloud: $(gcloud config get-value project)"
-            echo "   Database: PostgreSQL (docker-compose up -d db)"
+            echo "   Database: SQLite"
             echo ""
             echo "📚 Quick commands:"
             echo "   cargo leptos watch      - Start dev server"
             echo "   ./scripts/setup-dev.sh  - Setup local database"
-            echo "   docker-compose down     - Stop services"
           '';
         };
       }

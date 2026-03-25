@@ -9,10 +9,10 @@ The application is a modern, full-stack Rust web application utilizing Server-Si
 
 - **Frontend**: Leptos (Rust WASM framework)
 - **Backend**: Axum (Rust async web framework)
-- **Database**: PostgreSQL (managed via SQLx)
+- **Database**: SQLite (managed via SQLx)
 - **Styling**: SASS / SCSS
 - **Environment**: Nix (via `flake.nix` and `direnv`)
-- **Deployment**: Docker Compose with Nginx reverse proxy and Let's Encrypt SSL
+- **Deployment**: Managed externally via a meta repo.
 
 ## Directory Structure
 
@@ -20,7 +20,7 @@ The application is a modern, full-stack Rust web application utilizing Server-Si
 - `frontend/`: Client-side Rust code. Contains Leptos components, routing, and UI logic.
 - `shared/`: Shared types, models, and utilities used by both frontend and backend.
 - `migrations/` & `migration/`: SQLx database migration files.
-- `scripts/`: Automation scripts for local development database setup and remote deployment.
+- `scripts/`: Automation scripts for local development database setup.
 - `style/`: SASS stylesheets.
 - `.github/workflows/`: CI/CD pipelines (Formatting, Linting, Testing, Security Audits, and AI reviews).
 
@@ -41,7 +41,7 @@ The recommended way to run the application in development is via `cargo-leptos`,
 cargo leptos watch
 ```
 
-*Note: Make sure your local PostgreSQL database is running via `docker-compose up -d db` (which is typically handled by `setup-dev.sh`).*
+*Note: Make sure your local SQLite database is initialized via `./scripts/setup-dev.sh`.*
 
 ## Important Architectural Guidelines for AI Assistants
 
@@ -59,8 +59,6 @@ cargo leptos watch
 4. **Styling**:
    Global styling is handled via SASS. When adding new components, add corresponding styles to the `style/` directory and ensure they are compiled correctly by the Leptos build pipeline.
 
-5. **Deployment**:
-   Deployment is managed by `./scripts/deploy.sh`. Changes to infrastructure should be mirrored in both `compose.yaml` and `compose.prod.yaml` where applicable.
 
 - Tick off tasks in the roadmap as they are completed.
 - Update the roadmap as the project progresses.
