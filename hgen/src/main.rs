@@ -12,7 +12,8 @@ use argon2::{
 };
 fn main() {
     let mut password = String::new();
-    std::io::Read::read_to_string(&mut std::io::stdin(), &mut password).expect("Failed to read password");
+    std::io::Read::read_to_string(&mut std::io::stdin(), &mut password)
+        .expect("Failed to read password");
     let password = password.trim_end_matches(['\r', '\n']);
     let salt = SaltString::generate(&mut OsRng);
     let params = argon2::Params::new(
@@ -20,12 +21,9 @@ fn main() {
         shared::auth::ARGON2_T_COST,
         shared::auth::ARGON2_P_COST,
         Some(argon2::Params::DEFAULT_OUTPUT_LEN),
-    ).unwrap();
-    let argon2 = Argon2::new(
-        argon2::Algorithm::Argon2id,
-        argon2::Version::V0x13,
-        params,
-    );
+    )
+    .unwrap();
+    let argon2 = Argon2::new(argon2::Algorithm::Argon2id, argon2::Version::V0x13, params);
     let hash = argon2.hash_password(password.as_bytes(), &salt).unwrap();
     println!("{}", hash);
 }
