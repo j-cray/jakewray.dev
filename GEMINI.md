@@ -12,7 +12,7 @@ The application is a modern, full-stack Rust web application utilizing Server-Si
 - **Database**: PostgreSQL (managed via SQLx)
 - **Styling**: SASS / SCSS
 - **Environment**: Nix (via `flake.nix` and `direnv`)
-- **Deployment**: Docker Compose with Nginx reverse proxy and Let's Encrypt SSL
+- **Deployment**: Managed externally via a meta repo.
 
 ## Directory Structure
 
@@ -59,8 +59,6 @@ cargo leptos watch
 4. **Styling**:
    Global styling is handled via SASS. When adding new components, add corresponding styles to the `style/` directory and ensure they are compiled correctly by the Leptos build pipeline.
 
-5. **Deployment**:
-   Deployment is managed by `./scripts/deploy.sh`. Changes to infrastructure should be mirrored in both `compose.yaml` and `compose.prod.yaml` where applicable.
 
 - Tick off tasks in the roadmap as they are completed.
 - Update the roadmap as the project progresses.

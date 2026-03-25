@@ -57,9 +57,6 @@
             # Web compilation (optional)
             nodejs
             
-            # Cloud deployment
-            google-cloud-sdk
-            
             # Development tools
             git
             just

@@ -237,15 +237,7 @@ Edit files in `frontend/src/pages/admin/login.rs`
 4. **Check form validation**: Try submitting without credentials
 5. **Test token expiration**: Manually edit localStorage token to test 
 
-## Production Deployment
 
-When ready to deploy:
-```bash
-cargo leptos build --release
-./scripts/deploy.sh all
-```
-
-See [docs/DEPLOYMENT.md](../DEPLOYMENT.md) for full deployment guide.
 
 ## Troubleshooting
 
