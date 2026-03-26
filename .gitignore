@@ -71,3 +71,7 @@ imports/
 
 # Hgen
 hgen/target/
+
+.env
+*.db-wal
+*.db-shm
