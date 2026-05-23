@@ -816,6 +816,7 @@ dependencies = [
  "shared",
  "sqlx",
  "tracing",
+ "uuid",
  "walkdir",
  "wasm-bindgen",
  "wasm-bindgen-futures",
