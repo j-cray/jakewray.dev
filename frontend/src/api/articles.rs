@@ -26,7 +26,6 @@ pub struct MediaItem {
 #[cfg(feature = "ssr")]
 pub mod ssr_utils {
     use super::*;
-    // use std::fs;
     use std::path::PathBuf;
 
     pub fn get_articles_dir() -> PathBuf {
@@ -34,7 +33,6 @@ pub mod ssr_utils {
     }
 
     // Simple JWT verification helper
-    // In a real app, this should be shared with backend logic
     pub fn verify_token(token: &str) -> Result<String, ServerFnError> {
         use jsonwebtoken::{decode, Algorithm, DecodingKey, Validation};
         use serde::Deserialize;
@@ -122,11 +120,6 @@ pub async fn save_article(token: String, article: Article) -> Result<(), ServerF
 
     let path = dir.join(format!("{}.json", safe_slug));
 
-    // If slug changed, we might want to handle renaming or deleting old...
-    // For now, let's assume slug updates create new files (and existing one remains until manual cleanup?
-    // Or better, assume UI doesn't allow editing slug easily, or if it does, it's a new post).
-    // User requested "delete" button, so that handles old ones.
-
     let content = serde_json::to_string_pretty(&article)?;
     fs::write(path, content)?;
 
@@ -151,41 +144,54 @@ pub async fn delete_article(token: String, slug: String) -> Result<(), ServerFnE
 #[server(ListMedia, "/api")]
 pub async fn list_media(token: String) -> Result<Vec<MediaItem>, ServerFnError> {
     use self::ssr_utils::verify_token;
-    use std::process::Command;
-
     verify_token(&token)?;
 
-    let bucket = "gs://jakewray-portfolio/media/journalism/";
-    let output = Command::new("gsutil")
-        .arg("ls")
-        .arg("-r") // Recursive
-        .arg(bucket)
-        .output()?;
+    #[cfg(feature = "ssr")]
+    {
+        use google_cloud_storage::client::{Client, ClientConfig};
+        use google_cloud_storage::http::objects::list::{ListObjectsRequest, Query};
 
-    if !output.status.success() {
-        return Err(ServerFnError::new("Failed to list GCS media"));
-    }
+        let config = ClientConfig::default()
+            .with_auth()
+            .await
+            .map_err(|e| ServerFnError::new(format!("Failed to load GCS auth config: {}", e)))?;
+        let client = Client::new(config);
 
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    let mut items = Vec::new();
-    let base_url = "https://storage.googleapis.com/jakewray-portfolio";
+        let request = ListObjectsRequest {
+            bucket: "jakewray-portfolio".to_string(),
+            query: Query {
+                prefix: Some("media/journalism/".to_string()),
+                ..Default::default()
+            },
+            ..Default::default()
+        };
 
-    for line in stdout.lines() {
-        let line = line.trim();
-        if line.is_empty() || line.ends_with('/') {
-            continue;
-        } // Skip directories
+        let response = client
+            .list_objects(&request)
+            .await
+            .map_err(|e| ServerFnError::new(format!("GCS list objects failed: {}", e)))?;
 
-        if let Some(path) = line.strip_prefix("gs://jakewray-portfolio/") {
-            let name = path.split('/').next_back().unwrap_or(path).to_string();
-            items.push(MediaItem {
-                url: format!("{}/{}", base_url, path),
-                name,
-            });
+        let mut items = Vec::new();
+        let base_url = "https://storage.googleapis.com/jakewray-portfolio";
+
+        if let Some(objects) = response.items {
+            for object in objects {
+                let name = object.name.split('/').next_back().unwrap_or(&object.name).to_string();
+                if name.is_empty() {
+                    continue; // Skip directory placeholders
+                }
+                items.push(MediaItem {
+                    url: format!("{}/{}", base_url, object.name),
+                    name,
+                });
+            }
         }
+
+        Ok(items)
     }
 
-    Ok(items)
+    #[cfg(not(feature = "ssr"))]
+    Ok(Vec::new())
 }
 
 #[server(UploadMedia, "/api")]
@@ -195,9 +201,6 @@ pub async fn upload_media(
     data: Vec<u8>,
 ) -> Result<String, ServerFnError> {
     use self::ssr_utils::verify_token;
-    use std::io::Write;
-    use std::process::{Command, Stdio};
-
     verify_token(&token)?;
 
     // We'll upload to a 'uploads' folder for manual picking or sorting later
@@ -212,29 +215,57 @@ pub async fn upload_media(
 
     let timestamp = chrono::Utc::now().timestamp();
     let safe_name = format!("{}_{}", timestamp, filtered_name);
-    let destination = format!(
-        "gs://jakewray-portfolio/media/journalism/uploads/{}",
-        safe_name
-    );
 
-    let mut child = Command::new("gsutil")
-        .arg("cp")
-        .arg("-") // from stdin
-        .arg(&destination)
-        .stdin(Stdio::piped())
-        .spawn()?;
+    #[cfg(feature = "ssr")]
+    {
+        use google_cloud_storage::client::{Client, ClientConfig};
+        use google_cloud_storage::http::objects::upload::{UploadObjectRequest, UploadType};
+        use google_cloud_storage::http::objects::Object;
 
-    if let Some(mut stdin) = child.stdin.take() {
-        stdin.write_all(&data)?;
+        let config = ClientConfig::default()
+            .with_auth()
+            .await
+            .map_err(|e| ServerFnError::new(format!("Failed to load GCS auth config: {}", e)))?;
+        let client = Client::new(config);
+
+        let ext = filtered_name.split('.').next_back().unwrap_or("").to_lowercase();
+        let content_type = match ext.as_str() {
+            "jpg" | "jpeg" => "image/jpeg",
+            "png" => "image/png",
+            "gif" => "image/gif",
+            "webp" => "image/webp",
+            "svg" => "image/svg+xml",
+            "mp4" => "video/mp4",
+            _ => "application/octet-stream",
+        };
+
+        let upload_type = UploadType::Simple(google_cloud_storage::http::objects::upload::Media {
+            data: data.into(),
+            content_type: content_type.to_string().into(),
+        });
+
+        let object_name = format!("media/journalism/uploads/{}", safe_name);
+        let request = UploadObjectRequest {
+            bucket: "jakewray-portfolio".to_string(),
+            upload_type,
+            metadata: Object {
+                name: object_name.clone(),
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+
+        client
+            .upload_object(&request)
+            .await
+            .map_err(|e| ServerFnError::new(format!("GCS upload failed: {}", e)))?;
+
+        Ok(format!(
+            "https://storage.googleapis.com/jakewray-portfolio/{}",
+            object_name
+        ))
     }
 
-    let status = child.wait()?;
-    if !status.success() {
-        return Err(ServerFnError::new("Failed to upload to GCS"));
-    }
-
-    Ok(format!(
-        "https://storage.googleapis.com/jakewray-portfolio/media/journalism/uploads/{}",
-        safe_name
-    ))
+    #[cfg(not(feature = "ssr"))]
+    Ok(String::new())
 }
