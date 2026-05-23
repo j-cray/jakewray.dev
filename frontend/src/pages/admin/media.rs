@@ -118,10 +118,11 @@ pub fn AdminMedia() -> impl IntoView {
                 url.clone()
             };
 
-            // URL decode the path name if GCS double-encoded it (e.g. %2F -> /)
-            let decoded_path = urlencoding::decode(&path_to_remove)
-                .map(|cow| cow.into_owned())
-                .unwrap_or(path_to_remove);
+            // URL decode the path name with explicit matching to avoid type inference issues
+            let decoded_path = match urlencoding::decode(&path_to_remove) {
+                Ok(cow) => cow.into_owned(),
+                Err(_) => path_to_remove.clone(),
+            };
 
             match delete_media(t, decoded_path.clone()).await {
                 Ok(_) => {
@@ -141,10 +142,9 @@ pub fn AdminMedia() -> impl IntoView {
         {
             let window = web_sys::window().unwrap();
             let navigator = window.navigator();
-            if let Some(clipboard) = navigator.clipboard() {
-                let _ = clipboard.write_text(&url);
-                set_success_msg.set(format!("URL copied to clipboard!"));
-            }
+            let clipboard = navigator.clipboard();
+            let _ = clipboard.write_text(&url);
+            set_success_msg.set(format!("URL copied to clipboard!"));
         }
     };
 
