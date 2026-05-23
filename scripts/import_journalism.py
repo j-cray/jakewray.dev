@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Scrape journalism articles from the Jake Wray WordPress site, download images,
-upload them to GCS, and emit a JSON data file for the frontend.
+upload them to GCS, and insert them directly into the SQLite database.
 
 Usage:
   python scripts/import_journalism.py
@@ -17,6 +17,8 @@ import os
 import re
 import subprocess
 import sys
+import sqlite3
+import uuid
 from datetime import datetime
 from pathlib import Path
 from urllib.parse import urlparse
@@ -194,9 +196,67 @@ def main():
 
     articles.sort(key=lambda a: a["iso_date"], reverse=True)
 
+    # Insert articles directly into the SQLite database
+    db_path = "sqlite.db"
+    print(f"Connecting to database to import {len(articles)} articles...")
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+
+    # Ensure table exists
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS articles (
+            id TEXT PRIMARY KEY,
+            wp_id BIGINT UNIQUE,
+            slug TEXT NOT NULL UNIQUE,
+            title TEXT NOT NULL,
+            subtitle TEXT,
+            excerpt TEXT,
+            content TEXT NOT NULL,
+            cover_image_url TEXT,
+            author TEXT NOT NULL,
+            published_at DATETIME NOT NULL,
+            origin TEXT NOT NULL DEFAULT 'local',
+            created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+
+    for a in articles:
+        uid = str(uuid.uuid4())
+        published_at = f"{a['iso_date']}T00:00:00.000Z"
+        cover_image = a["images"][0] if a["images"] else None
+        byline = a.get("byline", "Jake Wray")
+
+        cursor.execute("""
+            INSERT INTO articles (id, slug, title, content, excerpt, cover_image_url, author, published_at, origin)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'imported')
+            ON CONFLICT(slug) DO UPDATE SET
+                title = excluded.title,
+                content = excluded.content,
+                excerpt = excluded.excerpt,
+                cover_image_url = excluded.cover_image_url,
+                author = excluded.author,
+                published_at = excluded.published_at,
+                updated_at = CURRENT_TIMESTAMP
+        """, (
+            uid,
+            a["slug"],
+            a["title"],
+            a["content_html"],
+            a["excerpt"],
+            cover_image,
+            byline,
+            published_at
+        ))
+
+    conn.commit()
+    conn.close()
+    print("Database sync complete!")
+
+    # Write an empty list to journalism.json to prevent compile failures but remove binary bloat
     DATA_PATH.parent.mkdir(parents=True, exist_ok=True)
-    DATA_PATH.write_text(json.dumps(articles, ensure_ascii=False, indent=2), encoding="utf-8")
-    print(f"Wrote {len(articles)} articles to {DATA_PATH}")
+    DATA_PATH.write_text("[]", encoding="utf-8")
+    print(f"Cleared local static asset file: {DATA_PATH}")
 
 
 if __name__ == "__main__":
