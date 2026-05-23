@@ -392,3 +392,42 @@ pub async fn upload_media(
     #[cfg(not(feature = "ssr"))]
     Ok(String::new())
 }
+
+#[server(DeleteMedia, "/api")]
+pub async fn delete_media(token: String, object_name: String) -> Result<(), ServerFnError> {
+    use self::ssr_utils::verify_token;
+    verify_token(&token)?;
+
+    #[cfg(feature = "ssr")]
+    {
+        use google_cloud_storage::client::{Client, ClientConfig};
+        use google_cloud_storage::http::objects::delete::DeleteObjectRequest;
+
+        let config = ClientConfig::default()
+            .with_auth()
+            .await
+            .map_err(|e| ServerFnError::new(format!("Failed to load GCS auth config: {}", e)))?;
+        let client = Client::new(config);
+
+        // Safety check to prevent deleting things outside of the public uploads directory
+        if !object_name.starts_with("media/journalism/") {
+            return Err(ServerFnError::new("Unauthorized directory access"));
+        }
+
+        let request = DeleteObjectRequest {
+            bucket: "jakewray-portfolio".to_string(),
+            object: object_name,
+            ..Default::default()
+        };
+
+        client
+            .delete_object(&request)
+            .await
+            .map_err(|e| ServerFnError::new(format!("GCS delete failed: {}", e)))?;
+
+        Ok(())
+    }
+
+    #[cfg(not(feature = "ssr"))]
+    Ok(())
+}
