@@ -4,6 +4,7 @@ use crate::pages::about::AboutPage;
 use crate::pages::admin::composer::AdminComposer;
 use crate::pages::admin::dashboard::AdminDashboard;
 use crate::pages::admin::login::AdminLoginPage;
+use crate::pages::admin::media::AdminMedia;
 use crate::pages::admin::password_change::AdminPasswordChange;
 
 use crate::pages::sections::{
@@ -82,7 +83,7 @@ fn MainLayout() -> impl IntoView {
                     <Route path=path!("/admin/compose") view=AdminComposer/>
 
                     <Route path=path!("/admin/password-change") view=AdminPasswordChange/>
-                    <Route path=path!("/admin/media") view=MediaLibraryPlaceholder/>
+                    <Route path=path!("/admin/media") view=AdminMedia/>
                 </Routes>
             </main>
             <Footer/>
@@ -101,11 +102,6 @@ fn AdminRedirect() -> impl IntoView {
     leptos::prelude::Effect::new(move || {
         navigate("/admin/login", Default::default());
     });
-}
-
-#[component]
-fn MediaLibraryPlaceholder() -> impl IntoView {
-    view! { "Media Library Placeholder" }
 }
 
 #[component]
