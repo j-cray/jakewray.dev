@@ -56,88 +56,219 @@ pub mod ssr_utils {
 
 #[server(GetArticles, "/api")]
 pub async fn get_articles() -> Result<Vec<Article>, ServerFnError> {
-    use self::ssr_utils::get_articles_dir;
-    use std::fs;
+    #[cfg(feature = "ssr")]
+    {
+        use sqlx::SqlitePool;
+        let pool = use_context::<SqlitePool>()
+            .ok_or_else(|| ServerFnError::new("SqlitePool not found in Leptos context"))?;
 
-    let dir = get_articles_dir();
-    let mut articles = Vec::new();
+        let rows = sqlx::query(
+            "SELECT slug, title, excerpt, content, cover_image_url, author, published_at FROM articles ORDER BY published_at DESC"
+        )
+        .fetch_all(&pool)
+        .await
+        .map_err(|e| ServerFnError::new(format!("Database query failed: {}", e)))?;
 
-    if let Ok(entries) = fs::read_dir(dir) {
-        for entry in entries.flatten() {
-            let path = entry.path();
-            if path.extension().is_some_and(|ext| ext == "json") {
-                if let Ok(content) = fs::read_to_string(&path) {
-                    if let Ok(article) = serde_json::from_str::<Article>(&content) {
-                        articles.push(article);
-                    }
+        let mut articles = Vec::new();
+        for row in rows {
+            use sqlx::Row;
+            let slug: String = row.get("slug");
+            let title: String = row.get("title");
+            let content_html: String = row.get("content");
+            let excerpt: Option<String> = row.get("excerpt");
+            let cover_image_url: Option<String> = row.get("cover_image_url");
+            let author: String = row.get("author");
+            let published_at: String = row.get("published_at"); // text in sqlite
+
+            // Format dates
+            let iso_date = published_at.split('T').next().unwrap_or(&published_at).to_string();
+            let display_date = if let Ok(dt) = chrono::DateTime::parse_from_rfc3339(&published_at) {
+                dt.format("%B %d, %Y").to_string()
+            } else {
+                iso_date.clone()
+            };
+
+            let mut images = Vec::new();
+            if let Some(img) = cover_image_url {
+                if !img.is_empty() {
+                    images.push(img);
                 }
             }
+
+            articles.push(Article {
+                slug,
+                title,
+                iso_date,
+                display_date,
+                source_url: String::new(),
+                content_html,
+                images,
+                captions: Vec::new(),
+                excerpt: excerpt.unwrap_or_default(),
+                byline: Some(author),
+            });
         }
+
+        Ok(articles)
     }
 
-    // Sort by date desc
-    articles.sort_by(|a, b| b.iso_date.cmp(&a.iso_date));
-
-    Ok(articles)
+    #[cfg(not(feature = "ssr"))]
+    Ok(Vec::new())
 }
 
 #[server(GetArticle, "/api")]
 pub async fn get_article(slug: String) -> Result<Option<Article>, ServerFnError> {
-    use self::ssr_utils::get_articles_dir;
-    use std::fs;
+    #[cfg(feature = "ssr")]
+    {
+        use sqlx::SqlitePool;
+        let pool = use_context::<SqlitePool>()
+            .ok_or_else(|| ServerFnError::new("SqlitePool not found in Leptos context"))?;
 
-    let path = get_articles_dir().join(format!("{}.json", slug));
+        let row = sqlx::query(
+            "SELECT slug, title, excerpt, content, cover_image_url, author, published_at FROM articles WHERE slug = ?"
+        )
+        .bind(&slug)
+        .fetch_optional(&pool)
+        .await
+        .map_err(|e| ServerFnError::new(format!("Database query failed: {}", e)))?;
 
-    if !path.exists() {
-        return Ok(None);
+        if let Some(row) = row {
+            use sqlx::Row;
+            let slug: String = row.get("slug");
+            let title: String = row.get("title");
+            let content_html: String = row.get("content");
+            let excerpt: Option<String> = row.get("excerpt");
+            let cover_image_url: Option<String> = row.get("cover_image_url");
+            let author: String = row.get("author");
+            let published_at: String = row.get("published_at");
+
+            let iso_date = published_at.split('T').next().unwrap_or(&published_at).to_string();
+            let display_date = if let Ok(dt) = chrono::DateTime::parse_from_rfc3339(&published_at) {
+                dt.format("%B %d, %Y").to_string()
+            } else {
+                iso_date.clone()
+            };
+
+            let mut images = Vec::new();
+            if let Some(img) = cover_image_url {
+                if !img.is_empty() {
+                    images.push(img);
+                }
+            }
+
+            Ok(Some(Article {
+                slug,
+                title,
+                iso_date,
+                display_date,
+                source_url: String::new(),
+                content_html,
+                images,
+                captions: Vec::new(),
+                excerpt: excerpt.unwrap_or_default(),
+                byline: Some(author),
+            }))
+        } else {
+            Ok(None)
+        }
     }
 
-    let content = fs::read_to_string(path)?;
-    let article = serde_json::from_str(&content)?;
-
-    Ok(Some(article))
+    #[cfg(not(feature = "ssr"))]
+    Ok(None)
 }
 
 #[server(SaveArticle, "/api")]
 pub async fn save_article(token: String, article: Article) -> Result<(), ServerFnError> {
-    use self::ssr_utils::{get_articles_dir, verify_token};
-    use std::fs;
-
+    use self::ssr_utils::verify_token;
     verify_token(&token)?; // Guard
 
-    let dir = get_articles_dir();
-    if !dir.exists() {
-        fs::create_dir_all(&dir)?;
+    #[cfg(feature = "ssr")]
+    {
+        use sqlx::SqlitePool;
+        let pool = use_context::<SqlitePool>()
+            .ok_or_else(|| ServerFnError::new("SqlitePool not found in Leptos context"))?;
+
+        // Sanitize slug just in case
+        let safe_slug = article
+            .slug
+            .chars()
+            .filter(|c| c.is_alphanumeric() || *c == '-')
+            .collect::<String>()
+            .to_lowercase();
+
+        let cover_image_url = article.images.first().cloned();
+        let author = article.byline.unwrap_or_else(|| "Jake Wray".to_string());
+
+        let published_at = if article.iso_date.contains('T') {
+            article.iso_date.clone()
+        } else {
+            format!("{}T00:00:00.000Z", article.iso_date)
+        };
+
+        let mut id = uuid::Uuid::new_v4().to_string();
+
+        let existing = sqlx::query("SELECT id FROM articles WHERE slug = ?")
+            .bind(&safe_slug)
+            .fetch_optional(&pool)
+            .await
+            .map_err(|e| ServerFnError::new(format!("Database query failed: {}", e)))?;
+
+        if let Some(row) = existing {
+            use sqlx::Row;
+            id = row.get("id");
+        }
+
+        sqlx::query(
+            "INSERT INTO articles (id, slug, title, content, excerpt, cover_image_url, author, published_at, origin) \
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'local') \
+             ON CONFLICT(slug) DO UPDATE SET \
+                title = excluded.title, \
+                content = excluded.content, \
+                excerpt = excluded.excerpt, \
+                cover_image_url = excluded.cover_image_url, \
+                author = excluded.author, \
+                published_at = excluded.published_at"
+        )
+        .bind(&id)
+        .bind(&safe_slug)
+        .bind(&article.title)
+        .bind(&article.content_html)
+        .bind(&article.excerpt)
+        .bind(&cover_image_url)
+        .bind(&author)
+        .bind(&published_at)
+        .execute(&pool)
+        .await
+        .map_err(|e| ServerFnError::new(format!("Database insert/update failed: {}", e)))?;
+
+        Ok(())
     }
 
-    // Sanitize slug just in case
-    let safe_slug = article
-        .slug
-        .chars()
-        .filter(|c| c.is_alphanumeric() || *c == '-')
-        .collect::<String>()
-        .to_lowercase();
-
-    let path = dir.join(format!("{}.json", safe_slug));
-
-    let content = serde_json::to_string_pretty(&article)?;
-    fs::write(path, content)?;
-
+    #[cfg(not(feature = "ssr"))]
     Ok(())
 }
 
 #[server(DeleteArticle, "/api")]
 pub async fn delete_article(token: String, slug: String) -> Result<(), ServerFnError> {
-    use self::ssr_utils::{get_articles_dir, verify_token};
-    use std::fs;
-
+    use self::ssr_utils::verify_token;
     verify_token(&token)?; // Guard
 
-    let path = get_articles_dir().join(format!("{}.json", slug));
-    if path.exists() {
-        fs::remove_file(path)?;
+    #[cfg(feature = "ssr")]
+    {
+        use sqlx::SqlitePool;
+        let pool = use_context::<SqlitePool>()
+            .ok_or_else(|| ServerFnError::new("SqlitePool not found in Leptos context"))?;
+
+        sqlx::query("DELETE FROM articles WHERE slug = ?")
+            .bind(&slug)
+            .execute(&pool)
+            .await
+            .map_err(|e| ServerFnError::new(format!("Database delete failed: {}", e)))?;
+
+        Ok(())
     }
 
+    #[cfg(not(feature = "ssr"))]
     Ok(())
 }
 
