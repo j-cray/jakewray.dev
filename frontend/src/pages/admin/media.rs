@@ -219,7 +219,7 @@ pub fn AdminMedia() -> impl IntoView {
 
                                         // Asset Details
                                         <div class="p-3 flex flex-col gap-2 flex-grow">
-                                            <span class="text-sm font-semibold truncate text-gray-700" title=item.name.clone()>{item.name}</span>
+                                            <span class="text-sm font-semibold truncate text-gray-700" title=item.name.clone()>{item.name.clone()}</span>
                                             
                                             // Actions
                                             <div class="grid grid-cols-2 gap-2 mt-auto">
