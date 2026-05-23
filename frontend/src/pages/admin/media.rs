@@ -7,7 +7,7 @@ use web_sys::{FileList, HtmlInputElement};
 
 #[component]
 pub fn AdminMedia() -> impl IntoView {
-    let (items, set_items) = signal(Vec::<MediaItem>::new());
+    let (items, set_items) = signal(Vec::::new());
     let (loading, set_loading) = signal(true);
     let (uploading, set_uploading) = signal(false);
     let (error_msg, set_error_msg) = signal(String::new());
@@ -33,30 +33,34 @@ pub fn AdminMedia() -> impl IntoView {
         }
     });
 
-    let fetch_media = move || {
+    let fetch_media = move |is_initial: bool| {
         let t = token.get();
         if t.is_empty() {
             return;
         }
-        set_loading.set(true);
+        if is_initial {
+            set_loading.set(true);
+        }
         set_error_msg.set(String::new());
         spawn_local(async move {
             match list_media(t).await {
                 Ok(res) => set_items.set(res),
                 Err(e) => set_error_msg.set(format!("Error loading media: {}", e)),
             }
-            set_loading.set(false);
+            if is_initial {
+                set_loading.set(false);
+            }
         });
     };
 
-    // Trigger fetch when token is loaded
+    // Trigger initial fetch when token is loaded
     Effect::new(move || {
-        fetch_media();
+        fetch_media(true);
     });
 
     let on_upload = move |ev: ev::Event| {
         let input: HtmlInputElement = event_target(&ev);
-        let files: Option<FileList> = input.files();
+        let files: Option = input.files();
         if let Some(files) = files {
             if let Some(file) = files.get(0) {
                 let t = token.get();
@@ -77,7 +81,7 @@ pub fn AdminMedia() -> impl IntoView {
                             match upload_media(t, filename.clone(), bytes).await {
                                 Ok(_url) => {
                                     set_success_msg.set(format!("Successfully uploaded '{}'!", filename));
-                                    f_clone(); // Refresh grid
+                                    f_clone(false); // Background refresh (no blink)
                                 }
                                 Err(e) => set_error_msg.set(format!("Upload failed: {}", e)),
                             }
@@ -104,9 +108,15 @@ pub fn AdminMedia() -> impl IntoView {
 
         let t = token.get();
         let f_clone = fetch_media;
-        set_loading.set(true);
         set_error_msg.set(String::new());
         set_success_msg.set(String::new());
+
+        // Optimistic Update: instantly remove the deleted item from UI list in-memory!
+        // This makes the UI feel buttery-smooth and instantaneous.
+        let url_to_remove = url.clone();
+        set_items.update(move |current_items| {
+            current_items.retain(|item| item.url != url_to_remove);
+        });
 
         spawn_local(async move {
             // Extract the GCS object name from the URL
@@ -127,11 +137,11 @@ pub fn AdminMedia() -> impl IntoView {
             match delete_media(t, decoded_path.clone()).await {
                 Ok(_) => {
                     set_success_msg.set(format!("Permanently deleted asset from GCS."));
-                    f_clone();
+                    f_clone(false); // Silent background sync refresh
                 }
                 Err(e) => {
                     set_error_msg.set(format!("Delete failed: {}", e));
-                    set_loading.set(false);
+                    f_clone(true); // Bring the deleted item back on error
                 }
             }
         });
@@ -171,18 +181,16 @@ pub fn AdminMedia() -> impl IntoView {
             <div class="card mb-8">
                 <h3 class="text-xl font-bold mb-4">"Upload New Asset"</h3>
                 <div class="p-8 border-2 border-dashed border-gray-300 rounded-xl text-center bg-gray-50/50 hover:border-blue-400 transition-colors">
-                    <label class="cursor-pointer">
+
                         <div class="flex flex-col items-center gap-2">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-gray-400 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                            </svg>
+
                             <span class="text-blue-600 hover:text-blue-800 font-bold text-lg">
                                 {move || if uploading.get() { "Uploading asset..." } else { "Choose a file to upload" }}
                             </span>
                             <span class="text-sm text-gray-500">"JPG, PNG, WebP, SVG, or MP4 up to 50MB"</span>
                         </div>
-                        <input type="file" class="hidden" accept="image/*,video/*" on:change=on_upload disabled=uploading />
-                    </label>
+
+
                 </div>
             </div>
 
@@ -190,7 +198,7 @@ pub fn AdminMedia() -> impl IntoView {
             <div class="card">
                 <div class="flex justify-between items-center mb-6">
                     <h3 class="text-xl font-bold">"Existing Assets"</h3>
-                    <button class="btn btn-sm btn-secondary" on:click=move |_| fetch_media() disabled=loading>"Refresh Grid"</button>
+
                 </div>
 
                 {move || if loading.get() {
@@ -214,29 +222,17 @@ pub fn AdminMedia() -> impl IntoView {
                                     <div class="relative group border border-gray-200 rounded-xl overflow-hidden bg-gray-50 shadow-sm hover:shadow-md hover:border-blue-300 transition-all flex flex-col">
                                         // Image thumbnail
                                         <div class="aspect-square bg-white relative overflow-hidden flex items-center justify-center">
-                                            <img src=url.clone() alt=item.name.clone() class="w-full h-full object-cover" />
+                                            <img src="url.clone()" alt="item.name.clone()" class="w-full h-full object-cover">
                                         </div>
 
                                         // Asset Details
                                         <div class="p-3 flex flex-col gap-2 flex-grow">
-                                            <span class="text-sm font-semibold truncate text-gray-700" title=item.name.clone()>{item.name.clone()}</span>
-                                            
+                                            <span class="text-sm font-semibold truncate text-gray-700" title="item.name.clone()">{item.name.clone()}</span>
+
                                             // Actions
                                             <div class="grid grid-cols-2 gap-2 mt-auto">
-                                                <button 
-                                                    class="btn btn-secondary text-xs py-1.5 px-2 justify-center" 
-                                                    on:click=move |_| oc(u_copy.clone())
-                                                    title="Copy asset GCS URL"
-                                                >
-                                                    "Copy URL"
-                                                </button>
-                                                <button 
-                                                    class="btn btn-danger bg-red-600 text-white hover:bg-red-700 text-xs py-1.5 px-2 justify-center" 
-                                                    on:click=move |_| od(u_del.clone())
-                                                    title="Permanently delete asset"
-                                                >
-                                                    "Delete"
-                                                </button>
+
+
                                             </div>
                                         </div>
                                     </div>
