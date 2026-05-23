@@ -24,6 +24,7 @@ gloo-file = "0.3"
 js-sys = "0.3"
 wasm-bindgen-futures = "0.4"
 google-cloud-storage = { version = "0.13", optional = true }
+sqlx = { version = "0.8", features = ["sqlite", "runtime-tokio-rustls", "chrono", "macros"], optional = true }
 
 [features]
 default = ["hydrate"]
@@ -36,6 +37,7 @@ ssr = [
     "dep:jsonwebtoken", 
     "dep:walkdir",
     "dep:google-cloud-storage",
+    "dep:sqlx",
     "shared/ssr"
 ]
 
