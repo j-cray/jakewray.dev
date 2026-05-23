@@ -280,7 +280,7 @@ pub async fn list_media(token: String) -> Result<Vec<MediaItem>, ServerFnError> 
     #[cfg(feature = "ssr")]
     {
         use google_cloud_storage::client::{Client, ClientConfig};
-        use google_cloud_storage::http::objects::list::{ListObjectsRequest, Query};
+        use google_cloud_storage::http::objects::list::ListObjectsRequest;
 
         let config = ClientConfig::default()
             .with_auth()
@@ -290,10 +290,7 @@ pub async fn list_media(token: String) -> Result<Vec<MediaItem>, ServerFnError> 
 
         let request = ListObjectsRequest {
             bucket: "jakewray-portfolio".to_string(),
-            query: Query {
-                prefix: Some("media/journalism/".to_string()),
-                ..Default::default()
-            },
+            prefix: Some("media/journalism/".to_string()),
             ..Default::default()
         };
 
@@ -350,8 +347,7 @@ pub async fn upload_media(
     #[cfg(feature = "ssr")]
     {
         use google_cloud_storage::client::{Client, ClientConfig};
-        use google_cloud_storage::http::objects::upload::{UploadObjectRequest, UploadType};
-        use google_cloud_storage::http::objects::Object;
+        use google_cloud_storage::http::objects::upload::{UploadObjectRequest, UploadType, Media};
 
         let config = ClientConfig::default()
             .with_auth()
@@ -370,30 +366,25 @@ pub async fn upload_media(
             _ => "application/octet-stream",
         };
 
-        let upload_type = UploadType::Simple(google_cloud_storage::http::objects::upload::Media {
-            data: data.into(),
-            content_type: content_type.to_string().into(),
+        let upload_type = UploadType::Simple(Media {
+            name: format!("media/journalism/uploads/{}", safe_name),
+            content_length: Some(data.len() as u64),
         });
 
-        let object_name = format!("media/journalism/uploads/{}", safe_name);
         let request = UploadObjectRequest {
             bucket: "jakewray-portfolio".to_string(),
-            upload_type,
-            metadata: Object {
-                name: object_name.clone(),
-                ..Default::default()
-            },
             ..Default::default()
         };
 
+        // GCS upload_object takes &UploadObjectRequest, Body (Vec<u8>), and &UploadType
         client
-            .upload_object(&request)
+            .upload_object(&request, data, &upload_type)
             .await
             .map_err(|e| ServerFnError::new(format!("GCS upload failed: {}", e)))?;
 
         Ok(format!(
-            "https://storage.googleapis.com/jakewray-portfolio/{}",
-            object_name
+            "https://storage.googleapis.com/jakewray-portfolio/media/journalism/uploads/{}",
+            safe_name
         ))
     }
 
