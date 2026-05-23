@@ -40,15 +40,15 @@ pub mod ssr_utils {
         #[derive(Deserialize)]
         struct Claims {
             sub: String,
-            _exp: usize,
+            exp: usize,
         }
 
         let token_data = decode::<Claims>(
             token,
-            &jsonwebtoken::DecodingKey::from_secret(shared::auth::get_jwt_secret()),
+            &DecodingKey::from_secret(shared::auth::get_jwt_secret()),
             &Validation::new(Algorithm::HS256),
         )
-        .map_err(|_| ServerFnError::new("Invalid token"))?;
+        .map_err(|e| ServerFnError::new(format!("Invalid token: {}", e)))?;
 
         Ok(token_data.claims.sub)
     }
