@@ -81,7 +81,11 @@ pub async fn get_articles() -> Result<Vec<Article>, ServerFnError> {
             let published_at: String = row.get("published_at"); // text in sqlite
 
             // Format dates
-            let iso_date = published_at.split('T').next().unwrap_or(&published_at).to_string();
+            let iso_date = published_at
+                .split('T')
+                .next()
+                .unwrap_or(&published_at)
+                .to_string();
             let display_date = if let Ok(dt) = chrono::DateTime::parse_from_rfc3339(&published_at) {
                 dt.format("%B %d, %Y").to_string()
             } else {
@@ -142,7 +146,11 @@ pub async fn get_article(slug: String) -> Result<Option<Article>, ServerFnError>
             let author: String = row.get("author");
             let published_at: String = row.get("published_at");
 
-            let iso_date = published_at.split('T').next().unwrap_or(&published_at).to_string();
+            let iso_date = published_at
+                .split('T')
+                .next()
+                .unwrap_or(&published_at)
+                .to_string();
             let display_date = if let Ok(dt) = chrono::DateTime::parse_from_rfc3339(&published_at) {
                 dt.format("%B %d, %Y").to_string()
             } else {
@@ -304,7 +312,12 @@ pub async fn list_media(token: String) -> Result<Vec<MediaItem>, ServerFnError> 
 
         if let Some(objects) = response.items {
             for object in objects {
-                let name = object.name.split('/').next_back().unwrap_or(&object.name).to_string();
+                let name = object
+                    .name
+                    .split('/')
+                    .next_back()
+                    .unwrap_or(&object.name)
+                    .to_string();
                 if name.is_empty() {
                     continue; // Skip directory placeholders
                 }
@@ -347,7 +360,7 @@ pub async fn upload_media(
     #[cfg(feature = "ssr")]
     {
         use google_cloud_storage::client::{Client, ClientConfig};
-        use google_cloud_storage::http::objects::upload::{UploadObjectRequest, UploadType, Media};
+        use google_cloud_storage::http::objects::upload::{Media, UploadObjectRequest, UploadType};
 
         let config = ClientConfig::default()
             .with_auth()
@@ -355,7 +368,11 @@ pub async fn upload_media(
             .map_err(|e| ServerFnError::new(format!("Failed to load GCS auth config: {}", e)))?;
         let client = Client::new(config);
 
-        let ext = filtered_name.split('.').next_back().unwrap_or("").to_lowercase();
+        let ext = filtered_name
+            .split('.')
+            .next_back()
+            .unwrap_or("")
+            .to_lowercase();
         let content_type = match ext.as_str() {
             "jpg" | "jpeg" => "image/jpeg",
             "png" => "image/png",
