@@ -45,7 +45,7 @@ pub mod ssr_utils {
 
         let token_data = decode::<Claims>(
             token,
-            &DecodingKey::from_secret(shared::auth::get_jwt_secret()),
+            &jsonwebtoken::DecodingKey::from_secret(shared::auth::get_jwt_secret()),
             &Validation::new(Algorithm::HS256),
         )
         .map_err(|_| ServerFnError::new("Invalid token"))?;
@@ -367,8 +367,9 @@ pub async fn upload_media(
         };
 
         let upload_type = UploadType::Simple(Media {
-            name: format!("media/journalism/uploads/{}", safe_name),
+            name: format!("media/journalism/uploads/{}", safe_name).into(),
             content_length: Some(data.len() as u64),
+            content_type: content_type.to_string().into(),
         });
 
         let request = UploadObjectRequest {
