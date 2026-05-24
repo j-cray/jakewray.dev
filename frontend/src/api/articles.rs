@@ -200,7 +200,7 @@ pub async fn save_article(token: String, article: Article) -> Result<(), ServerF
         let safe_slug = article
             .slug
             .chars()
-            .filter(|c| c.is_alphanumeric() || *c == '-')
+            .filter(|c| c.is_alphanumeric() || *c == '-' || *c == ',' || *c == ':' || *c == '.')
             .collect::<String>()
             .to_lowercase();
 
