@@ -50,6 +50,6 @@ cargo leptos watch
 - [x] **Authentication** - Password-protected admin panel
 - [x] **Theme** - Modern indigo design
 - [ ] **Admin features** - Post creation
-- [ ] **Media library** - Photo/video management
+- [x] **Media library** - Photo/video management
 - [x] **Password hashing** - Argon2 implementation
 - [ ] **Password reset** - Email-based recovery
