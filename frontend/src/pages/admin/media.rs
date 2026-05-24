@@ -14,12 +14,12 @@ fn AdminMediaItem(
 ) -> impl IntoView {
     // Default fallback aspect ratio of 3:2 (1.5)
     let (aspect_ratio, set_aspect_ratio) = signal(1.5);
-    
+
     let url = item.url.clone();
     let name = item.name.clone();
     let name_title = name.clone();
     let is_video = url.to_lowercase().ends_with(".mp4");
-    
+
     let on_img_load = move |ev: ev::Event| {
         let img: web_sys::HtmlImageElement = event_target(&ev);
         let w = img.natural_width();
@@ -28,7 +28,7 @@ fn AdminMediaItem(
             set_aspect_ratio.set(w as f64 / h as f64);
         }
     };
-    
+
     let on_video_load = move |ev: ev::Event| {
         let video: web_sys::HtmlVideoElement = event_target(&ev);
         let w = video.video_width();
@@ -37,18 +37,18 @@ fn AdminMediaItem(
             set_aspect_ratio.set(w as f64 / h as f64);
         }
     };
-    
+
     let is_sel = std::sync::Arc::new(is_selected);
     let is_sel_checkbox = is_sel.clone();
     let is_sel_class = is_sel;
-    
+
     let on_toggle = std::sync::Arc::new(on_toggle);
     let on_toggle_card = on_toggle.clone();
     let on_toggle_checkbox = on_toggle;
-    
+
     view! {
         <div
-            class="relative group border border-gray-200 rounded-xl overflow-hidden bg-gray-50 shadow-sm hover:shadow-md hover:border-blue-300 transition-all flex flex-col cursor-pointer"
+            class="relative group flex flex-col gap-2 cursor-pointer"
             class:is-selected=move || is_sel_class()
             on:click=move |_| on_toggle_card()
         >
@@ -94,8 +94,8 @@ fn AdminMediaItem(
             </div>
 
             // Asset Details (Title/Name)
-            <div class="p-3 mt-auto">
-                <span class="text-sm font-semibold truncate text-gray-700 block" title=name_title>{name}</span>
+            <div class="pt-1 px-1 mt-auto">
+                <span class="text-xs font-semibold truncate text-gray-700 block" title=name_title>{name}</span>
             </div>
         </div>
     }
@@ -246,7 +246,7 @@ pub fn AdminMedia() -> impl IntoView {
             <div class="card">
                 <div class="flex justify-between items-center mb-6">
                     <h3 class="text-xl font-bold">"Existing Assets"</h3>
-                    
+
                     <div class="flex items-center gap-2">
                         <button
                             class="btn btn-sm btn-secondary"
