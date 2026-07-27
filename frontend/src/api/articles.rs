@@ -40,6 +40,7 @@ pub mod ssr_utils {
         #[derive(Deserialize)]
         struct Claims {
             sub: String,
+            #[allow(dead_code)]
             exp: usize,
         }
 
