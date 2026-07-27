@@ -423,6 +423,71 @@ a {
   }
 }
 
+.editor-content,
+.article-content {
+  p {
+    margin-top: 0;
+    margin-bottom: 1.25rem !important;
+    min-height: 1.5em;
+
+    &:last-child {
+      margin-bottom: 0 !important;
+    }
+  }
+}
+
+.editor-content {
+  color: black !important;
+
+  &,
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  p,
+  li,
+  span,
+  font,
+  div,
+  blockquote,
+  strong,
+  em,
+  b,
+  i,
+  td,
+  th {
+    color: black !important;
+  }
+
+  * {
+    color: black !important;
+  }
+
+  strong {
+    font-weight: 700;
+    color: black !important;
+  }
+
+  a:not(.btn) {
+    color: var(--primary) !important;
+
+    &:hover {
+      color: var(--primary-dark) !important;
+    }
+  }
+
+  figcaption,
+  figcaption *,
+  .wp-caption-text,
+  .wp-caption-text *,
+  .wp-element-caption,
+  .wp-element-caption * {
+    color: var(--text-muted) !important;
+  }
+}
+
 .article-content > :last-child {
   margin-bottom: 0;
 }

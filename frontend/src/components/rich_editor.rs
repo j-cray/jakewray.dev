@@ -279,7 +279,7 @@ pub fn RichTextEditor(
             // Contenteditable Editor View
             <div
                 id=editor_id
-                class="editor-content p-6 min-h-[350px] max-h-[600px] overflow-y-auto prose max-w-none focus:outline-none bg-white text-gray-900 leading-relaxed"
+                class="editor-content p-6 min-h-[350px] max-h-[600px] overflow-y-auto prose max-w-none focus:outline-none bg-white text-black leading-relaxed"
                 contenteditable="true"
                 inner_html=value.get_untracked()
                 on:input=move |ev| update_html(ev.target())
