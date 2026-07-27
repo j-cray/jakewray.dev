@@ -2,22 +2,147 @@ use leptos::prelude::*;
 #[cfg(target_arch = "wasm32")]
 use web_sys::wasm_bindgen::JsCast;
 
-fn execute_command(cmd: &str, value: Option<&str>) {
+#[derive(Clone, Debug, PartialEq, Default)]
+pub struct ActiveStates {
+    pub bold: bool,
+    pub italic: bool,
+    pub underline: bool,
+    pub strike: bool,
+    pub code: bool,
+    pub bullet_list: bool,
+    pub ordered_list: bool,
+    pub justify_left: bool,
+    pub justify_center: bool,
+    pub justify_right: bool,
+    pub block_tag: String,
+}
+
+fn execute_editor_command(
+    editor_id: &str,
+    cmd: &str,
+    value: Option<&str>,
+    on_change: &Callback<(String,)>,
+) {
     #[cfg(target_arch = "wasm32")]
     {
         if let Some(win) = web_sys::window() {
             if let Some(doc) = win.document() {
-                if let Ok(html_doc) = doc.dyn_into::<web_sys::HtmlDocument>() {
+                if let Some(el) = doc.get_element_by_id(editor_id) {
+                    if let Ok(html_el) = el.dyn_into::<web_sys::HtmlElement>() {
+                        let _ = html_el.focus();
+                    }
+                }
+                if let Ok(html_doc) = doc.clone().dyn_into::<web_sys::HtmlDocument>() {
                     let val = value.unwrap_or("");
                     let _ = html_doc.exec_command_with_show_ui_and_value(cmd, false, val);
+                }
+                if let Some(el) = doc.get_element_by_id(editor_id) {
+                    if let Ok(html_el) = el.dyn_into::<web_sys::HtmlElement>() {
+                        let html = html_el.inner_html();
+                        on_change.run((html,));
+                    }
                 }
             }
         }
     }
     #[cfg(not(target_arch = "wasm32"))]
     {
-        let _ = (cmd, value);
+        let _ = (editor_id, cmd, value, on_change);
     }
+}
+
+fn query_active_states(_editor_id: &str) -> ActiveStates {
+    #[cfg(target_arch = "wasm32")]
+    {
+        let mut states = ActiveStates::default();
+        if let Some(win) = web_sys::window() {
+            if let Some(doc) = win.document() {
+                if let Ok(html_doc) = doc.dyn_into::<web_sys::HtmlDocument>() {
+                    states.bold = html_doc.query_command_state("bold").unwrap_or(false);
+                    states.italic = html_doc.query_command_state("italic").unwrap_or(false);
+                    states.underline = html_doc.query_command_state("underline").unwrap_or(false);
+                    states.strike = html_doc
+                        .query_command_state("strikeThrough")
+                        .unwrap_or(false);
+                    states.bullet_list = html_doc
+                        .query_command_state("insertUnorderedList")
+                        .unwrap_or(false);
+                    states.ordered_list = html_doc
+                        .query_command_state("insertOrderedList")
+                        .unwrap_or(false);
+                    states.justify_left =
+                        html_doc.query_command_state("justifyLeft").unwrap_or(false);
+                    states.justify_center = html_doc
+                        .query_command_state("justifyCenter")
+                        .unwrap_or(false);
+                    states.justify_right = html_doc
+                        .query_command_state("justifyRight")
+                        .unwrap_or(false);
+
+                    let block = html_doc
+                        .query_command_value("formatBlock")
+                        .unwrap_or_default()
+                        .to_lowercase();
+                    states.block_tag = normalize_block_tag(&block);
+                }
+            }
+        }
+        states
+    }
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        ActiveStates::default()
+    }
+}
+
+pub fn normalize_block_tag(raw: &str) -> String {
+    let cleaned = raw
+        .trim()
+        .trim_matches(|c| c == '<' || c == '>')
+        .to_lowercase();
+    match cleaned.as_str() {
+        "h1" => "h1".to_string(),
+        "h2" => "h2".to_string(),
+        "h3" => "h3".to_string(),
+        "blockquote" => "blockquote".to_string(),
+        "pre" => "pre".to_string(),
+        _ => "p".to_string(),
+    }
+}
+
+fn do_cmd(
+    editor_id: &str,
+    cmd: &str,
+    val: Option<&str>,
+    on_change: &Callback<(String,)>,
+    active_states: RwSignal<ActiveStates>,
+) {
+    execute_editor_command(editor_id, cmd, val, on_change);
+    let current = query_active_states(editor_id);
+    active_states.set(current);
+}
+
+fn do_input(
+    editor_id: &str,
+    target: Option<web_sys::EventTarget>,
+    on_change: &Callback<(String,)>,
+    active_states: RwSignal<ActiveStates>,
+) {
+    #[cfg(target_arch = "wasm32")]
+    {
+        if let Some(target) = target {
+            if let Ok(el) = target.dyn_into::<web_sys::HtmlElement>() {
+                let html = el.inner_html();
+                on_change.run((html,));
+            }
+        }
+    }
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        let _ = (target, on_change);
+    }
+    let current = query_active_states(editor_id);
+    active_states.set(current);
 }
 
 #[component]
@@ -28,280 +153,296 @@ pub fn RichTextEditor(
     #[prop(into, optional)] class: Option<String>,
 ) -> impl IntoView {
     let editor_id = id.unwrap_or_else(|| format!("editor-{}", uuid::Uuid::new_v4()));
-
-    let update_html = move |target: Option<web_sys::EventTarget>| {
-        #[cfg(target_arch = "wasm32")]
-        {
-            if let Some(target) = target {
-                if let Ok(el) = target.dyn_into::<web_sys::HtmlElement>() {
-                    let html = el.inner_html();
-                    on_change.run((html,));
-                }
-            }
-        }
-        #[cfg(not(target_arch = "wasm32"))]
-        {
-            let _ = (target, &on_change);
-        }
-    };
+    let editor_id_store = StoredValue::new(editor_id.clone());
+    let active_states = RwSignal::new(ActiveStates::default());
 
     let wrapper_class = format!(
         "rich-text-editor border rounded-lg overflow-hidden bg-white flex flex-col shadow-sm {}",
         class.unwrap_or_default()
     );
 
-    let btn_class = "px-2.5 py-1.5 text-xs font-semibold rounded text-gray-700 hover:bg-gray-100 active:bg-gray-200 transition-colors flex items-center gap-1 border border-gray-200 bg-white";
-
     view! {
         <div class=wrapper_class>
-            // Toolbar
+            // Modern Toolbar
             <div class="editor-toolbar flex flex-wrap gap-1.5 p-2 border-b bg-gray-50 items-center">
+                // Block Format Select
+                <select
+                    class="editor-select"
+                    prop:value=move || active_states.get().block_tag
+                    on:change=move |ev| {
+                        let val = event_target_value(&ev);
+                        let block_spec = format!("<{}>", val);
+                        do_cmd(&editor_id_store.get_value(), "formatBlock", Some(&block_spec), &on_change, active_states);
+                    }
+                >
+                    <option value="p">"Paragraph"</option>
+                    <option value="h1">"Heading 1"</option>
+                    <option value="h2">"Heading 2"</option>
+                    <option value="h3">"Heading 3"</option>
+                    <option value="blockquote">"Quote"</option>
+                    <option value="pre">"Code Block"</option>
+                </select>
+
+                <div class="editor-divider"></div>
+
                 // Formatting Group
-                <div class="flex gap-1">
+                <div class="editor-group">
                     <button
                         type="button"
-                        class=btn_class
+                        class=move || if active_states.get().bold { "editor-btn is-active" } else { "editor-btn" }
                         title="Bold (Ctrl+B)"
                         on:mousedown=move |ev| ev.prevent_default()
-                        on:click=move |_| execute_command("bold", None)
+                        on:click=move |_| do_cmd(&editor_id_store.get_value(), "bold", None, &on_change, active_states)
                     >
-                        <span class="font-bold">"B"</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4h8a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z"/><path d="M6 12h9a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z"/></svg>
                     </button>
 
                     <button
                         type="button"
-                        class=btn_class
+                        class=move || if active_states.get().italic { "editor-btn is-active" } else { "editor-btn" }
                         title="Italic (Ctrl+I)"
                         on:mousedown=move |ev| ev.prevent_default()
-                        on:click=move |_| execute_command("italic", None)
+                        on:click=move |_| do_cmd(&editor_id_store.get_value(), "italic", None, &on_change, active_states)
                     >
-                        <span class="italic font-serif">"I"</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="4" x2="10" y2="4"/><line x1="14" y1="20" x2="5" y2="20"/><line x1="15" y1="4" x2="9" y2="20"/></svg>
                     </button>
 
                     <button
                         type="button"
-                        class=btn_class
+                        class=move || if active_states.get().underline { "editor-btn is-active" } else { "editor-btn" }
                         title="Underline (Ctrl+U)"
                         on:mousedown=move |ev| ev.prevent_default()
-                        on:click=move |_| execute_command("underline", None)
+                        on:click=move |_| do_cmd(&editor_id_store.get_value(), "underline", None, &on_change, active_states)
                     >
-                        <span class="underline">"U"</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3v7a6 6 0 0 0 6 6 6 6 0 0 0 6-6V3"/><line x1="4" y1="21" x2="20" y2="21"/></svg>
                     </button>
 
                     <button
                         type="button"
-                        class=btn_class
+                        class=move || if active_states.get().strike { "editor-btn is-active" } else { "editor-btn" }
                         title="Strikethrough"
                         on:mousedown=move |ev| ev.prevent_default()
-                        on:click=move |_| execute_command("strikeThrough", None)
+                        on:click=move |_| do_cmd(&editor_id_store.get_value(), "strikeThrough", None, &on_change, active_states)
                     >
-                        <span class="line-through">"S"</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4H9a3 3 0 0 0-2.83 4M14 12a4 4 0 0 1 0 8H6"/><line x1="4" y1="12" x2="20" y2="12"/></svg>
+                    </button>
+
+                    <button
+                        type="button"
+                        class=move || if active_states.get().code { "editor-btn is-active" } else { "editor-btn" }
+                        title="Inline Code"
+                        on:mousedown=move |ev| ev.prevent_default()
+                        on:click=move |_| do_cmd(&editor_id_store.get_value(), "insertHTML", Some("<code>code</code>"), &on_change, active_states)
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
                     </button>
                 </div>
 
-                <div class="h-4 w-px bg-gray-300 mx-0.5"></div>
+                <div class="editor-divider"></div>
 
-                // Structure Group
-                <div class="flex gap-1">
+                // Lists & Quotes Group
+                <div class="editor-group">
                     <button
                         type="button"
-                        class=btn_class
-                        title="Heading 1"
-                        on:mousedown=move |ev| ev.prevent_default()
-                        on:click=move |_| execute_command("formatBlock", Some("<h1>"))
-                    >
-                        <span class="font-bold">"H1"</span>
-                    </button>
-
-                    <button
-                        type="button"
-                        class=btn_class
-                        title="Heading 2"
-                        on:mousedown=move |ev| ev.prevent_default()
-                        on:click=move |_| execute_command("formatBlock", Some("<h2>"))
-                    >
-                        <span class="font-bold">"H2"</span>
-                    </button>
-
-                    <button
-                        type="button"
-                        class=btn_class
-                        title="Heading 3"
-                        on:mousedown=move |ev| ev.prevent_default()
-                        on:click=move |_| execute_command("formatBlock", Some("<h3>"))
-                    >
-                        <span class="font-bold">"H3"</span>
-                    </button>
-
-                    <button
-                        type="button"
-                        class=btn_class
-                        title="Paragraph"
-                        on:mousedown=move |ev| ev.prevent_default()
-                        on:click=move |_| execute_command("formatBlock", Some("<p>"))
-                    >
-                        "P"
-                    </button>
-                </div>
-
-                <div class="h-4 w-px bg-gray-300 mx-0.5"></div>
-
-                // Lists & Quotes
-                <div class="flex gap-1">
-                    <button
-                        type="button"
-                        class=btn_class
+                        class=move || if active_states.get().bullet_list { "editor-btn is-active" } else { "editor-btn" }
                         title="Bullet List"
                         on:mousedown=move |ev| ev.prevent_default()
-                        on:click=move |_| execute_command("insertUnorderedList", None)
+                        on:click=move |_| do_cmd(&editor_id_store.get_value(), "insertUnorderedList", None, &on_change, active_states)
                     >
-                        "• List"
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
                     </button>
 
                     <button
                         type="button"
-                        class=btn_class
+                        class=move || if active_states.get().ordered_list { "editor-btn is-active" } else { "editor-btn" }
                         title="Numbered List"
                         on:mousedown=move |ev| ev.prevent_default()
-                        on:click=move |_| execute_command("insertOrderedList", None)
+                        on:click=move |_| do_cmd(&editor_id_store.get_value(), "insertOrderedList", None, &on_change, active_states)
                     >
-                        "1. List"
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="10" y1="6" x2="21" y2="6"/><line x1="10" y1="12" x2="21" y2="12"/><line x1="10" y1="18" x2="21" y2="18"/><path d="M4 6h1v4"/><path d="M4 10h2"/><path d="M6 18H4c0-1 2-2 2-3s-1-1.5-2-1"/></svg>
                     </button>
 
                     <button
                         type="button"
-                        class=btn_class
+                        class="editor-btn"
                         title="Blockquote"
                         on:mousedown=move |ev| ev.prevent_default()
-                        on:click=move |_| execute_command("formatBlock", Some("<blockquote>"))
+                        on:click=move |_| do_cmd(&editor_id_store.get_value(), "formatBlock", Some("<blockquote>"), &on_change, active_states)
                     >
-                        "\" Quote"
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21c3 0 7-1 7-8V5c0-1.25-.756-2.017-2-2H4c-1.25 0-2 .75-2 2v6c0 1.25.75 2 2 2h3c0 4-4 6-4 6z"/><path d="M15 21c3 0 7-1 7-8V5c0-1.25-.757-2.017-2-2h-4c-1.25 0-2 .75-2 2v6c0 1.25.75 2 2 2h3c0 4-4 6-4 6z"/></svg>
                     </button>
 
                     <button
                         type="button"
-                        class=btn_class
-                        title="Horizontal Rule"
+                        class="editor-btn"
+                        title="Horizontal Divider"
                         on:mousedown=move |ev| ev.prevent_default()
-                        on:click=move |_| execute_command("insertHorizontalRule", None)
+                        on:click=move |_| do_cmd(&editor_id_store.get_value(), "insertHorizontalRule", None, &on_change, active_states)
                     >
-                        "— Line"
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/></svg>
                     </button>
                 </div>
 
-                <div class="h-4 w-px bg-gray-300 mx-0.5"></div>
+                <div class="editor-divider"></div>
 
-                // Alignment
-                <div class="flex gap-1">
+                // Alignment Group
+                <div class="editor-group">
                     <button
                         type="button"
-                        class=btn_class
+                        class=move || if active_states.get().justify_left { "editor-btn is-active" } else { "editor-btn" }
                         title="Align Left"
                         on:mousedown=move |ev| ev.prevent_default()
-                        on:click=move |_| execute_command("justifyLeft", None)
+                        on:click=move |_| do_cmd(&editor_id_store.get_value(), "justifyLeft", None, &on_change, active_states)
                     >
-                        "Left"
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="17" y1="10" x2="3" y2="10"/><line x1="21" y1="6" x2="3" y2="6"/><line x1="21" y1="14" x2="3" y2="14"/><line x1="15" y1="18" x2="3" y2="18"/></svg>
                     </button>
 
                     <button
                         type="button"
-                        class=btn_class
+                        class=move || if active_states.get().justify_center { "editor-btn is-active" } else { "editor-btn" }
                         title="Align Center"
                         on:mousedown=move |ev| ev.prevent_default()
-                        on:click=move |_| execute_command("justifyCenter", None)
+                        on:click=move |_| do_cmd(&editor_id_store.get_value(), "justifyCenter", None, &on_change, active_states)
                     >
-                        "Center"
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="10" x2="6" y2="10"/><line x1="21" y1="6" x2="3" y2="6"/><line x1="21" y1="14" x2="3" y2="14"/><line x1="18" y1="18" x2="6" y2="18"/></svg>
                     </button>
 
                     <button
                         type="button"
-                        class=btn_class
+                        class=move || if active_states.get().justify_right { "editor-btn is-active" } else { "editor-btn" }
                         title="Align Right"
                         on:mousedown=move |ev| ev.prevent_default()
-                        on:click=move |_| execute_command("justifyRight", None)
+                        on:click=move |_| do_cmd(&editor_id_store.get_value(), "justifyRight", None, &on_change, active_states)
                     >
-                        "Right"
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="21" y1="10" x2="7" y2="10"/><line x1="21" y1="6" x2="3" y2="6"/><line x1="21" y1="14" x2="3" y2="14"/><line x1="21" y1="18" x2="9" y2="18"/></svg>
                     </button>
                 </div>
 
-                <div class="h-4 w-px bg-gray-300 mx-0.5"></div>
+                <div class="editor-divider"></div>
 
-                // Links & Actions
-                <div class="flex gap-1">
+                // Media & Links Group
+                <div class="editor-group">
                     <button
                         type="button"
-                        class=btn_class
+                        class="editor-btn"
                         title="Insert Link"
                         on:mousedown=move |ev| ev.prevent_default()
                         on:click=move |_| {
-                            if let Ok(Some(url)) = web_sys::window().unwrap().prompt_with_message("Enter link URL:") {
-                                if !url.trim().is_empty() {
-                                    execute_command("createLink", Some(&url));
+                            #[cfg(target_arch = "wasm32")]
+                            {
+                                if let Ok(Some(url)) = web_sys::window().unwrap().prompt_with_message_and_default("Enter link URL:", "https://") {
+                                    if !url.trim().is_empty() {
+                                        do_cmd(&editor_id_store.get_value(), "createLink", Some(&url), &on_change, active_states);
+                                    }
                                 }
                             }
                         }
                     >
-                        "🔗 Link"
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
                     </button>
 
                     <button
                         type="button"
-                        class=btn_class
+                        class="editor-btn"
                         title="Remove Link"
                         on:mousedown=move |ev| ev.prevent_default()
-                        on:click=move |_| execute_command("unlink", None)
+                        on:click=move |_| do_cmd(&editor_id_store.get_value(), "unlink", None, &on_change, active_states)
                     >
-                        "Unlink"
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18.84 12.25 1.72-1.71a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="m5.16 11.75-1.72 1.71a5 5 0 0 0 7.07 7.07l1.72-1.71"/><line x1="2" y1="2" x2="22" y2="22"/></svg>
                     </button>
 
                     <button
                         type="button"
-                        class=btn_class
+                        class="editor-btn"
+                        title="Insert Image"
+                        on:mousedown=move |ev| ev.prevent_default()
+                        on:click=move |_| {
+                            #[cfg(target_arch = "wasm32")]
+                            {
+                                if let Ok(Some(url)) = web_sys::window().unwrap().prompt_with_message_and_default("Enter image URL:", "https://") {
+                                    if !url.trim().is_empty() {
+                                        do_cmd(&editor_id_store.get_value(), "insertImage", Some(&url), &on_change, active_states);
+                                    }
+                                }
+                            }
+                        }
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                    </button>
+
+                    <button
+                        type="button"
+                        class="editor-btn"
                         title="Clear Formatting"
                         on:mousedown=move |ev| ev.prevent_default()
-                        on:click=move |_| execute_command("removeFormat", None)
+                        on:click=move |_| do_cmd(&editor_id_store.get_value(), "removeFormat", None, &on_change, active_states)
                     >
-                        "Clear"
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7 21-4.3-4.3a1 1 0 0 1 0-1.4l9.6-9.6a1 1 0 0 1 1.4 0l4.3 4.3a1 1 0 0 1 0 1.4L8.4 21Z"/><path d="M22 21H7"/><path d="m5 11 9 9"/></svg>
                     </button>
                 </div>
 
                 <div class="flex-grow"></div>
 
-                // History
-                <div class="flex gap-1">
+                // History Group
+                <div class="editor-group">
                     <button
                         type="button"
-                        class=btn_class
+                        class="editor-btn"
                         title="Undo (Ctrl+Z)"
                         on:mousedown=move |ev| ev.prevent_default()
-                        on:click=move |_| execute_command("undo", None)
+                        on:click=move |_| do_cmd(&editor_id_store.get_value(), "undo", None, &on_change, active_states)
                     >
-                        "↩"
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></svg>
                     </button>
 
                     <button
                         type="button"
-                        class=btn_class
+                        class="editor-btn"
                         title="Redo (Ctrl+Y)"
                         on:mousedown=move |ev| ev.prevent_default()
-                        on:click=move |_| execute_command("redo", None)
+                        on:click=move |_| do_cmd(&editor_id_store.get_value(), "redo", None, &on_change, active_states)
                     >
-                        "↪"
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 7v6h-6"/><path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3l3 2.7"/></svg>
                     </button>
                 </div>
             </div>
 
-            // Contenteditable Editor View
+            // Contenteditable Area
             <div
-                id=editor_id
+                id=editor_id.clone()
                 class="editor-content p-6 min-h-[350px] max-h-[600px] overflow-y-auto prose max-w-none focus:outline-none bg-white text-black leading-relaxed"
                 contenteditable="true"
                 inner_html=value.get_untracked()
-                on:input=move |ev| update_html(ev.target())
-                on:keyup=move |ev| update_html(ev.target())
-                on:blur=move |ev| update_html(ev.target())
-                on:focus=move |_| execute_command("defaultParagraphSeparator", Some("p"))
+                on:input=move |ev| do_input(&editor_id_store.get_value(), ev.target(), &on_change, active_states)
+                on:keyup=move |ev| do_input(&editor_id_store.get_value(), ev.target(), &on_change, active_states)
+                on:mouseup=move |ev| do_input(&editor_id_store.get_value(), ev.target(), &on_change, active_states)
+                on:blur=move |ev| do_input(&editor_id_store.get_value(), ev.target(), &on_change, active_states)
+                on:focus=move |_| do_cmd(&editor_id_store.get_value(), "defaultParagraphSeparator", Some("p"), &on_change, active_states)
             ></div>
         </div>
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_normalize_block_tag() {
+        assert_eq!(normalize_block_tag("<h1>"), "h1");
+        assert_eq!(normalize_block_tag("H2"), "h2");
+        assert_eq!(normalize_block_tag("  <H3> "), "h3");
+        assert_eq!(normalize_block_tag("blockquote"), "blockquote");
+        assert_eq!(normalize_block_tag("pre"), "pre");
+        assert_eq!(normalize_block_tag("div"), "p");
+        assert_eq!(normalize_block_tag("p"), "p");
+    }
+
+    #[test]
+    fn test_active_states_default() {
+        let states = ActiveStates::default();
+        assert!(!states.bold);
+        assert!(!states.italic);
+        assert_eq!(states.block_tag, "");
     }
 }

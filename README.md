@@ -54,5 +54,6 @@ cargo leptos watch
 - [ ] **Admin features** - Post creation
 - [x] **Media library** - Photo/video management
 - [x] **Password hashing** - Argon2 implementation
-- [x] **Rich Text Editor** - Tiptap WYSIWYG editor integration for articles
+- [x] **Rich Text Editor** - Modern, icon-based WYSIWYG editor toolbar for articles with active state tracking and signal synchronization
+
 - [ ] **Password reset** - Email-based recovery
