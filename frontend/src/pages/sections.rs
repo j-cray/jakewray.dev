@@ -317,17 +317,28 @@ fn format_cp_style(date: &str) -> String {
 }
 
 pub fn get_article_sort_key(article: &Article) -> String {
-    if let Some(printed) = extract_printed_date(&article.content_html) {
-        let (_, iso, _) = crate::api::articles::parse_article_date(&printed);
-        if iso != "1970-01-01" {
-            return iso;
+    #[cfg(feature = "ssr")]
+    {
+        if let Some(printed) = extract_printed_date(&article.content_html) {
+            let (_, iso, _) = crate::api::articles::parse_article_date(&printed);
+            if iso != "1970-01-01" {
+                return iso;
+            }
+        }
+        if !article.iso_date.is_empty() && article.iso_date != "1970-01-01" {
+            return article.iso_date.clone();
+        }
+        let (_, iso, _) = crate::api::articles::parse_article_date(&article.display_date);
+        iso
+    }
+    #[cfg(not(feature = "ssr"))]
+    {
+        if !article.iso_date.is_empty() && article.iso_date != "1970-01-01" {
+            article.iso_date.clone()
+        } else {
+            article.display_date.clone()
         }
     }
-    if !article.iso_date.is_empty() && article.iso_date != "1970-01-01" {
-        return article.iso_date.clone();
-    }
-    let (_, iso, _) = crate::api::articles::parse_article_date(&article.display_date);
-    iso
 }
 
 pub fn sort_articles_newest_first(articles: &mut [Article]) {
