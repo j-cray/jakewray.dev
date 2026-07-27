@@ -156,6 +156,39 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Build the application router with all routes
     let app = Router::new()
         .nest("/", api::router(app_state.clone()))
+        .route(
+            "/api/*fn_name",
+            axum::routing::post({
+                let pool = app_state.pool.clone();
+                let options = app_state.leptos_options.clone();
+                move |req| {
+                    let pool = pool.clone();
+                    let options = options.clone();
+                    leptos_axum::handle_server_fns_with_context(
+                        move || {
+                            provide_context(pool.clone());
+                            provide_context(options.clone());
+                        },
+                        req,
+                    )
+                }
+            })
+            .get({
+                let pool = app_state.pool.clone();
+                let options = app_state.leptos_options.clone();
+                move |req| {
+                    let pool = pool.clone();
+                    let options = options.clone();
+                    leptos_axum::handle_server_fns_with_context(
+                        move || {
+                            provide_context(pool.clone());
+                            provide_context(options.clone());
+                        },
+                        req,
+                    )
+                }
+            }),
+        )
         .leptos_routes_with_context(
             &app_state,
             routes,
@@ -254,5 +287,22 @@ async fn get_static_file(uri: axum::http::Uri, root: &str) -> AxumResponse {
             )
                 .into_response()
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use server_fn::ServerFn;
+
+    #[test]
+    fn test_server_fn_registration() {
+        assert!(!frontend::api::articles::GetArticles::PATH.is_empty());
+        assert!(!frontend::api::articles::GetArticle::PATH.is_empty());
+        assert!(!frontend::api::articles::SaveArticle::PATH.is_empty());
+        assert!(!frontend::api::articles::DeleteArticle::PATH.is_empty());
+        assert!(!frontend::api::articles::ListMedia::PATH.is_empty());
+        assert!(!frontend::api::articles::UploadMedia::PATH.is_empty());
+        assert!(!frontend::api::articles::DeleteMedia::PATH.is_empty());
     }
 }

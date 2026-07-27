@@ -188,11 +188,10 @@ pub async fn get_article(slug: String) -> Result<Option<Article>, ServerFnError>
 
 #[server(SaveArticle, "/api")]
 pub async fn save_article(token: String, article: Article) -> Result<(), ServerFnError> {
-    use self::ssr_utils::verify_token;
-    verify_token(&token)?; // Guard
-
     #[cfg(feature = "ssr")]
     {
+        use self::ssr_utils::verify_token;
+        verify_token(&token)?; // Guard
         use sqlx::SqlitePool;
         let pool = use_context::<SqlitePool>()
             .ok_or_else(|| ServerFnError::new("SqlitePool not found in Leptos context"))?;
@@ -259,11 +258,10 @@ pub async fn save_article(token: String, article: Article) -> Result<(), ServerF
 
 #[server(DeleteArticle, "/api")]
 pub async fn delete_article(token: String, slug: String) -> Result<(), ServerFnError> {
-    use self::ssr_utils::verify_token;
-    verify_token(&token)?; // Guard
-
     #[cfg(feature = "ssr")]
     {
+        use self::ssr_utils::verify_token;
+        verify_token(&token)?; // Guard
         use sqlx::SqlitePool;
         let pool = use_context::<SqlitePool>()
             .ok_or_else(|| ServerFnError::new("SqlitePool not found in Leptos context"))?;
@@ -283,11 +281,10 @@ pub async fn delete_article(token: String, slug: String) -> Result<(), ServerFnE
 
 #[server(ListMedia, "/api")]
 pub async fn list_media(token: String) -> Result<Vec<MediaItem>, ServerFnError> {
-    use self::ssr_utils::verify_token;
-    verify_token(&token)?;
-
     #[cfg(feature = "ssr")]
     {
+        use self::ssr_utils::verify_token;
+        verify_token(&token)?;
         use google_cloud_storage::client::{Client, ClientConfig};
         use google_cloud_storage::http::objects::list::ListObjectsRequest;
 
@@ -342,24 +339,23 @@ pub async fn upload_media(
     filename: String,
     data: Vec<u8>,
 ) -> Result<String, ServerFnError> {
-    use self::ssr_utils::verify_token;
-    verify_token(&token)?;
-
-    // We'll upload to a 'uploads' folder for manual picking or sorting later
-    let filtered_name: String = filename
-        .chars()
-        .filter(|c| c.is_alphanumeric() || *c == '.' || *c == '-' || *c == '_')
-        .collect();
-
-    if filtered_name.is_empty() {
-        return Err(ServerFnError::new("Invalid filename"));
-    }
-
-    let timestamp = chrono::Utc::now().timestamp();
-    let safe_name = format!("{}_{}", timestamp, filtered_name);
-
     #[cfg(feature = "ssr")]
     {
+        use self::ssr_utils::verify_token;
+        verify_token(&token)?;
+
+        // We'll upload to a 'uploads' folder for manual picking or sorting later
+        let filtered_name: String = filename
+            .chars()
+            .filter(|c| c.is_alphanumeric() || *c == '.' || *c == '-' || *c == '_')
+            .collect();
+
+        if filtered_name.is_empty() {
+            return Err(ServerFnError::new("Invalid filename"));
+        }
+
+        let timestamp = chrono::Utc::now().timestamp();
+        let safe_name = format!("{}_{}", timestamp, filtered_name);
         use google_cloud_storage::client::{Client, ClientConfig};
         use google_cloud_storage::http::objects::upload::{Media, UploadObjectRequest, UploadType};
 
@@ -413,11 +409,10 @@ pub async fn upload_media(
 
 #[server(DeleteMedia, "/api")]
 pub async fn delete_media(token: String, object_name: String) -> Result<(), ServerFnError> {
-    use self::ssr_utils::verify_token;
-    verify_token(&token)?;
-
     #[cfg(feature = "ssr")]
     {
+        use self::ssr_utils::verify_token;
+        verify_token(&token)?;
         use google_cloud_storage::client::{Client, ClientConfig};
         use google_cloud_storage::http::objects::delete::DeleteObjectRequest;
 
