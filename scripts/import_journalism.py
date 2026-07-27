@@ -213,6 +213,7 @@ def main():
             excerpt TEXT,
             content TEXT NOT NULL,
             cover_image_url TEXT,
+            cover_image_caption TEXT,
             author TEXT NOT NULL,
             published_at DATETIME NOT NULL,
             origin TEXT NOT NULL DEFAULT 'local',
@@ -225,16 +226,19 @@ def main():
         uid = str(uuid.uuid4())
         published_at = f"{a['iso_date']}T00:00:00.000Z"
         cover_image = a["images"][0] if a["images"] else None
+        captions = a.get("captions", [])
+        cover_image_caption = captions[0] if captions else None
         byline = a.get("byline", "Jake Wray")
 
         cursor.execute("""
-            INSERT INTO articles (id, slug, title, content, excerpt, cover_image_url, author, published_at, origin)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'imported')
+            INSERT INTO articles (id, slug, title, content, excerpt, cover_image_url, cover_image_caption, author, published_at, origin)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'imported')
             ON CONFLICT(slug) DO UPDATE SET
                 title = excluded.title,
                 content = excluded.content,
                 excerpt = excluded.excerpt,
                 cover_image_url = excluded.cover_image_url,
+                cover_image_caption = COALESCE(articles.cover_image_caption, excluded.cover_image_caption),
                 author = excluded.author,
                 published_at = excluded.published_at,
                 updated_at = CURRENT_TIMESTAMP
@@ -245,6 +249,7 @@ def main():
             a["content_html"],
             a["excerpt"],
             cover_image,
+            cover_image_caption,
             byline,
             published_at
         ))
