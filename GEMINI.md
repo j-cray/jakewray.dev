@@ -59,7 +59,6 @@ cargo leptos watch
 4. **Styling**:
    Global styling is handled via SASS. When adding new components, add corresponding styles to the `style/` directory and ensure they are compiled correctly by the Leptos build pipeline.
 
-
 - Tick off tasks in the roadmap as they are completed.
 - Update the roadmap as the project progresses.
 - Update the plan as the project progresses.
