@@ -475,7 +475,7 @@ pub fn JournalismArticlePage() -> impl IntoView {
                     let err_str = e.to_string();
                     if err_str.contains("Invalid token") || err_str.contains("ExpiredSignature") {
                         #[cfg(target_arch = "wasm32")]
-                        if let Ok(Some(window)) = web_sys::window() {
+                        if let Some(window) = web_sys::window() {
                             if let Ok(Some(storage)) = window.local_storage() {
                                 let _ = storage.remove_item("admin_token");
                             }
@@ -515,7 +515,7 @@ pub fn JournalismArticlePage() -> impl IntoView {
                     let err_str = e.to_string();
                     if err_str.contains("Invalid token") || err_str.contains("ExpiredSignature") {
                         #[cfg(target_arch = "wasm32")]
-                        if let Ok(Some(window)) = web_sys::window() {
+                        if let Some(window) = web_sys::window() {
                             if let Ok(Some(storage)) = window.local_storage() {
                                 let _ = storage.remove_item("admin_token");
                             }

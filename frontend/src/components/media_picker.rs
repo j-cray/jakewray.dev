@@ -24,7 +24,7 @@ where
         let t = token.get();
         if shared::auth::is_token_expired(&t) {
             #[cfg(target_arch = "wasm32")]
-            if let Ok(Some(window)) = web_sys::window() {
+            if let Some(window) = web_sys::window() {
                 if let Ok(Some(storage)) = window.local_storage() {
                     let _ = storage.remove_item("admin_token");
                 }
@@ -83,7 +83,7 @@ where
                         .set("Upload failed: Session expired. Please log in again.".to_string());
                     return;
                 }
-                let f_clone = fetch_media;
+                let f_clone = fetch_media.clone();
                 let filename = file.name();
                 let file_clone = file.clone(); // web_sys::File is Clone (JsValue wrapper)
                 set_uploading.set(true);

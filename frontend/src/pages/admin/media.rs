@@ -113,8 +113,12 @@ pub fn AdminMedia() -> impl IntoView {
     let (token, set_token) = signal(String::new());
     let _ = set_token;
 
-    #[cfg(target_arch = "wasm32")]
-    let navigate = leptos_router::hooks::use_navigate();
+    let go_login = move || {
+        #[cfg(target_arch = "wasm32")]
+        {
+            (leptos_router::hooks::use_navigate())("/admin/login", Default::default());
+        }
+    };
 
     // Check auth on load
     Effect::new(move || {
@@ -129,15 +133,14 @@ pub fn AdminMedia() -> impl IntoView {
                 }
                 let _ = local_storage.remove_item("admin_token");
             }
-            navigate("/admin/login", Default::default());
+            go_login();
         }
     });
 
     let fetch_media = move |is_initial: bool| {
         let t = token.get();
         if t.is_empty() || shared::auth::is_token_expired(&t) {
-            #[cfg(target_arch = "wasm32")]
-            navigate("/admin/login", Default::default());
+            go_login();
             return;
         }
         if is_initial {
@@ -151,14 +154,12 @@ pub fn AdminMedia() -> impl IntoView {
                     let err_str = e.to_string();
                     if err_str.contains("Invalid token") || err_str.contains("ExpiredSignature") {
                         #[cfg(target_arch = "wasm32")]
-                        {
-                            if let Ok(Some(w)) = web_sys::window() {
-                                if let Ok(Some(s)) = w.local_storage() {
-                                    let _ = s.remove_item("admin_token");
-                                }
+                        if let Some(w) = web_sys::window() {
+                            if let Ok(Some(s)) = w.local_storage() {
+                                let _ = s.remove_item("admin_token");
                             }
-                            navigate("/admin/login", Default::default());
                         }
+                        go_login();
                     } else {
                         set_error_msg.set(format!("Error loading media: {}", e));
                     }
@@ -182,11 +183,9 @@ pub fn AdminMedia() -> impl IntoView {
             if let Some(file) = files.get(0) {
                 let t = token.get();
                 if shared::auth::is_token_expired(&t) {
-                    #[cfg(target_arch = "wasm32")]
-                    navigate("/admin/login", Default::default());
+                    go_login();
                     return;
                 }
-                let f_clone = fetch_media;
                 let filename = file.name();
                 let file_clone = file.clone();
                 set_uploading.set(true);
@@ -204,7 +203,7 @@ pub fn AdminMedia() -> impl IntoView {
                                 Ok(_url) => {
                                     set_success_msg
                                         .set(format!("Successfully uploaded '{}'!", filename));
-                                    f_clone(false); // Background refresh (no blink)
+                                    fetch_media(false); // Background refresh (no blink)
                                 }
                                 Err(e) => {
                                     let err_str = e.to_string();
@@ -212,14 +211,12 @@ pub fn AdminMedia() -> impl IntoView {
                                         || err_str.contains("ExpiredSignature")
                                     {
                                         #[cfg(target_arch = "wasm32")]
-                                        {
-                                            if let Ok(Some(w)) = web_sys::window() {
-                                                if let Ok(Some(s)) = w.local_storage() {
-                                                    let _ = s.remove_item("admin_token");
-                                                }
+                                        if let Some(w) = web_sys::window() {
+                                            if let Ok(Some(s)) = w.local_storage() {
+                                                let _ = s.remove_item("admin_token");
                                             }
-                                            navigate("/admin/login", Default::default());
                                         }
+                                        go_login();
                                     } else {
                                         set_error_msg.set(format!("Upload failed: {}", e));
                                     }
@@ -365,7 +362,6 @@ pub fn AdminMedia() -> impl IntoView {
 
                                     // Execute async deletions
                                     let t = token.get();
-                                    let f_clone = fetch_media;
                                     spawn_local(async move {
                                         let mut failed = Vec::new();
                                         for url in selected_set {
@@ -397,7 +393,7 @@ pub fn AdminMedia() -> impl IntoView {
                                         } else {
                                             set_error_msg.set(format!("Deleted other assets, but failed to delete: {}", failed.join(", ")));
                                         }
-                                        f_clone(false); // Silent refresh
+                                        fetch_media(false); // Silent refresh
                                     });
                                 };
 
