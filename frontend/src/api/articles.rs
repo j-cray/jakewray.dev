@@ -235,6 +235,7 @@ pub fn sanitize_slug(slug: &str) -> String {
     slug.trim().to_string()
 }
 
+#[cfg(feature = "ssr")]
 pub fn parse_article_date(date_str: &str) -> (String, String, String) {
     let trimmed = date_str.trim();
     if trimmed.is_empty() {
@@ -593,6 +594,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "ssr")]
     fn test_parse_article_date() {
         let (pub_at, iso, display) = parse_article_date("2025-05-21");
         assert_eq!(pub_at, "2025-05-21T00:00:00.000Z");

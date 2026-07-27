@@ -459,9 +459,6 @@ pub fn JournalismArticlePage() -> impl IntoView {
             new_article.title = edit_title.get();
             new_article.display_date = new_date_str.clone();
 
-            let (_, parsed_iso, _) = crate::api::articles::parse_article_date(&new_date_str);
-            new_article.iso_date = parsed_iso;
-
             new_article.byline = Some(edit_byline.get());
             new_article.captions = if edit_caption.get().trim().is_empty() {
                 vec![]
