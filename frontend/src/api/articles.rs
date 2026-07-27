@@ -231,6 +231,10 @@ pub async fn get_article(slug: String) -> Result<Option<Article>, ServerFnError>
     Ok(None)
 }
 
+pub fn sanitize_slug(slug: &str) -> String {
+    slug.trim().to_string()
+}
+
 #[server(SaveArticle, "/api")]
 pub async fn save_article(token: String, article: Article) -> Result<(), ServerFnError> {
     #[cfg(feature = "ssr")]
@@ -241,13 +245,7 @@ pub async fn save_article(token: String, article: Article) -> Result<(), ServerF
         let pool = use_context::<SqlitePool>()
             .ok_or_else(|| ServerFnError::new("SqlitePool not found in Leptos context"))?;
 
-        // Sanitize slug just in case
-        let safe_slug = article
-            .slug
-            .chars()
-            .filter(|c| c.is_alphanumeric() || *c == '-' || *c == ',' || *c == ':' || *c == '.')
-            .collect::<String>()
-            .to_lowercase();
+        let safe_slug = sanitize_slug(&article.slug);
 
         let cover_image_url = article.images.first().cloned();
         let cover_image_caption = article.captions.first().cloned();
@@ -510,5 +508,18 @@ mod tests {
     fn test_extract_figcaption_none() {
         let html = r#"<div><p>No caption here</p></div>"#;
         assert_eq!(extract_figcaption(html), None);
+    }
+
+    #[test]
+    fn test_sanitize_slug_preserves_special_characters() {
+        assert_eq!(
+            sanitize_slug("terrace-mayor-slams-1979-cn-agreement-forcing-$182"),
+            "terrace-mayor-slams-1979-cn-agreement-forcing-$182"
+        );
+        assert_eq!(
+            sanitize_slug("construction-of-bc-hydro’s-north-coast-transmissio"),
+            "construction-of-bc-hydro’s-north-coast-transmissio"
+        );
+        assert_eq!(sanitize_slug("  my-article-slug  "), "my-article-slug");
     }
 }
