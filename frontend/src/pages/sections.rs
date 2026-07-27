@@ -118,7 +118,6 @@ fn extract_body_preview(html: &str) -> Option<String> {
     None
 }
 
-#[allow(dead_code)]
 fn replace_date_paragraph(html: &str, new_date: &str) -> String {
     // Reuse extract logic to find the range, then replace it
     let after_h4 = html.find("</h4>").map(|idx| idx + 5).unwrap_or(0);
@@ -135,9 +134,10 @@ fn replace_date_paragraph(html: &str, new_date: &str) -> String {
                         let end_abs = after_start + end_rel + 4; // </p> len
                         let mut out = html.to_string();
                         // Construct replacement paragraph
+                        let formatted_date = format_cp_style(new_date);
                         let replacement = format!(
                             "<p class=\"text-sm text-gray-500 mb-6 mt-6\">{}</p>",
-                            new_date
+                            formatted_date
                         );
                         out.replace_range(start_abs..end_abs, &replacement);
                         return out;
@@ -455,8 +455,13 @@ pub fn JournalismArticlePage() -> impl IntoView {
         spawn_local(async move {
             set_save_status.set("Saving...".to_string());
             let mut new_article = original_article.clone();
+            let new_date_str = edit_date.get();
             new_article.title = edit_title.get();
-            new_article.display_date = edit_date.get();
+            new_article.display_date = new_date_str.clone();
+
+            let (_, parsed_iso, _) = crate::api::articles::parse_article_date(&new_date_str);
+            new_article.iso_date = parsed_iso;
+
             new_article.byline = Some(edit_byline.get());
             new_article.captions = if edit_caption.get().trim().is_empty() {
                 vec![]
@@ -464,7 +469,7 @@ pub fn JournalismArticlePage() -> impl IntoView {
                 vec![edit_caption.get()]
             };
             new_article.images = edit_images.get();
-            new_article.content_html = edit_html.get();
+            new_article.content_html = replace_date_paragraph(&edit_html.get(), &new_date_str);
 
             match save_article(t, new_article).await {
                 Ok(_) => {
@@ -1021,5 +1026,17 @@ mod tests {
         assert_eq!(next_article_index(0, 1), None);
         assert_eq!(prev_article_index(0, 0), None);
         assert_eq!(next_article_index(0, 0), None);
+    }
+
+    #[test]
+    fn test_replace_date_paragraph() {
+        let html = r#"<div><h4>Title</h4><p class="date">May 21, 2025</p><p>Body text</p></div>"#;
+        let updated = replace_date_paragraph(html, "May 22, 2025");
+        assert!(updated.contains("May 22, 2025"));
+        assert!(!updated.contains("May 21, 2025"));
+
+        let html_no_date = r#"<div><p>Just body text</p></div>"#;
+        let unchanged = replace_date_paragraph(html_no_date, "May 22, 2025");
+        assert_eq!(unchanged, html_no_date);
     }
 }

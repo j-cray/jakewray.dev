@@ -235,6 +235,74 @@ pub fn sanitize_slug(slug: &str) -> String {
     slug.trim().to_string()
 }
 
+pub fn parse_article_date(date_str: &str) -> (String, String, String) {
+    let trimmed = date_str.trim();
+    if trimmed.is_empty() {
+        let now = chrono::Utc::now();
+        let iso = now.format("%Y-%m-%d").to_string();
+        let pub_at = now.format("%Y-%m-%dT%H:%M:%S.000Z").to_string();
+        let day = now.format("%d").to_string().parse::<u32>().unwrap_or(1);
+        let display = format!("{} {}, {}", now.format("%B"), day, now.format("%Y"));
+        return (pub_at, iso, display);
+    }
+
+    if let Ok(dt) = chrono::DateTime::parse_from_rfc3339(trimmed) {
+        use chrono::Datelike;
+        let iso = dt.format("%Y-%m-%d").to_string();
+        let pub_at = dt.format("%Y-%m-%dT%H:%M:%S.000Z").to_string();
+        let display = format!("{} {}, {}", dt.format("%B"), dt.day(), dt.year());
+        return (pub_at, iso, display);
+    }
+
+    let mut normalized = trimmed.to_string();
+    if normalized.starts_with("Sept.") || normalized.starts_with("Sept ") {
+        normalized = normalized.replacen("Sept", "Sep", 1);
+    }
+    for m in &[
+        "Jan", "Feb", "Mar", "Apr", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+    ] {
+        let pattern = format!("{}.", m);
+        if normalized.starts_with(&pattern) {
+            normalized = normalized.replacen(&pattern, m, 1);
+            break;
+        }
+    }
+
+    let formats = [
+        "%Y-%m-%d",
+        "%B %d, %Y",
+        "%B %d %Y",
+        "%b %d, %Y",
+        "%b %d %Y",
+        "%d %B %Y",
+        "%d %b %Y",
+        "%m/%d/%Y",
+        "%Y/%m/%d",
+    ];
+
+    for fmt in &formats {
+        if let Ok(nd) = chrono::NaiveDate::parse_from_str(&normalized, fmt) {
+            use chrono::Datelike;
+            let iso = nd.format("%Y-%m-%d").to_string();
+            let pub_at = format!("{}T00:00:00.000Z", iso);
+            let display = format!("{} {}, {}", nd.format("%B"), nd.day(), nd.year());
+            return (pub_at, iso, display);
+        }
+    }
+
+    if trimmed.len() >= 10 && &trimmed[4..5] == "-" && &trimmed[7..8] == "-" {
+        let iso = trimmed[..10].to_string();
+        let pub_at = format!("{}T00:00:00.000Z", iso);
+        return (pub_at, iso, trimmed.to_string());
+    }
+
+    (
+        "1970-01-01T00:00:00.000Z".to_string(),
+        "1970-01-01".to_string(),
+        trimmed.to_string(),
+    )
+}
+
 #[server(SaveArticle, "/api")]
 pub async fn save_article(token: String, article: Article) -> Result<(), ServerFnError> {
     #[cfg(feature = "ssr")]
@@ -251,11 +319,12 @@ pub async fn save_article(token: String, article: Article) -> Result<(), ServerF
         let cover_image_caption = article.captions.first().cloned();
         let author = article.byline.unwrap_or_else(|| "Jake Wray".to_string());
 
-        let published_at = if article.iso_date.contains('T') {
-            article.iso_date.clone()
+        let date_input = if !article.display_date.trim().is_empty() {
+            &article.display_date
         } else {
-            format!("{}T00:00:00.000Z", article.iso_date)
+            &article.iso_date
         };
+        let (published_at, _, _) = parse_article_date(date_input);
 
         let mut id = uuid::Uuid::new_v4().to_string();
 
@@ -521,5 +590,28 @@ mod tests {
             "construction-of-bc-hydro’s-north-coast-transmissio"
         );
         assert_eq!(sanitize_slug("  my-article-slug  "), "my-article-slug");
+    }
+
+    #[test]
+    fn test_parse_article_date() {
+        let (pub_at, iso, display) = parse_article_date("2025-05-21");
+        assert_eq!(pub_at, "2025-05-21T00:00:00.000Z");
+        assert_eq!(iso, "2025-05-21");
+        assert_eq!(display, "May 21, 2025");
+
+        let (pub_at, iso, display) = parse_article_date("May 21, 2025");
+        assert_eq!(pub_at, "2025-05-21T00:00:00.000Z");
+        assert_eq!(iso, "2025-05-21");
+        assert_eq!(display, "May 21, 2025");
+
+        let (pub_at, iso, display) = parse_article_date("Jan. 15, 2024");
+        assert_eq!(pub_at, "2024-01-15T00:00:00.000Z");
+        assert_eq!(iso, "2024-01-15");
+        assert_eq!(display, "January 15, 2024");
+
+        let (pub_at, iso, display) = parse_article_date("2025-05-21T00:00:00.000Z");
+        assert_eq!(pub_at, "2025-05-21T00:00:00.000Z");
+        assert_eq!(iso, "2025-05-21");
+        assert_eq!(display, "May 21, 2025");
     }
 }
