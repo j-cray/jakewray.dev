@@ -44,7 +44,7 @@ where
                     let err_str = e.to_string();
                     if err_str.contains("Invalid token") || err_str.contains("ExpiredSignature") {
                         #[cfg(target_arch = "wasm32")]
-                        if let Ok(Some(window)) = web_sys::window() {
+                        if let Some(window) = web_sys::window() {
                             if let Ok(Some(storage)) = window.local_storage() {
                                 let _ = storage.remove_item("admin_token");
                             }
@@ -74,7 +74,7 @@ where
                 let t = token.get();
                 if shared::auth::is_token_expired(&t) {
                     #[cfg(target_arch = "wasm32")]
-                    if let Ok(Some(window)) = web_sys::window() {
+                    if let Some(window) = web_sys::window() {
                         if let Ok(Some(storage)) = window.local_storage() {
                             let _ = storage.remove_item("admin_token");
                         }
@@ -106,7 +106,7 @@ where
                                         || err_str.contains("ExpiredSignature")
                                     {
                                         #[cfg(target_arch = "wasm32")]
-                                        if let Ok(Some(window)) = web_sys::window() {
+                                        if let Some(window) = web_sys::window() {
                                             if let Ok(Some(storage)) = window.local_storage() {
                                                 let _ = storage.remove_item("admin_token");
                                             }
