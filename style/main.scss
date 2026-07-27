@@ -426,8 +426,10 @@ a {
 .editor-content,
 .article-content {
   p,
+  figure,
   .entry-content > p,
-  .entry-content > div {
+  .entry-content > div,
+  .entry-content > figure {
     margin-top: 0;
     margin-bottom: 1.25rem !important;
     min-height: 1.5em;
