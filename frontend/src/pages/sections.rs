@@ -626,7 +626,7 @@ pub fn JournalismArticlePage() -> impl IntoView {
                                                     }
                                                 }
 
-                                                <h1 class="mb-4 text-4xl font-bold text-gray-900">{title.clone()}</h1>
+                                                <h1 class="mb-4 text-4xl font-bold text-black">{title.clone()}</h1>
 
                                                 // Image Logic
                                                 {if is_terrace || !images.is_empty() {
@@ -644,7 +644,7 @@ pub fn JournalismArticlePage() -> impl IntoView {
                                                                     })}
                                                                 </figure>
                                                             })}
-                                                            <div class="flex flex-col text-gray-900">
+                                                            <div class="flex flex-col text-black">
                                                                 <div class="mb-4">{display_date.clone()}</div>
                                                                 <div class="font-bold mb-4">
                                                                     {let b = article.byline.clone().unwrap_or_default();

@@ -355,7 +355,7 @@ a {
   /* Center column */
   color: black;
 
-  p,
+  &,
   h1,
   h2,
   h3,
@@ -363,23 +363,67 @@ a {
   h5,
   h6,
   p,
-  h1,
-  h2,
-  h3,
-  h4,
-  h5,
-  h6,
-  li {
-    color: black;
+  li,
+  span,
+  font,
+  div,
+  blockquote,
+  strong,
+  em,
+  b,
+  i,
+  td,
+  th {
+    color: black !important;
+  }
+
+  .article-content {
+    color: black !important;
+
+    * {
+      color: black !important;
+    }
   }
 
   strong {
     font-weight: 700;
-    color: black;
+    color: black !important;
+  }
+
+  a:not(.article-image-link):not(.btn) {
+    color: var(--primary) !important;
+
+    &:hover {
+      color: var(--primary-dark) !important;
+    }
+  }
+
+  .btn-primary,
+  .btn-primary * {
+    color: white !important;
+  }
+
+  .btn-secondary,
+  .btn-secondary * {
+    color: var(--text-color) !important;
+  }
+
+  .btn-danger,
+  .btn-danger * {
+    color: white !important;
+  }
+
+  figcaption,
+  figcaption *,
+  .wp-caption-text,
+  .wp-caption-text *,
+  .wp-element-caption,
+  .wp-element-caption * {
+    color: var(--text-muted) !important;
   }
 }
 
-.article-content> :last-child {
+.article-content > :last-child {
   margin-bottom: 0;
 }
 
@@ -414,7 +458,7 @@ a {
 .article-container figcaption {
   margin-top: 0.5rem;
   font-size: 0.9rem;
-  color: var(--text-muted);
+  color: var(--text-muted) !important;
   text-align: left;
 }
 
