@@ -2,13 +2,20 @@ use leptos::prelude::*;
 use web_sys::wasm_bindgen::JsCast;
 
 fn execute_command(cmd: &str, value: Option<&str>) {
-    if let Some(win) = web_sys::window() {
-        if let Some(doc) = win.document() {
-            if let Ok(html_doc) = doc.dyn_into::<web_sys::HtmlDocument>() {
-                let val = value.unwrap_or("");
-                let _ = html_doc.exec_command_with_show_ui_and_value(cmd, false, val);
+    #[cfg(target_arch = "wasm32")]
+    {
+        if let Some(win) = web_sys::window() {
+            if let Some(doc) = win.document() {
+                if let Ok(html_doc) = doc.dyn_into::<web_sys::HtmlDocument>() {
+                    let val = value.unwrap_or("");
+                    let _ = html_doc.exec_command_with_show_ui_and_value(cmd, false, val);
+                }
             }
         }
+    }
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        let _ = (cmd, value);
     }
 }
 
@@ -22,11 +29,18 @@ pub fn RichTextEditor(
     let editor_id = id.unwrap_or_else(|| format!("editor-{}", uuid::Uuid::new_v4()));
 
     let update_html = move |target: Option<web_sys::EventTarget>| {
-        if let Some(target) = target {
-            if let Ok(el) = target.dyn_into::<web_sys::HtmlElement>() {
-                let html = el.inner_html();
-                on_change.run((html,));
+        #[cfg(target_arch = "wasm32")]
+        {
+            if let Some(target) = target {
+                if let Ok(el) = target.dyn_into::<web_sys::HtmlElement>() {
+                    let html = el.inner_html();
+                    on_change.run((html,));
+                }
             }
+        }
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            let _ = target;
         }
     };
 
