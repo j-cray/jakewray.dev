@@ -500,7 +500,10 @@ mod tests {
     #[test]
     fn test_extract_figcaption_valid() {
         let html = r#"<figure class="wp-caption"><img src="foo.jpg"/><figcaption class="wp-caption-text">Wildrose Leader photo</figcaption></figure>"#;
-        assert_eq!(extract_figcaption(html), Some("Wildrose Leader photo".to_string()));
+        assert_eq!(
+            extract_figcaption(html),
+            Some("Wildrose Leader photo".to_string())
+        );
     }
 
     #[test]
@@ -509,4 +512,3 @@ mod tests {
         assert_eq!(extract_figcaption(html), None);
     }
 }
-

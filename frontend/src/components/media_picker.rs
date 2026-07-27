@@ -83,7 +83,7 @@ where
                         .set("Upload failed: Session expired. Please log in again.".to_string());
                     return;
                 }
-                let f_clone = fetch_media.clone();
+                let f_clone = fetch_media;
                 let filename = file.name();
                 let file_clone = file.clone(); // web_sys::File is Clone (JsValue wrapper)
                 set_uploading.set(true);
