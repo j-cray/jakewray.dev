@@ -473,7 +473,6 @@ pub fn JournalismArticlePage() -> impl IntoView {
     let (edit_html, set_edit_html) = signal(String::new());
     let (edit_images, set_edit_images) = signal(Vec::<String>::new());
     let (show_media_picker, set_show_media_picker) = signal(false);
-    let (show_html_code, set_show_html_code) = signal(false); // Toggle for RTE
     let (save_status, set_save_status) = signal(String::new());
 
     let turn_on_edit = move |article: &Article| {
@@ -803,46 +802,13 @@ pub fn JournalismArticlePage() -> impl IntoView {
                                                     </div>
 
                                                     <div class="form-group mb-6">
-                                                         <div class="flex justify-between items-end mb-2">
-                                                             <label class="block font-bold mb-0 text-gray-700">"Article Text"</label>
+                                                        <label class="block font-bold mb-2 text-gray-700">"Article Text"</label>
+                                                        <RichTextEditor
+                                                            value=edit_html
+                                                            on_change=move |new_val| set_edit_html.set(new_val)
+                                                        />
+                                                    </div>
 
-                                                             <div class="flex gap-2 items-center">
-                                                                 // View Toggles
-                                                                 <div class="flex bg-gray-100 rounded-lg border overflow-hidden">
-                                                                     <button
-                                                                         class=move || format!("p-2 {}", if !show_html_code.get() { "bg-white shadow-sm text-blue-600 font-semibold" } else { "text-gray-500 hover:bg-gray-50" })
-                                                                         on:click=move |_| set_show_html_code.set(false)
-                                                                         title="Rich Text Editor"
-                                                                     >
-                                                                         "Rich Text"
-                                                                     </button>
-                                                                     <button
-                                                                         class=move || format!("p-2 {}", if show_html_code.get() { "bg-white shadow-sm text-blue-600 font-semibold" } else { "text-gray-500 hover:bg-gray-50" })
-                                                                         on:click=move |_| set_show_html_code.set(true)
-                                                                         title="HTML Code"
-                                                                     >
-                                                                         "HTML Code"
-                                                                     </button>
-                                                                 </div>
-                                                             </div>
-                                                         </div>
-
-                                                         {move || if show_html_code.get() {
-                                                             view! {
-                                                                 <textarea class="w-full p-4 border rounded-lg h-[600px] font-mono text-sm bg-gray-50 text-gray-900"
-                                                                     prop:value=edit_html.get()
-                                                                     on:input=move |ev| set_edit_html.set(event_target_value(&ev))
-                                                                 ></textarea>
-                                                             }.into_any()
-                                                         } else {
-                                                             view! {
-                                                                 <RichTextEditor
-                                                                     value=edit_html
-                                                                     on_change=move |new_val| set_edit_html.set(new_val)
-                                                                 />
-                                                             }.into_any()
-                                                         }}
-                                                     </div>
 
                                                 <div class="flex gap-4 items-center">
                                                     <button class="btn btn-primary" on:click=move |_| on_save(article_save.clone())>

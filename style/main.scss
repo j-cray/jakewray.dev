@@ -553,6 +553,62 @@ a {
   }
 }
 
+.editor-segmented-toggle {
+  display: inline-flex;
+  align-items: center;
+  background: #e2e8f0;
+  padding: 2px;
+  border-radius: var(--radius-sm);
+
+  .editor-toggle-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.25rem 0.6rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #64748b;
+    border: none;
+    background: transparent;
+    border-radius: calc(var(--radius-sm) - 2px);
+    cursor: pointer;
+    transition: all 0.15s ease;
+
+    svg {
+      width: 0.9rem;
+      height: 0.9rem;
+      stroke-width: 2.2px;
+    }
+
+    &:hover {
+      color: #1e293b;
+    }
+
+    &.is-active {
+      background: #ffffff;
+      color: var(--primary);
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+    }
+  }
+}
+
+.editor-code-area {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 0.875rem;
+  line-height: 1.6;
+  background-color: #0f172a !important;
+  color: #f8fafc !important;
+  border: none;
+  resize: vertical;
+  outline: none;
+  padding: 1.25rem;
+
+  &:focus {
+    outline: none;
+  }
+}
+
+
 .editor-content {
 
   color: black !important;

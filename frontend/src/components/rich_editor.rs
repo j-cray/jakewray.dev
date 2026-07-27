@@ -155,6 +155,7 @@ pub fn RichTextEditor(
     let editor_id = id.unwrap_or_else(|| format!("editor-{}", uuid::Uuid::new_v4()));
     let editor_id_store = StoredValue::new(editor_id.clone());
     let active_states = RwSignal::new(ActiveStates::default());
+    let is_html_mode = RwSignal::new(false);
 
     let wrapper_class = format!(
         "rich-text-editor border rounded-lg overflow-hidden bg-white flex flex-col shadow-sm {}",
@@ -165,9 +166,34 @@ pub fn RichTextEditor(
         <div class=wrapper_class>
             // Modern Toolbar
             <div class="editor-toolbar flex flex-wrap gap-1.5 p-2 border-b bg-gray-50 items-center">
+                // View Toggle (Visual vs HTML)
+                <div class="editor-segmented-toggle">
+                    <button
+                        type="button"
+                        class=move || if !is_html_mode.get() { "editor-toggle-btn is-active" } else { "editor-toggle-btn" }
+                        title="Visual / Rich Text View"
+                        on:click=move |_| is_html_mode.set(false)
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                        <span>"Visual"</span>
+                    </button>
+                    <button
+                        type="button"
+                        class=move || if is_html_mode.get() { "editor-toggle-btn is-active" } else { "editor-toggle-btn" }
+                        title="HTML Code View"
+                        on:click=move |_| is_html_mode.set(true)
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+                        <span>"HTML"</span>
+                    </button>
+                </div>
+
+                <div class="editor-divider"></div>
+
                 // Block Format Select
                 <select
                     class="editor-select"
+                    disabled=move || is_html_mode.get()
                     prop:value=move || active_states.get().block_tag
                     on:change=move |ev| {
                         let val = event_target_value(&ev);
@@ -189,7 +215,8 @@ pub fn RichTextEditor(
                 <div class="editor-group">
                     <button
                         type="button"
-                        class=move || if active_states.get().bold { "editor-btn is-active" } else { "editor-btn" }
+                        disabled=move || is_html_mode.get()
+                        class=move || if active_states.get().bold && !is_html_mode.get() { "editor-btn is-active" } else { "editor-btn" }
                         title="Bold (Ctrl+B)"
                         on:mousedown=move |ev| ev.prevent_default()
                         on:click=move |_| do_cmd(&editor_id_store.get_value(), "bold", None, &on_change, active_states)
@@ -199,7 +226,8 @@ pub fn RichTextEditor(
 
                     <button
                         type="button"
-                        class=move || if active_states.get().italic { "editor-btn is-active" } else { "editor-btn" }
+                        disabled=move || is_html_mode.get()
+                        class=move || if active_states.get().italic && !is_html_mode.get() { "editor-btn is-active" } else { "editor-btn" }
                         title="Italic (Ctrl+I)"
                         on:mousedown=move |ev| ev.prevent_default()
                         on:click=move |_| do_cmd(&editor_id_store.get_value(), "italic", None, &on_change, active_states)
@@ -209,7 +237,8 @@ pub fn RichTextEditor(
 
                     <button
                         type="button"
-                        class=move || if active_states.get().underline { "editor-btn is-active" } else { "editor-btn" }
+                        disabled=move || is_html_mode.get()
+                        class=move || if active_states.get().underline && !is_html_mode.get() { "editor-btn is-active" } else { "editor-btn" }
                         title="Underline (Ctrl+U)"
                         on:mousedown=move |ev| ev.prevent_default()
                         on:click=move |_| do_cmd(&editor_id_store.get_value(), "underline", None, &on_change, active_states)
@@ -219,7 +248,8 @@ pub fn RichTextEditor(
 
                     <button
                         type="button"
-                        class=move || if active_states.get().strike { "editor-btn is-active" } else { "editor-btn" }
+                        disabled=move || is_html_mode.get()
+                        class=move || if active_states.get().strike && !is_html_mode.get() { "editor-btn is-active" } else { "editor-btn" }
                         title="Strikethrough"
                         on:mousedown=move |ev| ev.prevent_default()
                         on:click=move |_| do_cmd(&editor_id_store.get_value(), "strikeThrough", None, &on_change, active_states)
@@ -229,7 +259,8 @@ pub fn RichTextEditor(
 
                     <button
                         type="button"
-                        class=move || if active_states.get().code { "editor-btn is-active" } else { "editor-btn" }
+                        disabled=move || is_html_mode.get()
+                        class=move || if active_states.get().code && !is_html_mode.get() { "editor-btn is-active" } else { "editor-btn" }
                         title="Inline Code"
                         on:mousedown=move |ev| ev.prevent_default()
                         on:click=move |_| do_cmd(&editor_id_store.get_value(), "insertHTML", Some("<code>code</code>"), &on_change, active_states)
@@ -244,7 +275,8 @@ pub fn RichTextEditor(
                 <div class="editor-group">
                     <button
                         type="button"
-                        class=move || if active_states.get().bullet_list { "editor-btn is-active" } else { "editor-btn" }
+                        disabled=move || is_html_mode.get()
+                        class=move || if active_states.get().bullet_list && !is_html_mode.get() { "editor-btn is-active" } else { "editor-btn" }
                         title="Bullet List"
                         on:mousedown=move |ev| ev.prevent_default()
                         on:click=move |_| do_cmd(&editor_id_store.get_value(), "insertUnorderedList", None, &on_change, active_states)
@@ -254,7 +286,8 @@ pub fn RichTextEditor(
 
                     <button
                         type="button"
-                        class=move || if active_states.get().ordered_list { "editor-btn is-active" } else { "editor-btn" }
+                        disabled=move || is_html_mode.get()
+                        class=move || if active_states.get().ordered_list && !is_html_mode.get() { "editor-btn is-active" } else { "editor-btn" }
                         title="Numbered List"
                         on:mousedown=move |ev| ev.prevent_default()
                         on:click=move |_| do_cmd(&editor_id_store.get_value(), "insertOrderedList", None, &on_change, active_states)
@@ -264,6 +297,7 @@ pub fn RichTextEditor(
 
                     <button
                         type="button"
+                        disabled=move || is_html_mode.get()
                         class="editor-btn"
                         title="Blockquote"
                         on:mousedown=move |ev| ev.prevent_default()
@@ -274,6 +308,7 @@ pub fn RichTextEditor(
 
                     <button
                         type="button"
+                        disabled=move || is_html_mode.get()
                         class="editor-btn"
                         title="Horizontal Divider"
                         on:mousedown=move |ev| ev.prevent_default()
@@ -289,7 +324,8 @@ pub fn RichTextEditor(
                 <div class="editor-group">
                     <button
                         type="button"
-                        class=move || if active_states.get().justify_left { "editor-btn is-active" } else { "editor-btn" }
+                        disabled=move || is_html_mode.get()
+                        class=move || if active_states.get().justify_left && !is_html_mode.get() { "editor-btn is-active" } else { "editor-btn" }
                         title="Align Left"
                         on:mousedown=move |ev| ev.prevent_default()
                         on:click=move |_| do_cmd(&editor_id_store.get_value(), "justifyLeft", None, &on_change, active_states)
@@ -299,7 +335,8 @@ pub fn RichTextEditor(
 
                     <button
                         type="button"
-                        class=move || if active_states.get().justify_center { "editor-btn is-active" } else { "editor-btn" }
+                        disabled=move || is_html_mode.get()
+                        class=move || if active_states.get().justify_center && !is_html_mode.get() { "editor-btn is-active" } else { "editor-btn" }
                         title="Align Center"
                         on:mousedown=move |ev| ev.prevent_default()
                         on:click=move |_| do_cmd(&editor_id_store.get_value(), "justifyCenter", None, &on_change, active_states)
@@ -309,7 +346,8 @@ pub fn RichTextEditor(
 
                     <button
                         type="button"
-                        class=move || if active_states.get().justify_right { "editor-btn is-active" } else { "editor-btn" }
+                        disabled=move || is_html_mode.get()
+                        class=move || if active_states.get().justify_right && !is_html_mode.get() { "editor-btn is-active" } else { "editor-btn" }
                         title="Align Right"
                         on:mousedown=move |ev| ev.prevent_default()
                         on:click=move |_| do_cmd(&editor_id_store.get_value(), "justifyRight", None, &on_change, active_states)
@@ -324,6 +362,7 @@ pub fn RichTextEditor(
                 <div class="editor-group">
                     <button
                         type="button"
+                        disabled=move || is_html_mode.get()
                         class="editor-btn"
                         title="Insert Link"
                         on:mousedown=move |ev| ev.prevent_default()
@@ -343,6 +382,7 @@ pub fn RichTextEditor(
 
                     <button
                         type="button"
+                        disabled=move || is_html_mode.get()
                         class="editor-btn"
                         title="Remove Link"
                         on:mousedown=move |ev| ev.prevent_default()
@@ -353,6 +393,7 @@ pub fn RichTextEditor(
 
                     <button
                         type="button"
+                        disabled=move || is_html_mode.get()
                         class="editor-btn"
                         title="Insert Image"
                         on:mousedown=move |ev| ev.prevent_default()
@@ -372,6 +413,7 @@ pub fn RichTextEditor(
 
                     <button
                         type="button"
+                        disabled=move || is_html_mode.get()
                         class="editor-btn"
                         title="Clear Formatting"
                         on:mousedown=move |ev| ev.prevent_default()
@@ -387,6 +429,7 @@ pub fn RichTextEditor(
                 <div class="editor-group">
                     <button
                         type="button"
+                        disabled=move || is_html_mode.get()
                         class="editor-btn"
                         title="Undo (Ctrl+Z)"
                         on:mousedown=move |ev| ev.prevent_default()
@@ -397,6 +440,7 @@ pub fn RichTextEditor(
 
                     <button
                         type="button"
+                        disabled=move || is_html_mode.get()
                         class="editor-btn"
                         title="Redo (Ctrl+Y)"
                         on:mousedown=move |ev| ev.prevent_default()
@@ -407,18 +451,32 @@ pub fn RichTextEditor(
                 </div>
             </div>
 
-            // Contenteditable Area
-            <div
-                id=editor_id.clone()
-                class="editor-content p-6 min-h-[350px] max-h-[600px] overflow-y-auto prose max-w-none focus:outline-none bg-white text-black leading-relaxed"
-                contenteditable="true"
-                inner_html=value.get_untracked()
-                on:input=move |ev| do_input(&editor_id_store.get_value(), ev.target(), &on_change, active_states)
-                on:keyup=move |ev| do_input(&editor_id_store.get_value(), ev.target(), &on_change, active_states)
-                on:mouseup=move |ev| do_input(&editor_id_store.get_value(), ev.target(), &on_change, active_states)
-                on:blur=move |ev| do_input(&editor_id_store.get_value(), ev.target(), &on_change, active_states)
-                on:focus=move |_| do_cmd(&editor_id_store.get_value(), "defaultParagraphSeparator", Some("p"), &on_change, active_states)
-            ></div>
+            // Main Editor View Area (Visual vs HTML)
+            {move || {
+                if is_html_mode.get() {
+                    view! {
+                        <textarea
+                            class="editor-code-area w-full min-h-[350px] max-h-[600px] overflow-y-auto"
+                            prop:value=move || value.get()
+                            on:input=move |ev| on_change.run((event_target_value(&ev),))
+                        ></textarea>
+                    }.into_any()
+                } else {
+                    view! {
+                        <div
+                            id=editor_id.clone()
+                            class="editor-content p-6 min-h-[350px] max-h-[600px] overflow-y-auto prose max-w-none focus:outline-none bg-white text-black leading-relaxed"
+                            contenteditable="true"
+                            inner_html=value.get_untracked()
+                            on:input=move |ev| do_input(&editor_id_store.get_value(), ev.target(), &on_change, active_states)
+                            on:keyup=move |ev| do_input(&editor_id_store.get_value(), ev.target(), &on_change, active_states)
+                            on:mouseup=move |ev| do_input(&editor_id_store.get_value(), ev.target(), &on_change, active_states)
+                            on:blur=move |ev| do_input(&editor_id_store.get_value(), ev.target(), &on_change, active_states)
+                            on:focus=move |_| do_cmd(&editor_id_store.get_value(), "defaultParagraphSeparator", Some("p"), &on_change, active_states)
+                        ></div>
+                    }.into_any()
+                }
+            }}
         </div>
     }
 }
