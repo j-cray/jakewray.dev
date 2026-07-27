@@ -1,5 +1,16 @@
 use leptos::prelude::*;
-use leptos_tiptap::*;
+use web_sys::wasm_bindgen::JsCast;
+
+fn execute_command(cmd: &str, value: Option<&str>) {
+    if let Some(win) = web_sys::window() {
+        if let Some(doc) = win.document() {
+            if let Ok(html_doc) = doc.dyn_into::<web_sys::HtmlDocument>() {
+                let val = value.unwrap_or("");
+                let _ = html_doc.exec_command_with_show_ui_and_value(cmd, false, val);
+            }
+        }
+    }
+}
 
 #[component]
 pub fn RichTextEditor(
@@ -8,185 +19,273 @@ pub fn RichTextEditor(
     #[prop(into, optional)] id: Option<String>,
     #[prop(into, optional)] class: Option<String>,
 ) -> impl IntoView {
-    let editor_id = id.unwrap_or_else(|| format!("tiptap-{}", uuid::Uuid::new_v4()));
+    let editor_id = id.unwrap_or_else(|| format!("editor-{}", uuid::Uuid::new_v4()));
 
-    let (msg, set_msg) = signal(TiptapInstanceMsg::Noop);
-    let (selection_state, set_selection_state) = signal(TiptapSelectionState::default());
-
-    let set_value_callback = Callback::new(move |(content,): (TiptapContent,)| match content {
-        TiptapContent::Html(html) => {
-            on_change.run((html,));
+    let update_html = move |target: Option<web_sys::EventTarget>| {
+        if let Some(target) = target {
+            if let Ok(el) = target.dyn_into::<web_sys::HtmlElement>() {
+                let html = el.inner_html();
+                on_change.run((html,));
+            }
         }
-        TiptapContent::Json(json) => {
-            on_change.run((json,));
-        }
-    });
-
-    let on_selection_change_callback = Callback::new(move |(state,): (TiptapSelectionState,)| {
-        set_selection_state.set(state);
-    });
-
-    let send_msg = move |m: TiptapInstanceMsg| {
-        set_msg.set(m);
     };
 
     let wrapper_class = format!(
-        "rich-text-editor border rounded-lg overflow-hidden bg-white flex flex-col {}",
+        "rich-text-editor border rounded-lg overflow-hidden bg-white flex flex-col shadow-sm {}",
         class.unwrap_or_default()
     );
 
-    let is_bold = move || selection_state.get().bold;
-    let is_italic = move || selection_state.get().italic;
-    let is_strike = move || selection_state.get().strike;
-    let is_h1 = move || selection_state.get().h1;
-    let is_h2 = move || selection_state.get().h2;
-    let is_h3 = move || selection_state.get().h3;
-    let is_bullet = move || selection_state.get().bullet_list;
-    let is_ordered = move || selection_state.get().ordered_list;
-    let is_quote = move || selection_state.get().blockquote;
-    let is_link = move || selection_state.get().link;
-
-    let btn_class = |active: bool| -> &'static str {
-        if active {
-            "p-2 text-sm font-semibold rounded bg-blue-100 text-blue-700 hover:bg-blue-200 transition-colors"
-        } else {
-            "p-2 text-sm font-semibold rounded text-gray-700 hover:bg-gray-100 transition-colors"
-        }
-    };
+    let btn_class = "px-2.5 py-1.5 text-xs font-semibold rounded text-gray-700 hover:bg-gray-100 active:bg-gray-200 transition-colors flex items-center gap-1 border border-gray-200 bg-white";
 
     view! {
         <div class=wrapper_class>
             // Toolbar
-            <div class="editor-toolbar flex flex-wrap gap-1 p-2 border-b bg-gray-50 items-center">
-                <button
-                    type="button"
-                    class=move || btn_class(is_bold())
-                    title="Bold"
-                    on:click=move |_| send_msg(TiptapInstanceMsg::Bold)
-                >
-                    <span class="font-bold">"B"</span>
-                </button>
+            <div class="editor-toolbar flex flex-wrap gap-1.5 p-2 border-b bg-gray-50 items-center">
+                // Formatting Group
+                <div class="flex gap-1">
+                    <button
+                        type="button"
+                        class=btn_class
+                        title="Bold (Ctrl+B)"
+                        on:mousedown=move |ev| ev.prevent_default()
+                        on:click=move |_| execute_command("bold", None)
+                    >
+                        <span class="font-bold">"B"</span>
+                    </button>
 
-                <button
-                    type="button"
-                    class=move || btn_class(is_italic())
-                    title="Italic"
-                    on:click=move |_| send_msg(TiptapInstanceMsg::Italic)
-                >
-                    <span class="italic">"I"</span>
-                </button>
+                    <button
+                        type="button"
+                        class=btn_class
+                        title="Italic (Ctrl+I)"
+                        on:mousedown=move |ev| ev.prevent_default()
+                        on:click=move |_| execute_command("italic", None)
+                    >
+                        <span class="italic font-serif">"I"</span>
+                    </button>
 
-                <button
-                    type="button"
-                    class=move || btn_class(is_strike())
-                    title="Strikethrough"
-                    on:click=move |_| send_msg(TiptapInstanceMsg::Strike)
-                >
-                    <span class="line-through">"S"</span>
-                </button>
+                    <button
+                        type="button"
+                        class=btn_class
+                        title="Underline (Ctrl+U)"
+                        on:mousedown=move |ev| ev.prevent_default()
+                        on:click=move |_| execute_command("underline", None)
+                    >
+                        <span class="underline">"U"</span>
+                    </button>
 
-                <div class="h-5 w-px bg-gray-300 mx-1"></div>
+                    <button
+                        type="button"
+                        class=btn_class
+                        title="Strikethrough"
+                        on:mousedown=move |ev| ev.prevent_default()
+                        on:click=move |_| execute_command("strikeThrough", None)
+                    >
+                        <span class="line-through">"S"</span>
+                    </button>
+                </div>
 
-                <button
-                    type="button"
-                    class=move || btn_class(is_h1())
-                    title="Heading 1"
-                    on:click=move |_| send_msg(TiptapInstanceMsg::H1)
-                >
-                    "H1"
-                </button>
+                <div class="h-4 w-px bg-gray-300 mx-0.5"></div>
 
-                <button
-                    type="button"
-                    class=move || btn_class(is_h2())
-                    title="Heading 2"
-                    on:click=move |_| send_msg(TiptapInstanceMsg::H2)
-                >
-                    "H2"
-                </button>
+                // Structure Group
+                <div class="flex gap-1">
+                    <button
+                        type="button"
+                        class=btn_class
+                        title="Heading 1"
+                        on:mousedown=move |ev| ev.prevent_default()
+                        on:click=move |_| execute_command("formatBlock", Some("<h1>"))
+                    >
+                        <span class="font-bold">"H1"</span>
+                    </button>
 
-                <button
-                    type="button"
-                    class=move || btn_class(is_h3())
-                    title="Heading 3"
-                    on:click=move |_| send_msg(TiptapInstanceMsg::H3)
-                >
-                    "H3"
-                </button>
+                    <button
+                        type="button"
+                        class=btn_class
+                        title="Heading 2"
+                        on:mousedown=move |ev| ev.prevent_default()
+                        on:click=move |_| execute_command("formatBlock", Some("<h2>"))
+                    >
+                        <span class="font-bold">"H2"</span>
+                    </button>
 
-                <button
-                    type="button"
-                    class=move || btn_class(!is_h1() && !is_h2() && !is_h3())
-                    title="Paragraph"
-                    on:click=move |_| send_msg(TiptapInstanceMsg::Paragraph)
-                >
-                    "P"
-                </button>
+                    <button
+                        type="button"
+                        class=btn_class
+                        title="Heading 3"
+                        on:mousedown=move |ev| ev.prevent_default()
+                        on:click=move |_| execute_command("formatBlock", Some("<h3>"))
+                    >
+                        <span class="font-bold">"H3"</span>
+                    </button>
 
-                <div class="h-5 w-px bg-gray-300 mx-1"></div>
+                    <button
+                        type="button"
+                        class=btn_class
+                        title="Paragraph"
+                        on:mousedown=move |ev| ev.prevent_default()
+                        on:click=move |_| execute_command("formatBlock", Some("<p>"))
+                    >
+                        "P"
+                    </button>
+                </div>
 
-                <button
-                    type="button"
-                    class=move || btn_class(is_bullet())
-                    title="Bullet List"
-                    on:click=move |_| send_msg(TiptapInstanceMsg::BulletList)
-                >
-                    "• List"
-                </button>
+                <div class="h-4 w-px bg-gray-300 mx-0.5"></div>
 
-                <button
-                    type="button"
-                    class=move || btn_class(is_ordered())
-                    title="Numbered List"
-                    on:click=move |_| send_msg(TiptapInstanceMsg::OrderedList)
-                >
-                    "1. List"
-                </button>
+                // Lists & Quotes
+                <div class="flex gap-1">
+                    <button
+                        type="button"
+                        class=btn_class
+                        title="Bullet List"
+                        on:mousedown=move |ev| ev.prevent_default()
+                        on:click=move |_| execute_command("insertUnorderedList", None)
+                    >
+                        "• List"
+                    </button>
 
-                <button
-                    type="button"
-                    class=move || btn_class(is_quote())
-                    title="Blockquote"
-                    on:click=move |_| send_msg(TiptapInstanceMsg::Blockquote)
-                >
-                    "\" Quote"
-                </button>
+                    <button
+                        type="button"
+                        class=btn_class
+                        title="Numbered List"
+                        on:mousedown=move |ev| ev.prevent_default()
+                        on:click=move |_| execute_command("insertOrderedList", None)
+                    >
+                        "1. List"
+                    </button>
 
-                <div class="h-5 w-px bg-gray-300 mx-1"></div>
+                    <button
+                        type="button"
+                        class=btn_class
+                        title="Blockquote"
+                        on:mousedown=move |ev| ev.prevent_default()
+                        on:click=move |_| execute_command("formatBlock", Some("<blockquote>"))
+                    >
+                        "\" Quote"
+                    </button>
 
-                <button
-                    type="button"
-                    class=move || btn_class(is_link())
-                    title="Insert Link"
-                    on:click=move |_| {
-                        if is_link() {
-                            send_msg(TiptapInstanceMsg::UnsetLink());
-                        } else if let Ok(Some(url)) = web_sys::window().unwrap().prompt_with_message("Enter URL:") {
-                            if !url.trim().is_empty() {
-                                send_msg(TiptapInstanceMsg::SetLink(TiptapLinkResource {
-                                    href: url,
-                                    target: "_blank".to_string(),
-                                    rel: "".to_string(),
-                                }));
+                    <button
+                        type="button"
+                        class=btn_class
+                        title="Horizontal Rule"
+                        on:mousedown=move |ev| ev.prevent_default()
+                        on:click=move |_| execute_command("insertHorizontalRule", None)
+                    >
+                        "— Line"
+                    </button>
+                </div>
+
+                <div class="h-4 w-px bg-gray-300 mx-0.5"></div>
+
+                // Alignment
+                <div class="flex gap-1">
+                    <button
+                        type="button"
+                        class=btn_class
+                        title="Align Left"
+                        on:mousedown=move |ev| ev.prevent_default()
+                        on:click=move |_| execute_command("justifyLeft", None)
+                    >
+                        "Left"
+                    </button>
+
+                    <button
+                        type="button"
+                        class=btn_class
+                        title="Align Center"
+                        on:mousedown=move |ev| ev.prevent_default()
+                        on:click=move |_| execute_command("justifyCenter", None)
+                    >
+                        "Center"
+                    </button>
+
+                    <button
+                        type="button"
+                        class=btn_class
+                        title="Align Right"
+                        on:mousedown=move |ev| ev.prevent_default()
+                        on:click=move |_| execute_command("justifyRight", None)
+                    >
+                        "Right"
+                    </button>
+                </div>
+
+                <div class="h-4 w-px bg-gray-300 mx-0.5"></div>
+
+                // Links & Actions
+                <div class="flex gap-1">
+                    <button
+                        type="button"
+                        class=btn_class
+                        title="Insert Link"
+                        on:mousedown=move |ev| ev.prevent_default()
+                        on:click=move |_| {
+                            if let Ok(Some(url)) = web_sys::window().unwrap().prompt_with_message("Enter link URL:") {
+                                if !url.trim().is_empty() {
+                                    execute_command("createLink", Some(&url));
+                                }
                             }
                         }
-                    }
-                >
-                    "🔗 Link"
-                </button>
+                    >
+                        "🔗 Link"
+                    </button>
+
+                    <button
+                        type="button"
+                        class=btn_class
+                        title="Remove Link"
+                        on:mousedown=move |ev| ev.prevent_default()
+                        on:click=move |_| execute_command("unlink", None)
+                    >
+                        "Unlink"
+                    </button>
+
+                    <button
+                        type="button"
+                        class=btn_class
+                        title="Clear Formatting"
+                        on:mousedown=move |ev| ev.prevent_default()
+                        on:click=move |_| execute_command("removeFormat", None)
+                    >
+                        "Clear"
+                    </button>
+                </div>
+
+                <div class="flex-grow"></div>
+
+                // History
+                <div class="flex gap-1">
+                    <button
+                        type="button"
+                        class=btn_class
+                        title="Undo (Ctrl+Z)"
+                        on:mousedown=move |ev| ev.prevent_default()
+                        on:click=move |_| execute_command("undo", None)
+                    >
+                        "↩"
+                    </button>
+
+                    <button
+                        type="button"
+                        class=btn_class
+                        title="Redo (Ctrl+Y)"
+                        on:mousedown=move |ev| ev.prevent_default()
+                        on:click=move |_| execute_command("redo", None)
+                    >
+                        "↪"
+                    </button>
+                </div>
             </div>
 
-            // Editor Content Container
-            <div class="editor-content p-4 min-h-[350px] max-h-[600px] overflow-y-auto prose max-w-none focus:outline-none">
-                <TiptapInstance
-                    id=editor_id
-                    value=value
-                    set_value=set_value_callback
-                    msg=msg
-                    disabled=false
-                    on_selection_change=on_selection_change_callback
-                />
-            </div>
+            // Contenteditable Editor View
+            <div
+                id=editor_id
+                class="editor-content p-6 min-h-[350px] max-h-[600px] overflow-y-auto prose max-w-none focus:outline-none bg-white text-gray-900 leading-relaxed"
+                contenteditable="true"
+                inner_html=value.get_untracked()
+                on:input=move |ev| update_html(ev.target())
+                on:keyup=move |ev| update_html(ev.target())
+                on:blur=move |ev| update_html(ev.target())
+            ></div>
         </div>
     }
 }
