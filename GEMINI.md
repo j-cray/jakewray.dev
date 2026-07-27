@@ -65,4 +65,5 @@ cargo leptos watch
 - Update the plan as the project progresses.
 - Update the GEMINI.md SPARINGLY as the project progresses.
 - Update the README.md as the project progresses.
+- create tests first where possible
 - run cargo nextest, cargo fmt, and cargo clippy after every task.
