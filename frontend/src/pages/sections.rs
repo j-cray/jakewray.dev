@@ -1,9 +1,9 @@
 // use crate::data::journalism; // Deprecated
 use crate::api::articles::{get_articles, Article};
 use crate::components::media_picker::MediaPicker;
+use crate::components::rich_editor::RichTextEditor;
 use leptos::prelude::*;
 use leptos::task::spawn_local;
-use leptos::wasm_bindgen::JsCast;
 use leptos_router::components::A;
 use leptos_router::hooks::use_params_map;
 
@@ -803,101 +803,46 @@ pub fn JournalismArticlePage() -> impl IntoView {
                                                     </div>
 
                                                     <div class="form-group mb-6">
-                                                        <div class="flex justify-between items-end mb-2">
-                                                            <label class="block font-bold mb-0 text-gray-700">"Article Text"</label>
+                                                         <div class="flex justify-between items-end mb-2">
+                                                             <label class="block font-bold mb-0 text-gray-700">"Article Text"</label>
 
-                                                            <div class="flex gap-2 items-center">
-                                                                // Toolbar
-                                                                <div class="flex bg-gray-100 rounded-lg border overflow-hidden mr-4">
-                                                                    <button type="button" class="p-2 hover:bg-gray-200 text-gray-700 font-bold" title="Bold"
-                                                                        on:mousedown=move |ev| { ev.prevent_default(); }
-                                                                        on:click=move |_| {
-                                                                            if let Ok(doc) = web_sys::window().unwrap().document().unwrap().dyn_into::<web_sys::HtmlDocument>() {
-                                                                                let _ = doc.exec_command("bold");
-                                                                            }
-                                                                        }
-                                                                    >
-                                                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                                                            <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
-                                                                            // Actually let's use a "B" icon or generic
-                                                                            <path fill-rule="evenodd" d="M6 4a1 1 0 011-1h4a3 3 0 011.69 5.483 3 3 0 01-1.258.468A3 3 0 0113 14h-6a1 1 0 01-1-1V4zm2 2v2h3a1 1 0 100-2H8zm0 4v2h4a1 1 0 100-2H8z" clip-rule="evenodd" />
-                                                                        </svg>
-                                                                    </button>
-                                                                    <button type="button" class="p-2 hover:bg-gray-200 text-gray-700 italic font-serif" title="Italic"
-                                                                        on:mousedown=move |ev| { ev.prevent_default(); }
-                                                                        on:click=move |_| {
-                                                                            if let Ok(doc) = web_sys::window().unwrap().document().unwrap().dyn_into::<web_sys::HtmlDocument>() {
-                                                                                let _ = doc.exec_command("italic");
-                                                                            }
-                                                                        }
-                                                                    >
-                                                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                                                            <path fill-rule="evenodd" d="M6 4a1 1 0 011-1h.22a1 1 0 01.993.883l3.5 13.5a1 1 0 01-1.926.66l-.667-2.543H6.77l-1.332 2.664A1 1 0 014.544 18H4a1 1 0 01-1-1v-2a1 1 0 011-1h1.11l1.89-3.78L6 4z" clip-rule="evenodd" />
-                                                                             // This is Font... let's just use text "I"
-                                                                             <text x="6" y="15" font-family="serif" font-style="italic" font-weight="bold" font-size="14">"I"</text>
-                                                                        </svg>
-                                                                    </button>
-                                                                    <button type="button" class="p-2 hover:bg-gray-200 text-gray-700" title="Link"
-                                                                        on:mousedown=move |ev| { ev.prevent_default(); }
-                                                                        on:click=move |_| {
-                                                                            if let Ok(Some(url)) = web_sys::window().unwrap().prompt_with_message("Enter URL:") {
-                                                                                if let Ok(doc) = web_sys::window().unwrap().document().unwrap().dyn_into::<web_sys::HtmlDocument>() {
-                                                                                    let _ = doc.exec_command_with_show_ui_and_value("createLink", false, &url);
-                                                                                }
-                                                                            }
-                                                                        }
-                                                                    >
-                                                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                                                            <path fill-rule="evenodd" d="M12.586 4.586a2 2 0 112.828 2.828l-3 3a2 2 0 01-2.828 0 1 1 0 00-1.414 1.414 4 4 0 005.656 0l3-3a4 4 0 00-5.656-5.656l-1.5 1.5a1 1 0 101.414 1.414l1.5-1.5zm-5 5a2 2 0 012.828 0 1 1 0 101.414-1.414 4 4 0 00-5.656 0l-3 3a4 4 0 105.656 5.656l1.5-1.5a1 1 0 10-1.414-1.414l-1.5 1.5a2 2 0 11-2.828-2.828l3-3z" clip-rule="evenodd" />
-                                                                        </svg>
-                                                                    </button>
-                                                                </div>
+                                                             <div class="flex gap-2 items-center">
+                                                                 // View Toggles
+                                                                 <div class="flex bg-gray-100 rounded-lg border overflow-hidden">
+                                                                     <button
+                                                                         class=move || format!("p-2 {}", if !show_html_code.get() { "bg-white shadow-sm text-blue-600 font-semibold" } else { "text-gray-500 hover:bg-gray-50" })
+                                                                         on:click=move |_| set_show_html_code.set(false)
+                                                                         title="Rich Text Editor"
+                                                                     >
+                                                                         "Rich Text"
+                                                                     </button>
+                                                                     <button
+                                                                         class=move || format!("p-2 {}", if show_html_code.get() { "bg-white shadow-sm text-blue-600 font-semibold" } else { "text-gray-500 hover:bg-gray-50" })
+                                                                         on:click=move |_| set_show_html_code.set(true)
+                                                                         title="HTML Code"
+                                                                     >
+                                                                         "HTML Code"
+                                                                     </button>
+                                                                 </div>
+                                                             </div>
+                                                         </div>
 
-                                                                // View Toggles
-                                                                <div class="flex bg-gray-100 rounded-lg border overflow-hidden">
-                                                                    <button
-                                                                        class=move || format!("p-2 {}", if !show_html_code.get() { "bg-white shadow-sm text-blue-600" } else { "text-gray-500 hover:bg-gray-50" })
-                                                                        on:click=move |_| set_show_html_code.set(false)
-                                                                        title="Visual Preview"
-                                                                    >
-                                                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                                                                        </svg>
-                                                                    </button>
-                                                                    <button
-                                                                        class=move || format!("p-2 {}", if show_html_code.get() { "bg-white shadow-sm text-blue-600" } else { "text-gray-500 hover:bg-gray-50" })
-                                                                        on:click=move |_| set_show_html_code.set(true)
-                                                                        title="HTML Code"
-                                                                    >
-                                                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
-                                                                        </svg>
-                                                                    </button>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-
-                                                        {move || if show_html_code.get() {
-                                                            view! {
-                                                                <textarea class="w-full p-4 border rounded-lg h-[600px] font-mono text-sm bg-gray-50 text-gray-900"
-                                                                    prop:value=edit_html.get()
-                                                                    on:input=move |ev| set_edit_html.set(event_target_value(&ev))
-                                                                ></textarea>
-                                                            }.into_any()
-                                                        } else {
-                                                            view! {
-                                                                <div
-                                                                    class="w-full p-6 border rounded-lg h-[600px] overflow-y-auto prose max-w-none bg-white text-black focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                                                                    contenteditable="true"
-                                                                    inner_html=edit_html.get_untracked()
-                                                                    on:input=move |ev| {
-                                                                        set_edit_html.set(event_target::<web_sys::HtmlElement>(&ev).inner_html());
-                                                                    }
-                                                                ></div>
-                                                            }.into_any()
-                                                        }}
-                                                    </div>
+                                                         {move || if show_html_code.get() {
+                                                             view! {
+                                                                 <textarea class="w-full p-4 border rounded-lg h-[600px] font-mono text-sm bg-gray-50 text-gray-900"
+                                                                     prop:value=edit_html.get()
+                                                                     on:input=move |ev| set_edit_html.set(event_target_value(&ev))
+                                                                 ></textarea>
+                                                             }.into_any()
+                                                         } else {
+                                                             view! {
+                                                                 <RichTextEditor
+                                                                     value=edit_html
+                                                                     on_change=move |new_val| set_edit_html.set(new_val)
+                                                                 />
+                                                             }.into_any()
+                                                         }}
+                                                     </div>
 
                                                 <div class="flex gap-4 items-center">
                                                     <button class="btn btn-primary" on:click=move |_| on_save(article_save.clone())>
