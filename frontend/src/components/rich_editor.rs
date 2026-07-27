@@ -1,4 +1,5 @@
 use leptos::prelude::*;
+#[cfg(target_arch = "wasm32")]
 use web_sys::wasm_bindgen::JsCast;
 
 fn execute_command(cmd: &str, value: Option<&str>) {
@@ -40,7 +41,7 @@ pub fn RichTextEditor(
         }
         #[cfg(not(target_arch = "wasm32"))]
         {
-            let _ = target;
+            let _ = (target, &on_change);
         }
     };
 
