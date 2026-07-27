@@ -1,3 +1,4 @@
+#[cfg(feature = "ssr")]
 use std::sync::OnceLock;
 
 pub const ARGON2_M_COST: u32 = 19456;
@@ -58,7 +59,10 @@ pub fn is_token_expired(token: &str) -> bool {
         Err(_) => return true,
     };
 
-    if let Some(exp) = claims.get("exp").and_then(|e: &serde_json::Value| e.as_i64()) {
+    if let Some(exp) = claims
+        .get("exp")
+        .and_then(|e: &serde_json::Value| e.as_i64())
+    {
         let now = get_current_timestamp();
         return now >= exp;
     }
