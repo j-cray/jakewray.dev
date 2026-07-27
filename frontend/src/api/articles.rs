@@ -55,6 +55,21 @@ pub mod ssr_utils {
     }
 }
 
+pub fn extract_figcaption(content_html: &str) -> Option<String> {
+    if let Some(start) = content_html.find("<figcaption") {
+        if let Some(tag_end) = content_html[start..].find('>') {
+            let content_start = start + tag_end + 1;
+            if let Some(close_tag) = content_html[content_start..].find("</figcaption>") {
+                let caption_text = content_html[content_start..content_start + close_tag].trim();
+                if !caption_text.is_empty() {
+                    return Some(caption_text.to_string());
+                }
+            }
+        }
+    }
+    None
+}
+
 #[server(GetArticles, "/api")]
 pub async fn get_articles() -> Result<Vec<Article>, ServerFnError> {
     #[cfg(feature = "ssr")]
@@ -64,7 +79,7 @@ pub async fn get_articles() -> Result<Vec<Article>, ServerFnError> {
             .ok_or_else(|| ServerFnError::new("SqlitePool not found in Leptos context"))?;
 
         let rows = sqlx::query(
-            "SELECT slug, title, excerpt, content, cover_image_url, author, published_at FROM articles ORDER BY published_at DESC"
+            "SELECT slug, title, excerpt, content, cover_image_url, cover_image_caption, author, published_at FROM articles ORDER BY published_at DESC"
         )
         .fetch_all(&pool)
         .await
@@ -78,6 +93,7 @@ pub async fn get_articles() -> Result<Vec<Article>, ServerFnError> {
             let content_html: String = row.get("content");
             let excerpt: Option<String> = row.get("excerpt");
             let cover_image_url: Option<String> = row.get("cover_image_url");
+            let cover_image_caption: Option<String> = row.get("cover_image_caption");
             let author: String = row.get("author");
             let published_at: String = row.get("published_at"); // text in sqlite
 
@@ -100,6 +116,20 @@ pub async fn get_articles() -> Result<Vec<Article>, ServerFnError> {
                 }
             }
 
+            let captions = if let Some(ref cap) = cover_image_caption {
+                if !cap.trim().is_empty() {
+                    vec![cap.clone()]
+                } else if let Some(extracted) = extract_figcaption(&content_html) {
+                    vec![extracted]
+                } else {
+                    Vec::new()
+                }
+            } else if let Some(extracted) = extract_figcaption(&content_html) {
+                vec![extracted]
+            } else {
+                Vec::new()
+            };
+
             articles.push(Article {
                 slug,
                 title,
@@ -108,7 +138,7 @@ pub async fn get_articles() -> Result<Vec<Article>, ServerFnError> {
                 source_url: String::new(),
                 content_html,
                 images,
-                captions: Vec::new(),
+                captions,
                 excerpt: excerpt.unwrap_or_default(),
                 byline: Some(author),
             });
@@ -130,7 +160,7 @@ pub async fn get_article(slug: String) -> Result<Option<Article>, ServerFnError>
             .ok_or_else(|| ServerFnError::new("SqlitePool not found in Leptos context"))?;
 
         let row = sqlx::query(
-            "SELECT slug, title, excerpt, content, cover_image_url, author, published_at FROM articles WHERE slug = ?"
+            "SELECT slug, title, excerpt, content, cover_image_url, cover_image_caption, author, published_at FROM articles WHERE slug = ?"
         )
         .bind(&slug)
         .fetch_optional(&pool)
@@ -144,6 +174,7 @@ pub async fn get_article(slug: String) -> Result<Option<Article>, ServerFnError>
             let content_html: String = row.get("content");
             let excerpt: Option<String> = row.get("excerpt");
             let cover_image_url: Option<String> = row.get("cover_image_url");
+            let cover_image_caption: Option<String> = row.get("cover_image_caption");
             let author: String = row.get("author");
             let published_at: String = row.get("published_at");
 
@@ -165,6 +196,20 @@ pub async fn get_article(slug: String) -> Result<Option<Article>, ServerFnError>
                 }
             }
 
+            let captions = if let Some(ref cap) = cover_image_caption {
+                if !cap.trim().is_empty() {
+                    vec![cap.clone()]
+                } else if let Some(extracted) = extract_figcaption(&content_html) {
+                    vec![extracted]
+                } else {
+                    Vec::new()
+                }
+            } else if let Some(extracted) = extract_figcaption(&content_html) {
+                vec![extracted]
+            } else {
+                Vec::new()
+            };
+
             Ok(Some(Article {
                 slug,
                 title,
@@ -173,7 +218,7 @@ pub async fn get_article(slug: String) -> Result<Option<Article>, ServerFnError>
                 source_url: String::new(),
                 content_html,
                 images,
-                captions: Vec::new(),
+                captions,
                 excerpt: excerpt.unwrap_or_default(),
                 byline: Some(author),
             }))
@@ -205,6 +250,7 @@ pub async fn save_article(token: String, article: Article) -> Result<(), ServerF
             .to_lowercase();
 
         let cover_image_url = article.images.first().cloned();
+        let cover_image_caption = article.captions.first().cloned();
         let author = article.byline.unwrap_or_else(|| "Jake Wray".to_string());
 
         let published_at = if article.iso_date.contains('T') {
@@ -227,13 +273,14 @@ pub async fn save_article(token: String, article: Article) -> Result<(), ServerF
         }
 
         sqlx::query(
-            "INSERT INTO articles (id, slug, title, content, excerpt, cover_image_url, author, published_at, origin) \
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'local') \
+            "INSERT INTO articles (id, slug, title, content, excerpt, cover_image_url, cover_image_caption, author, published_at, origin) \
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'local') \
              ON CONFLICT(slug) DO UPDATE SET \
                 title = excluded.title, \
                 content = excluded.content, \
                 excerpt = excluded.excerpt, \
                 cover_image_url = excluded.cover_image_url, \
+                cover_image_caption = excluded.cover_image_caption, \
                 author = excluded.author, \
                 published_at = excluded.published_at"
         )
@@ -243,6 +290,7 @@ pub async fn save_article(token: String, article: Article) -> Result<(), ServerF
         .bind(&article.content_html)
         .bind(&article.excerpt)
         .bind(&cover_image_url)
+        .bind(&cover_image_caption)
         .bind(&author)
         .bind(&published_at)
         .execute(&pool)
@@ -444,3 +492,21 @@ pub async fn delete_media(token: String, object_name: String) -> Result<(), Serv
     #[cfg(not(feature = "ssr"))]
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_extract_figcaption_valid() {
+        let html = r#"<figure class="wp-caption"><img src="foo.jpg"/><figcaption class="wp-caption-text">Wildrose Leader photo</figcaption></figure>"#;
+        assert_eq!(extract_figcaption(html), Some("Wildrose Leader photo".to_string()));
+    }
+
+    #[test]
+    fn test_extract_figcaption_none() {
+        let html = r#"<div><p>No caption here</p></div>"#;
+        assert_eq!(extract_figcaption(html), None);
+    }
+}
+
