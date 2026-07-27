@@ -425,14 +425,18 @@ a {
 
 .editor-content,
 .article-content {
-  p {
+  p,
+  .entry-content > p,
+  .entry-content > div {
     margin-top: 0;
     margin-bottom: 1.25rem !important;
     min-height: 1.5em;
+  }
 
-    &:last-child {
-      margin-bottom: 0 !important;
-    }
+  // Div blocks inside contenteditable or article wrapper
+  > div,
+  .entry-content > div {
+    margin-bottom: 1.25rem;
   }
 }
 
@@ -488,8 +492,9 @@ a {
   }
 }
 
-.article-content > :last-child {
-  margin-bottom: 0;
+.article-content > :last-child,
+.editor-content > :last-child {
+  margin-bottom: 0 !important;
 }
 
 .article-container img {

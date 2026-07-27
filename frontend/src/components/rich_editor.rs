@@ -300,6 +300,7 @@ pub fn RichTextEditor(
                 on:input=move |ev| update_html(ev.target())
                 on:keyup=move |ev| update_html(ev.target())
                 on:blur=move |ev| update_html(ev.target())
+                on:focus=move |_| execute_command("defaultParagraphSeparator", Some("p"))
             ></div>
         </div>
     }
