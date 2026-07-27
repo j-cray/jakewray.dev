@@ -79,7 +79,7 @@ pub async fn get_articles() -> Result<Vec<Article>, ServerFnError> {
             .ok_or_else(|| ServerFnError::new("SqlitePool not found in Leptos context"))?;
 
         let rows = sqlx::query(
-            "SELECT slug, title, excerpt, content, cover_image_url, cover_image_caption, author, published_at FROM articles ORDER BY published_at DESC"
+            "SELECT slug, title, excerpt, content, cover_image_url, cover_image_caption, author, published_at FROM articles ORDER BY published_at DESC, title ASC, slug ASC"
         )
         .fetch_all(&pool)
         .await
@@ -143,6 +143,12 @@ pub async fn get_articles() -> Result<Vec<Article>, ServerFnError> {
                 byline: Some(author),
             });
         }
+
+        articles.sort_by(|a, b| {
+            b.iso_date
+                .cmp(&a.iso_date)
+                .then_with(|| a.title.cmp(&b.title))
+        });
 
         Ok(articles)
     }
@@ -235,7 +241,6 @@ pub fn sanitize_slug(slug: &str) -> String {
     slug.trim().to_string()
 }
 
-#[cfg(feature = "ssr")]
 pub fn parse_article_date(date_str: &str) -> (String, String, String) {
     let trimmed = date_str.trim();
     if trimmed.is_empty() {
@@ -271,14 +276,25 @@ pub fn parse_article_date(date_str: &str) -> (String, String, String) {
 
     let formats = [
         "%Y-%m-%d",
+        "%Y-%-m-%-d",
+        "%Y-%m-%-d",
+        "%Y-%-m-%d",
         "%B %d, %Y",
+        "%B %-d, %Y",
         "%B %d %Y",
+        "%B %-d %Y",
         "%b %d, %Y",
+        "%b %-d, %Y",
         "%b %d %Y",
+        "%b %-d %Y",
         "%d %B %Y",
+        "%-d %B %Y",
         "%d %b %Y",
+        "%-d %b %Y",
         "%m/%d/%Y",
+        "%-m/%-d/%Y",
         "%Y/%m/%d",
+        "%Y/%-m/%-d",
     ];
 
     for fmt in &formats {
@@ -594,7 +610,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg(feature = "ssr")]
     fn test_parse_article_date() {
         let (pub_at, iso, display) = parse_article_date("2025-05-21");
         assert_eq!(pub_at, "2025-05-21T00:00:00.000Z");
@@ -615,5 +630,15 @@ mod tests {
         assert_eq!(pub_at, "2025-05-21T00:00:00.000Z");
         assert_eq!(iso, "2025-05-21");
         assert_eq!(display, "May 21, 2025");
+
+        let (pub_at, iso, display) = parse_article_date("2026-8-5");
+        assert_eq!(pub_at, "2026-08-05T00:00:00.000Z");
+        assert_eq!(iso, "2026-08-05");
+        assert_eq!(display, "August 5, 2026");
+
+        let (pub_at, iso, display) = parse_article_date("8/5/2026");
+        assert_eq!(pub_at, "2026-08-05T00:00:00.000Z");
+        assert_eq!(iso, "2026-08-05");
+        assert_eq!(display, "August 5, 2026");
     }
 }

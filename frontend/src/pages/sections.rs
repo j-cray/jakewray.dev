@@ -316,6 +316,28 @@ fn format_cp_style(date: &str) -> String {
         .replace("December", "Dec.")
 }
 
+pub fn get_article_sort_key(article: &Article) -> String {
+    if let Some(printed) = extract_printed_date(&article.content_html) {
+        let (_, iso, _) = crate::api::articles::parse_article_date(&printed);
+        if iso != "1970-01-01" {
+            return iso;
+        }
+    }
+    if !article.iso_date.is_empty() && article.iso_date != "1970-01-01" {
+        return article.iso_date.clone();
+    }
+    let (_, iso, _) = crate::api::articles::parse_article_date(&article.display_date);
+    iso
+}
+
+pub fn sort_articles_newest_first(articles: &mut [Article]) {
+    articles.sort_by(|a, b| {
+        let key_a = get_article_sort_key(a);
+        let key_b = get_article_sort_key(b);
+        key_b.cmp(&key_a).then_with(|| a.title.cmp(&b.title))
+    });
+}
+
 #[component]
 pub fn JournalismPage() -> impl IntoView {
     let articles_resource = Resource::new(|| (), |_| get_articles());
@@ -331,44 +353,47 @@ pub fn JournalismPage() -> impl IntoView {
                 {move || {
                     articles_resource.get().map(|res| {
                         match res {
-                            Ok(articles) => view! {
-                                <div class="journalism-grid">
-                                    {articles.into_iter().map(|article| {
-                                        let slug = article.slug.clone();
-                                        let title = article.title.clone();
-                                        let preview_text = extract_body_preview(&article.content_html)
-                                            .unwrap_or_else(|| article.excerpt.clone());
-                                        let image = article.images.first().cloned();
-                                        let date = extract_printed_date(&article.content_html)
-                                            .unwrap_or_else(|| article.display_date.clone());
-                                        let date = format_cp_style(&date);
+                            Ok(mut articles) => {
+                                sort_articles_newest_first(&mut articles);
+                                view! {
+                                    <div class="journalism-grid">
+                                        {articles.into_iter().map(|article| {
+                                            let slug = article.slug.clone();
+                                            let title = article.title.clone();
+                                            let preview_text = extract_body_preview(&article.content_html)
+                                                .unwrap_or_else(|| article.excerpt.clone());
+                                            let image = article.images.first().cloned();
+                                            let date = extract_printed_date(&article.content_html)
+                                                .unwrap_or_else(|| article.display_date.clone());
+                                            let date = format_cp_style(&date);
 
-                                        view! {
-                                            <A href=format!("/journalism/{}", slug) attr:class="journalism-card">
-                                                <div class="journalism-thumb">
-                                                    {if let Some(ref img) = image {
-                                                        view! { <img src=img.clone() class="journalism-img" alt="article thumbnail"/> }.into_any()
-                                                    } else {
-                                                        view! {
-                                                            <svg class="journalism-img" xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300">
-                                                                <rect width="400" height="300" fill="#e5e7eb"/>
-                                                                <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="#9ca3af" font-size="16" font-family="Inter, sans-serif">"Image coming soon"</text>
-                                                            </svg>
-                                                        }.into_any()
-                                                    }}
-                                                    // Removed duplicate placeholder div
-                                                </div>
-                                                <div class="journalism-body">
-                                                    <p class="journalism-date">{date}</p>
-                                                    <h3 class="journalism-title">{title}</h3>
-                                                    <p class="journalism-excerpt">{preview_text}</p>
-                                                    <div class="journalism-link">"Read more →"</div>
-                                                </div>
-                                            </A>
-                                        }
-                                    }).collect_view()}
-                                </div>
-                            }.into_any(),
+                                            view! {
+                                                <A href=format!("/journalism/{}", slug) attr:class="journalism-card">
+                                                    <div class="journalism-thumb">
+                                                        {if let Some(ref img) = image {
+                                                            view! { <img src=img.clone() class="journalism-img" alt="article thumbnail"/> }.into_any()
+                                                        } else {
+                                                            view! {
+                                                                <svg class="journalism-img" xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300">
+                                                                    <rect width="400" height="300" fill="#e5e7eb"/>
+                                                                    <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="#9ca3af" font-size="16" font-family="Inter, sans-serif">"Image coming soon"</text>
+                                                                </svg>
+                                                            }.into_any()
+                                                        }}
+                                                        // Removed duplicate placeholder div
+                                                    </div>
+                                                    <div class="journalism-body">
+                                                        <p class="journalism-date">{date}</p>
+                                                        <h3 class="journalism-title">{title}</h3>
+                                                        <p class="journalism-excerpt">{preview_text}</p>
+                                                        <div class="journalism-link">"Read more →"</div>
+                                                    </div>
+                                                </A>
+                                            }
+                                        }).collect_view()}
+                                    </div>
+                                }.into_any()
+                            }
                             Err(e) => view! { <p class="text-red-500">"Error loading articles: " {e.to_string()}</p> }.into_any()
                         }
                     })
@@ -1035,5 +1060,63 @@ mod tests {
         let html_no_date = r#"<div><p>Just body text</p></div>"#;
         let unchanged = replace_date_paragraph(html_no_date, "May 22, 2025");
         assert_eq!(unchanged, html_no_date);
+    }
+
+    #[test]
+    fn test_sort_articles_newest_first() {
+        let mut articles = vec![
+            Article {
+                slug: "old-article".to_string(),
+                title: "Old Article".to_string(),
+                iso_date: "2020-07-16".to_string(),
+                display_date: "July 16, 2020".to_string(),
+                source_url: String::new(),
+                content_html: "<p>July 16, 2020</p>".to_string(),
+                images: vec![],
+                captions: vec![],
+                excerpt: String::new(),
+                byline: None,
+            },
+            Article {
+                slug: "mid-article".to_string(),
+                title: "Mid Article".to_string(),
+                iso_date: "2025-05-21".to_string(),
+                display_date: "May 21, 2025".to_string(),
+                source_url: String::new(),
+                content_html: "<p>May 21, 2025</p>".to_string(),
+                images: vec![],
+                captions: vec![],
+                excerpt: String::new(),
+                byline: None,
+            },
+            Article {
+                slug: "new-article".to_string(),
+                title: "New Article".to_string(),
+                iso_date: "2026-08-01".to_string(),
+                display_date: "August 1, 2026".to_string(),
+                source_url: String::new(),
+                content_html: "<p>August 1, 2026</p>".to_string(),
+                images: vec![],
+                captions: vec![],
+                excerpt: String::new(),
+                byline: None,
+            },
+        ];
+
+        sort_articles_newest_first(&mut articles);
+        assert_eq!(articles[0].slug, "new-article");
+        assert_eq!(articles[1].slug, "mid-article");
+        assert_eq!(articles[2].slug, "old-article");
+
+        // Manually update the date of old-article to be the newest
+        articles[2].display_date = "October 5, 2026".to_string();
+        articles[2].content_html =
+            replace_date_paragraph(&articles[2].content_html, "October 5, 2026");
+        articles[2].iso_date = "2026-10-05".to_string();
+
+        sort_articles_newest_first(&mut articles);
+        assert_eq!(articles[0].slug, "old-article");
+        assert_eq!(articles[1].slug, "new-article");
+        assert_eq!(articles[2].slug, "mid-article");
     }
 }
