@@ -123,10 +123,11 @@ pub fn AdminMedia() -> impl IntoView {
             let window = web_sys::window().unwrap();
             let local_storage = window.local_storage().unwrap().unwrap();
             if let Ok(Some(t)) = local_storage.get_item("admin_token") {
-                if !t.is_empty() {
+                if !t.is_empty() && !shared::auth::is_token_expired(&t) {
                     set_token.set(t);
                     return;
                 }
+                let _ = local_storage.remove_item("admin_token");
             }
             navigate("/admin/login", Default::default());
         }
@@ -134,7 +135,9 @@ pub fn AdminMedia() -> impl IntoView {
 
     let fetch_media = move |is_initial: bool| {
         let t = token.get();
-        if t.is_empty() {
+        if t.is_empty() || shared::auth::is_token_expired(&t) {
+            #[cfg(target_arch = "wasm32")]
+            navigate("/admin/login", Default::default());
             return;
         }
         if is_initial {
@@ -144,7 +147,22 @@ pub fn AdminMedia() -> impl IntoView {
         spawn_local(async move {
             match list_media(t).await {
                 Ok(res) => set_items.set(res),
-                Err(e) => set_error_msg.set(format!("Error loading media: {}", e)),
+                Err(e) => {
+                    let err_str = e.to_string();
+                    if err_str.contains("Invalid token") || err_str.contains("ExpiredSignature") {
+                        #[cfg(target_arch = "wasm32")]
+                        {
+                            if let Ok(Some(w)) = web_sys::window() {
+                                if let Ok(Some(s)) = w.local_storage() {
+                                    let _ = s.remove_item("admin_token");
+                                }
+                            }
+                            navigate("/admin/login", Default::default());
+                        }
+                    } else {
+                        set_error_msg.set(format!("Error loading media: {}", e));
+                    }
+                }
             }
             if is_initial {
                 set_loading.set(false);
@@ -163,6 +181,11 @@ pub fn AdminMedia() -> impl IntoView {
         if let Some(files) = files {
             if let Some(file) = files.get(0) {
                 let t = token.get();
+                if shared::auth::is_token_expired(&t) {
+                    #[cfg(target_arch = "wasm32")]
+                    navigate("/admin/login", Default::default());
+                    return;
+                }
                 let f_clone = fetch_media;
                 let filename = file.name();
                 let file_clone = file.clone();
@@ -183,7 +206,24 @@ pub fn AdminMedia() -> impl IntoView {
                                         .set(format!("Successfully uploaded '{}'!", filename));
                                     f_clone(false); // Background refresh (no blink)
                                 }
-                                Err(e) => set_error_msg.set(format!("Upload failed: {}", e)),
+                                Err(e) => {
+                                    let err_str = e.to_string();
+                                    if err_str.contains("Invalid token")
+                                        || err_str.contains("ExpiredSignature")
+                                    {
+                                        #[cfg(target_arch = "wasm32")]
+                                        {
+                                            if let Ok(Some(w)) = web_sys::window() {
+                                                if let Ok(Some(s)) = w.local_storage() {
+                                                    let _ = s.remove_item("admin_token");
+                                                }
+                                            }
+                                            navigate("/admin/login", Default::default());
+                                        }
+                                    } else {
+                                        set_error_msg.set(format!("Upload failed: {}", e));
+                                    }
+                                }
                             }
                         }
                         Err(e) => set_error_msg.set(format!("File read failed: {:?}", e)),

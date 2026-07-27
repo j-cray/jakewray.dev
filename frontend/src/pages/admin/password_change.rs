@@ -55,7 +55,12 @@ pub fn AdminPasswordChange() -> impl IntoView {
                 let local_storage = window.local_storage().unwrap().unwrap();
                 let token = local_storage.get_item("admin_token").unwrap_or(None);
 
-                if token.is_none() {
+                if token.is_none()
+                    || token
+                        .as_ref()
+                        .map_or(true, |t| shared::auth::is_token_expired(t))
+                {
+                    let _ = local_storage.remove_item("admin_token");
                     navigate("/admin/login", Default::default());
                     return;
                 }

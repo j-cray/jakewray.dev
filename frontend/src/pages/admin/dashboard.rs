@@ -16,7 +16,12 @@ pub fn AdminDashboard() -> impl IntoView {
             let local_storage = window.local_storage().unwrap().unwrap();
             let token = local_storage.get_item("admin_token").unwrap_or(None);
 
-            if token.is_none() {
+            if let Some(ref t) = token {
+                if shared::auth::is_token_expired(t) {
+                    let _ = local_storage.remove_item("admin_token");
+                    navigate_clone("/admin/login", Default::default());
+                }
+            } else {
                 navigate_clone("/admin/login", Default::default());
             }
         });

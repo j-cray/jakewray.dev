@@ -404,10 +404,18 @@ pub fn JournalismArticlePage() -> impl IntoView {
                     #[cfg(debug_assertions)]
                     web_sys::console::log_1(&format!("Found token: {}", t).into());
                     if !t.is_empty() {
-                        _set_token.set(t);
-                        _set_is_admin.set(true);
-                        #[cfg(debug_assertions)]
-                        web_sys::console::log_1(&"Admin mode enabled".into());
+                        if shared::auth::is_token_expired(&t) {
+                            let _ = storage.remove_item("admin_token");
+                            _set_is_admin.set(false);
+                            _set_token.set(String::new());
+                            #[cfg(debug_assertions)]
+                            web_sys::console::log_1(&"Expired token cleared from storage".into());
+                        } else {
+                            _set_token.set(t);
+                            _set_is_admin.set(true);
+                            #[cfg(debug_assertions)]
+                            web_sys::console::log_1(&"Admin mode enabled".into());
+                        }
                     }
                 } else {
                     #[cfg(debug_assertions)]
@@ -463,7 +471,23 @@ pub fn JournalismArticlePage() -> impl IntoView {
                     set_is_editing.set(false);
                     article_resource.refetch();
                 }
-                Err(e) => set_save_status.set(format!("Error: {}", e)),
+                Err(e) => {
+                    let err_str = e.to_string();
+                    if err_str.contains("Invalid token") || err_str.contains("ExpiredSignature") {
+                        #[cfg(target_arch = "wasm32")]
+                        if let Ok(Some(window)) = web_sys::window() {
+                            if let Ok(Some(storage)) = window.local_storage() {
+                                let _ = storage.remove_item("admin_token");
+                            }
+                        }
+                        _set_is_admin.set(false);
+                        _set_token.set(String::new());
+                        set_save_status
+                            .set("Save failed: Session expired. Please log in again.".to_string());
+                    } else {
+                        set_save_status.set(format!("Error: {}", e));
+                    }
+                }
             }
         });
     };
@@ -488,6 +512,17 @@ pub fn JournalismArticlePage() -> impl IntoView {
                     navigate("/journalism", Default::default());
                 }
                 Err(e) => {
+                    let err_str = e.to_string();
+                    if err_str.contains("Invalid token") || err_str.contains("ExpiredSignature") {
+                        #[cfg(target_arch = "wasm32")]
+                        if let Ok(Some(window)) = web_sys::window() {
+                            if let Ok(Some(storage)) = window.local_storage() {
+                                let _ = storage.remove_item("admin_token");
+                            }
+                        }
+                        _set_is_admin.set(false);
+                        _set_token.set(String::new());
+                    }
                     #[cfg(target_arch = "wasm32")]
                     let _ = web_sys::window()
                         .unwrap()

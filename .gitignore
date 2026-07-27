@@ -75,3 +75,5 @@ hgen/target/
 .env
 *.db-wal
 *.db-shm
+
+articleImages/

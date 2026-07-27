@@ -22,10 +22,40 @@ where
     let fetch_media = move || {
         set_loading.set(true);
         let t = token.get();
+        if shared::auth::is_token_expired(&t) {
+            #[cfg(target_arch = "wasm32")]
+            if let Ok(Some(window)) = web_sys::window() {
+                if let Ok(Some(storage)) = window.local_storage() {
+                    let _ = storage.remove_item("admin_token");
+                }
+            }
+            set_error_msg.set(
+                "Session expired (Expired or missing token). Please log in again to upload media."
+                    .to_string(),
+            );
+            set_loading.set(false);
+            return;
+        }
+
         spawn_local(async move {
             match list_media(t).await {
                 Ok(res) => set_items.set(res),
-                Err(e) => set_error_msg.set(format!("Error: {}", e)),
+                Err(e) => {
+                    let err_str = e.to_string();
+                    if err_str.contains("Invalid token") || err_str.contains("ExpiredSignature") {
+                        #[cfg(target_arch = "wasm32")]
+                        if let Ok(Some(window)) = web_sys::window() {
+                            if let Ok(Some(storage)) = window.local_storage() {
+                                let _ = storage.remove_item("admin_token");
+                            }
+                        }
+                        set_error_msg.set(
+                            "Session expired. Please log in again to manage media.".to_string(),
+                        );
+                    } else {
+                        set_error_msg.set(format!("Error: {}", e));
+                    }
+                }
             }
             set_loading.set(false);
         });
@@ -42,6 +72,17 @@ where
         if let Some(files) = files {
             if let Some(file) = files.get(0) {
                 let t = token.get();
+                if shared::auth::is_token_expired(&t) {
+                    #[cfg(target_arch = "wasm32")]
+                    if let Ok(Some(window)) = web_sys::window() {
+                        if let Ok(Some(storage)) = window.local_storage() {
+                            let _ = storage.remove_item("admin_token");
+                        }
+                    }
+                    set_error_msg
+                        .set("Upload failed: Session expired. Please log in again.".to_string());
+                    return;
+                }
                 let f_clone = fetch_media;
                 let filename = file.name();
                 let file_clone = file.clone(); // web_sys::File is Clone (JsValue wrapper)
@@ -59,7 +100,25 @@ where
                                 Ok(_url) => {
                                     f_clone(); // Refresh list
                                 }
-                                Err(e) => set_error_msg.set(format!("Upload failed: {}", e)),
+                                Err(e) => {
+                                    let err_str = e.to_string();
+                                    if err_str.contains("Invalid token")
+                                        || err_str.contains("ExpiredSignature")
+                                    {
+                                        #[cfg(target_arch = "wasm32")]
+                                        if let Ok(Some(window)) = web_sys::window() {
+                                            if let Ok(Some(storage)) = window.local_storage() {
+                                                let _ = storage.remove_item("admin_token");
+                                            }
+                                        }
+                                        set_error_msg.set(
+                                            "Upload failed: Session expired. Please log in again."
+                                                .to_string(),
+                                        );
+                                    } else {
+                                        set_error_msg.set(format!("Upload failed: {}", e));
+                                    }
+                                }
                             }
                         }
                         Err(e) => set_error_msg.set(format!("File read failed: {:?}", e)),
@@ -78,8 +137,24 @@ where
             </div>
 
             {move || if !error_msg.get().is_empty() {
-                Some(view! { <p class="text-red-500 mb-2">{error_msg.get()}</p> })
+                let msg = error_msg.get();
+                let is_expired = msg.contains("Session expired") || msg.contains("Invalid token");
+                Some(view! {
+                    <div class="p-3 mb-3 bg-red-50 border border-red-200 rounded-lg">
+                        <p class="text-red-600 font-medium text-sm mb-1">{msg}</p>
+                        {if is_expired {
+                            Some(view! {
+                                <a href="/admin/login" class="inline-block mt-1 text-xs text-blue-600 hover:text-blue-800 font-bold underline">
+                                    "Log in again ->"
+                                </a>
+                            })
+                        } else {
+                            None
+                        }}
+                    </div>
+                })
             } else { None }}
+
 
             <div class="mb-6 p-6 border-2 border-dashed border-gray-300 rounded-xl text-center bg-white hover:border-blue-400 transition-colors">
                 <label class="cursor-pointer">
