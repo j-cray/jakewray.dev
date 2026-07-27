@@ -383,12 +383,13 @@ pub fn JournalismArticlePage() -> impl IntoView {
     #[cfg(target_arch = "wasm32")]
     web_sys::console::log_1(&"Rendering JournalismArticlePage".into());
 
-    use crate::api::articles::{delete_article, get_article, save_article};
+    use crate::api::articles::{delete_article, get_article, get_articles, save_article};
 
     let params = use_params_map();
     let slug = move || params.with(|p| p.get("slug").map(|s| s.to_string()).unwrap_or_default());
 
     let article_resource = Resource::new(slug, get_article);
+    let articles_resource = Resource::new(|| (), |_| get_articles());
 
     // Auth State
     let (is_admin, _set_is_admin) = signal(false);
@@ -470,6 +471,7 @@ pub fn JournalismArticlePage() -> impl IntoView {
                     set_save_status.set("Saved!".to_string());
                     set_is_editing.set(false);
                     article_resource.refetch();
+                    articles_resource.refetch();
                 }
                 Err(e) => {
                     let err_str = e.to_string();
@@ -624,6 +626,35 @@ pub fn JournalismArticlePage() -> impl IntoView {
                                                 } else { None }}
 
                                                 <div class="article-content prose" inner_html=content_html></div>
+
+                                                {move || {
+                                                    articles_resource.get().and_then(|res| res.ok()).and_then(|articles| {
+                                                        if articles.len() <= 1 {
+                                                            return None;
+                                                        }
+                                                        let cur_slug = slug();
+                                                        let idx = articles.iter().position(|a| a.slug == cur_slug)?;
+                                                        let prev_idx = prev_article_index(idx, articles.len())?;
+                                                        let next_idx = next_article_index(idx, articles.len())?;
+                                                        let prev_slug = articles[prev_idx].slug.clone();
+                                                        let prev_title = articles[prev_idx].title.clone();
+                                                        let next_slug = articles[next_idx].slug.clone();
+                                                        let next_title = articles[next_idx].title.clone();
+
+                                                        Some(view! {
+                                                            <nav class="article-nav" aria-label="Article navigation">
+                                                                <A href=format!("/journalism/{}", prev_slug) attr:class="article-nav-link prev">
+                                                                    <span class="article-nav-label">"← Previous Article"</span>
+                                                                    <span class="article-nav-title">{prev_title}</span>
+                                                                </A>
+                                                                <A href=format!("/journalism/{}", next_slug) attr:class="article-nav-link next">
+                                                                    <span class="article-nav-label">"Next Article →"</span>
+                                                                    <span class="article-nav-title">{next_title}</span>
+                                                                </A>
+                                                            </nav>
+                                                        })
+                                                    })
+                                                }}
                                             </div>
                                         }.into_any()
                                     }
@@ -945,5 +976,50 @@ pub fn PersonalBlogPage() -> impl IntoView {
             <h1 class="text-4xl mb-6">"Blog"</h1>
             <p class="text-muted">"Personal thoughts and musings."</p>
         </div>
+    }
+}
+
+pub fn prev_article_index(current_idx: usize, total: usize) -> Option<usize> {
+    if total <= 1 {
+        None
+    } else {
+        Some((current_idx + total - 1) % total)
+    }
+}
+
+pub fn next_article_index(current_idx: usize, total: usize) -> Option<usize> {
+    if total <= 1 {
+        None
+    } else {
+        Some((current_idx + 1) % total)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_prev_next_article_index_cycling() {
+        let total = 3;
+        // Index 0 (newest article)
+        assert_eq!(prev_article_index(0, total), Some(2));
+        assert_eq!(next_article_index(0, total), Some(1));
+
+        // Index 1 (middle article)
+        assert_eq!(prev_article_index(1, total), Some(0));
+        assert_eq!(next_article_index(1, total), Some(2));
+
+        // Index 2 (oldest article)
+        assert_eq!(prev_article_index(2, total), Some(1));
+        assert_eq!(next_article_index(2, total), Some(0));
+    }
+
+    #[test]
+    fn test_prev_next_article_index_single_or_empty() {
+        assert_eq!(prev_article_index(0, 1), None);
+        assert_eq!(next_article_index(0, 1), None);
+        assert_eq!(prev_article_index(0, 0), None);
+        assert_eq!(next_article_index(0, 0), None);
     }
 }

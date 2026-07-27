@@ -49,6 +49,7 @@ cargo leptos watch
 - [x] **HTTPS/SSL** - Let's Encrypt certificates
 - [x] **Authentication** - Password-protected admin panel
 - [x] **Theme** - Modern indigo design
+- [x] **Article Navigation** - Next and previous article controls
 - [ ] **Admin features** - Post creation
 - [x] **Media library** - Photo/video management
 - [x] **Password hashing** - Argon2 implementation
