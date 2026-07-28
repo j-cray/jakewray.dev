@@ -139,7 +139,7 @@ pub fn AdminComposer() -> impl IntoView {
 
     view! {
         <div class="container py-12">
-            <div class="edit-container w-full max-w-5xl mx-auto p-8 bg-white border border-blue-200 rounded-xl shadow-2xl">
+            <div class="edit-container w-full max-w-5xl mx-auto p-8">
                 <div class="max-w-2xl mx-auto">
                     <h2 class="text-3xl font-bold mb-8 pb-4 border-b text-center">"Compose New Post"</h2>
 
