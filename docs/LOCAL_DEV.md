@@ -107,7 +107,7 @@ Navigate to `http://localhost:3000/admin/login`
 
 ### 4. Test the features
 - ✅ Verify login redirects to dashboard
-- ✅ Check that theme is applied (indigo colors, modern styling)
+- ✅ Check that theme is applied (sky blue colors, modern styling)
 - ✅ Click logout and verify redirect to login
 - ✅ Try accessing dashboard without login - should redirect to login
 

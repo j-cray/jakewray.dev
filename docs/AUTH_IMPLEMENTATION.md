@@ -13,7 +13,7 @@
 - ✅ Real login form with API integration
 - ✅ Stores JWT token in browser localStorage
 - ✅ Error handling and loading states
-- ✅ Modern, themed UI with indigo color scheme
+- ✅ Modern, themed UI with sky blue color scheme
 - ✅ Form validation feedback
 
 ### 3. Admin Dashboard Protection (`frontend/src/pages/admin/dashboard.rs`)
@@ -23,7 +23,7 @@
 - ✅ Responsive grid layout
 
 ### 4. Enhanced Theming (`style/main.scss`)
-- ✅ Modern color palette (indigo primary, slate neutrals)
+- ✅ Modern color palette (sky blue primary, slate neutrals)
 - ✅ Improved typography and spacing
 - ✅ Better shadows and transitions
 - ✅ Styled form inputs and buttons
@@ -93,7 +93,7 @@ let secret = std::env::var("JWT_SECRET").expect("JWT_SECRET not set");
 3. Login with `admin/admin123` - should redirect to dashboard
 4. Dashboard shows logout button
 5. Click logout - clears token and redirects to login
-6. Styling should be modern with indigo theme
+6. Styling should be modern with sky blue theme
 
 ## Next Steps
 
