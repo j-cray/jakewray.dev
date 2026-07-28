@@ -49,6 +49,7 @@ cargo leptos watch
 - [x] **HTTPS/SSL** - Let's Encrypt certificates
 - [x] **Authentication** - Password-protected admin panel
 - [x] **Theme** - Modern sky blue design
+- [x] **Dark Mode Support** - Automatic dark/light theme based on browser preference (`prefers-color-scheme`)
 - [x] **Article Navigation** - Next and previous article controls
 - [x] **Article Card Sorting** - Automatic newest-to-oldest ordering and date update sorting
 - [ ] **Admin features** - Post creation
