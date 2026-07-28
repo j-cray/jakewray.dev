@@ -68,7 +68,7 @@ async fn list_articles(
             })?
             .to_utc();
         let normalized = dt.format("%Y-%m-%dT%H:%M:%3fZ").to_string();
-        sqlx::query("SELECT id, wp_id, slug, title, subtitle, excerpt, content, cover_image_url, author, published_at, origin FROM articles WHERE published_at < ? ORDER BY published_at DESC LIMIT ?")
+        sqlx::query("SELECT id, wp_id, slug, title, subtitle, excerpt, content, cover_image_url, author, published_at, origin FROM articles WHERE (status IS NULL OR status = 'published' OR (status = 'scheduled' AND published_at <= strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))) AND status != 'draft' AND published_at < ? ORDER BY published_at DESC LIMIT ?")
             .bind(normalized)
             .bind(limit)
             .try_map(map_article_row)
@@ -82,7 +82,7 @@ async fn list_articles(
                 "Offset too large".to_string(),
             ));
         }
-        sqlx::query("SELECT id, wp_id, slug, title, subtitle, excerpt, content, cover_image_url, author, published_at, origin FROM articles ORDER BY published_at DESC LIMIT ? OFFSET ?")
+        sqlx::query("SELECT id, wp_id, slug, title, subtitle, excerpt, content, cover_image_url, author, published_at, origin FROM articles WHERE (status IS NULL OR status = 'published' OR (status = 'scheduled' AND published_at <= strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))) AND status != 'draft' ORDER BY published_at DESC LIMIT ? OFFSET ?")
             .bind(limit)
             .bind(offset)
             .try_map(map_article_row)

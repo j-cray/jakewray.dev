@@ -1027,6 +1027,7 @@ mod tests {
                 captions: vec![],
                 excerpt: String::new(),
                 byline: None,
+                status: None,
             },
             Article {
                 slug: "mid-article".to_string(),
@@ -1039,6 +1040,7 @@ mod tests {
                 captions: vec![],
                 excerpt: String::new(),
                 byline: None,
+                status: None,
             },
             Article {
                 slug: "new-article".to_string(),
@@ -1051,6 +1053,7 @@ mod tests {
                 captions: vec![],
                 excerpt: String::new(),
                 byline: None,
+                status: None,
             },
         ];
 

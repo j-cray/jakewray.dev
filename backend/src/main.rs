@@ -299,6 +299,7 @@ mod tests {
     fn test_server_fn_registration() {
         assert!(!frontend::api::articles::GetArticles::PATH.is_empty());
         assert!(!frontend::api::articles::GetArticle::PATH.is_empty());
+        assert!(!frontend::api::articles::GetDraftsAndScheduled::PATH.is_empty());
         assert!(!frontend::api::articles::SaveArticle::PATH.is_empty());
         assert!(!frontend::api::articles::DeleteArticle::PATH.is_empty());
         assert!(!frontend::api::articles::ListMedia::PATH.is_empty());

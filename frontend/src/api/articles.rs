@@ -15,6 +15,8 @@ pub struct Article {
     pub excerpt: String,
     #[serde(default)]
     pub byline: Option<String>,
+    #[serde(default)]
+    pub status: Option<String>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
@@ -79,7 +81,7 @@ pub async fn get_articles() -> Result<Vec<Article>, ServerFnError> {
             .ok_or_else(|| ServerFnError::new("SqlitePool not found in Leptos context"))?;
 
         let rows = sqlx::query(
-            "SELECT slug, title, excerpt, content, cover_image_url, cover_image_caption, author, published_at FROM articles ORDER BY published_at DESC, title ASC, slug ASC"
+            "SELECT slug, title, excerpt, content, cover_image_url, cover_image_caption, author, published_at, status FROM articles WHERE (status IS NULL OR status = 'published' OR (status = 'scheduled' AND published_at <= strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))) AND status != 'draft' ORDER BY published_at DESC, title ASC, slug ASC"
         )
         .fetch_all(&pool)
         .await
@@ -95,7 +97,8 @@ pub async fn get_articles() -> Result<Vec<Article>, ServerFnError> {
             let cover_image_url: Option<String> = row.get("cover_image_url");
             let cover_image_caption: Option<String> = row.get("cover_image_caption");
             let author: String = row.get("author");
-            let published_at: String = row.get("published_at"); // text in sqlite
+            let published_at: String = row.get("published_at");
+            let status: Option<String> = row.get("status");
 
             // Format dates
             let iso_date = published_at
@@ -141,6 +144,7 @@ pub async fn get_articles() -> Result<Vec<Article>, ServerFnError> {
                 captions,
                 excerpt: excerpt.unwrap_or_default(),
                 byline: Some(author),
+                status,
             });
         }
 
@@ -166,7 +170,7 @@ pub async fn get_article(slug: String) -> Result<Option<Article>, ServerFnError>
             .ok_or_else(|| ServerFnError::new("SqlitePool not found in Leptos context"))?;
 
         let row = sqlx::query(
-            "SELECT slug, title, excerpt, content, cover_image_url, cover_image_caption, author, published_at FROM articles WHERE slug = ?"
+            "SELECT slug, title, excerpt, content, cover_image_url, cover_image_caption, author, published_at, status FROM articles WHERE slug = ?"
         )
         .bind(&slug)
         .fetch_optional(&pool)
@@ -183,6 +187,7 @@ pub async fn get_article(slug: String) -> Result<Option<Article>, ServerFnError>
             let cover_image_caption: Option<String> = row.get("cover_image_caption");
             let author: String = row.get("author");
             let published_at: String = row.get("published_at");
+            let status: Option<String> = row.get("status");
 
             let iso_date = published_at
                 .split('T')
@@ -227,6 +232,7 @@ pub async fn get_article(slug: String) -> Result<Option<Article>, ServerFnError>
                 captions,
                 excerpt: excerpt.unwrap_or_default(),
                 byline: Some(author),
+                status,
             }))
         } else {
             Ok(None)
@@ -235,6 +241,90 @@ pub async fn get_article(slug: String) -> Result<Option<Article>, ServerFnError>
 
     #[cfg(not(feature = "ssr"))]
     Ok(None)
+}
+
+#[server(GetDraftsAndScheduled, "/api")]
+pub async fn get_drafts_and_scheduled(token: String) -> Result<Vec<Article>, ServerFnError> {
+    #[cfg(feature = "ssr")]
+    {
+        use self::ssr_utils::verify_token;
+        verify_token(&token)?; // Guard
+        use sqlx::SqlitePool;
+        let pool = use_context::<SqlitePool>()
+            .ok_or_else(|| ServerFnError::new("SqlitePool not found in Leptos context"))?;
+
+        let rows = sqlx::query(
+            "SELECT slug, title, excerpt, content, cover_image_url, cover_image_caption, author, published_at, status FROM articles WHERE status = 'draft' OR status = 'scheduled' OR (published_at > strftime('%Y-%m-%dT%H:%M:%fZ', 'now')) ORDER BY published_at DESC, title ASC, slug ASC"
+        )
+        .fetch_all(&pool)
+        .await
+        .map_err(|e| ServerFnError::new(format!("Database query failed: {}", e)))?;
+
+        let mut articles = Vec::new();
+        for row in rows {
+            use sqlx::Row;
+            let slug: String = row.get("slug");
+            let title: String = row.get("title");
+            let content_html: String = row.get("content");
+            let excerpt: Option<String> = row.get("excerpt");
+            let cover_image_url: Option<String> = row.get("cover_image_url");
+            let cover_image_caption: Option<String> = row.get("cover_image_caption");
+            let author: String = row.get("author");
+            let published_at: String = row.get("published_at");
+            let status: Option<String> = row.get("status");
+
+            let iso_date = published_at
+                .split('T')
+                .next()
+                .unwrap_or(&published_at)
+                .to_string();
+            let display_date = if let Ok(dt) = chrono::DateTime::parse_from_rfc3339(&published_at) {
+                dt.format("%B %d, %Y %H:%M").to_string()
+            } else {
+                iso_date.clone()
+            };
+
+            let mut images = Vec::new();
+            if let Some(img) = cover_image_url {
+                if !img.is_empty() {
+                    images.push(img);
+                }
+            }
+
+            let captions = if let Some(ref cap) = cover_image_caption {
+                if !cap.trim().is_empty() {
+                    vec![cap.clone()]
+                } else if let Some(extracted) = extract_figcaption(&content_html) {
+                    vec![extracted]
+                } else {
+                    Vec::new()
+                }
+            } else if let Some(extracted) = extract_figcaption(&content_html) {
+                vec![extracted]
+            } else {
+                Vec::new()
+            };
+
+            articles.push(Article {
+                slug,
+                title,
+                iso_date,
+                display_date,
+                source_url: String::new(),
+                content_html,
+                images,
+                captions,
+                excerpt: excerpt.unwrap_or_default(),
+                byline: Some(author),
+                status,
+            });
+        }
+
+        Ok(articles)
+    }
+
+    #[cfg(not(feature = "ssr"))]
+    Ok(Vec::new())
 }
 
 pub fn sanitize_slug(slug: &str) -> String {
@@ -336,6 +426,7 @@ pub async fn save_article(token: String, article: Article) -> Result<(), ServerF
         let cover_image_url = article.images.first().cloned();
         let cover_image_caption = article.captions.first().cloned();
         let author = article.byline.unwrap_or_else(|| "Jake Wray".to_string());
+        let status_val = article.status.unwrap_or_else(|| "published".to_string());
 
         let date_input = if !article.display_date.trim().is_empty() {
             &article.display_date
@@ -358,8 +449,8 @@ pub async fn save_article(token: String, article: Article) -> Result<(), ServerF
         }
 
         sqlx::query(
-            "INSERT INTO articles (id, slug, title, content, excerpt, cover_image_url, cover_image_caption, author, published_at, origin) \
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'local') \
+            "INSERT INTO articles (id, slug, title, content, excerpt, cover_image_url, cover_image_caption, author, published_at, status, origin) \
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'local') \
              ON CONFLICT(slug) DO UPDATE SET \
                 title = excluded.title, \
                 content = excluded.content, \
@@ -367,7 +458,8 @@ pub async fn save_article(token: String, article: Article) -> Result<(), ServerF
                 cover_image_url = excluded.cover_image_url, \
                 cover_image_caption = excluded.cover_image_caption, \
                 author = excluded.author, \
-                published_at = excluded.published_at"
+                published_at = excluded.published_at, \
+                status = excluded.status"
         )
         .bind(&id)
         .bind(&safe_slug)
@@ -378,6 +470,7 @@ pub async fn save_article(token: String, article: Article) -> Result<(), ServerF
         .bind(&cover_image_caption)
         .bind(&author)
         .bind(&published_at)
+        .bind(&status_val)
         .execute(&pool)
         .await
         .map_err(|e| ServerFnError::new(format!("Database insert/update failed: {}", e)))?;
@@ -642,5 +735,39 @@ mod tests {
         assert_eq!(pub_at, "2026-08-05T00:00:00.000Z");
         assert_eq!(iso, "2026-08-05");
         assert_eq!(display, "August 5, 2026");
+    }
+
+    #[test]
+    fn test_article_status_deserialization() {
+        let json_without_status = r#"{
+            "slug": "test-post",
+            "title": "Test Post",
+            "iso_date": "2026-07-28",
+            "display_date": "July 28, 2026",
+            "source_url": "",
+            "content_html": "<p>Hello</p>",
+            "images": [],
+            "captions": [],
+            "excerpt": "Hello"
+        }"#;
+
+        let article: Article = serde_json::from_str(json_without_status).unwrap();
+        assert_eq!(article.status, None);
+
+        let json_with_status = r#"{
+            "slug": "test-post",
+            "title": "Test Post",
+            "iso_date": "2026-07-28",
+            "display_date": "July 28, 2026",
+            "source_url": "",
+            "content_html": "<p>Hello</p>",
+            "images": [],
+            "captions": [],
+            "excerpt": "Hello",
+            "status": "scheduled"
+        }"#;
+
+        let article_scheduled: Article = serde_json::from_str(json_with_status).unwrap();
+        assert_eq!(article_scheduled.status, Some("scheduled".to_string()));
     }
 }
