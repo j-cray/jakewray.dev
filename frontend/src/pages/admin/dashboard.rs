@@ -13,6 +13,8 @@ pub fn AdminDashboard() -> impl IntoView {
     let (refresh_counter, set_refresh_counter) = signal(0);
     let (action_message, set_action_message) = signal(String::new());
 
+    #[cfg(target_arch = "wasm32")]
+    let nav_auth = navigate.clone();
     Effect::new(move || {
         #[cfg(target_arch = "wasm32")]
         {
@@ -23,12 +25,12 @@ pub fn AdminDashboard() -> impl IntoView {
             if let Some(ref t) = tok {
                 if shared::auth::is_token_expired(t) {
                     let _ = local_storage.remove_item("admin_token");
-                    navigate("/admin/login", Default::default());
+                    nav_auth("/admin/login", Default::default());
                 } else {
                     set_token.set(t.clone());
                 }
             } else {
-                navigate("/admin/login", Default::default());
+                nav_auth("/admin/login", Default::default());
             }
         }
     });

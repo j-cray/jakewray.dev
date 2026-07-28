@@ -193,28 +193,26 @@ pub fn AdminComposer() -> impl IntoView {
         let loaded = is_loaded.get();
         let _ = (&t, &s, &imgs, &cap, &d_date, &b, &c);
 
-        if !loaded {
-            return;
-        }
+        if loaded {
+            #[cfg(target_arch = "wasm32")]
+            {
+                let now_str = get_current_time_string();
+                let draft = ComposerDraftData {
+                    title: t,
+                    slug: s,
+                    images: imgs,
+                    caption: cap,
+                    display_date: d_date,
+                    byline: b,
+                    content: c,
+                    updated_at: now_str.clone(),
+                };
 
-        #[cfg(target_arch = "wasm32")]
-        {
-            let now_str = get_current_time_string();
-            let draft = ComposerDraftData {
-                title: t,
-                slug: s,
-                images: imgs,
-                caption: cap,
-                display_date: d_date,
-                byline: b,
-                content: c,
-                updated_at: now_str.clone(),
-            };
-
-            if let Ok(draft_json) = serde_json::to_string(&draft) {
-                if let Ok(Some(storage)) = web_sys::window().unwrap().local_storage() {
-                    let _ = storage.set_item("composer_draft_data", &draft_json);
-                    set_autosave_status.set(format!("Draft auto-saved locally at {}", now_str));
+                if let Ok(draft_json) = serde_json::to_string(&draft) {
+                    if let Ok(Some(storage)) = web_sys::window().unwrap().local_storage() {
+                        let _ = storage.set_item("composer_draft_data", &draft_json);
+                        set_autosave_status.set(format!("Draft auto-saved locally at {}", now_str));
+                    }
                 }
             }
         }
