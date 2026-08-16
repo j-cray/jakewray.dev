@@ -33,6 +33,7 @@
             # Rust toolchain
             rustToolchain
             cargo-leptos
+            cargo-nextest
             wasm-bindgen-cli
             
             # Build dependencies
