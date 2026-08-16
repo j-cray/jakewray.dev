@@ -14,56 +14,21 @@ fi
 command -v cargo &> /dev/null || { echo "❌ cargo not found. Install Rust from https://rustup.rs/"; exit 1; }
 command -v sqlite3 &> /dev/null || { echo "❌ sqlite3 not found"; exit 1; }
 
-# Check for container runtime
-CONTAINER_CMD=""
-if command -v docker &> /dev/null; then
-  # Check if docker daemon is running
-  if docker ps &> /dev/null; then
-    CONTAINER_CMD="docker"
-    echo "✅ Docker found and running"
-  else
-    echo "⚠️  Docker daemon not running. Trying podman..."
-  fi
-fi
-
-if [ -z "$CONTAINER_CMD" ] && command -v podman &> /dev/null; then
-  CONTAINER_CMD="podman"
-  echo "✅ Using podman for containers"
-fi
-
-if [ -z "$CONTAINER_CMD" ]; then
-  echo "❌ No container runtime found (docker/podman)"
-  echo ""
-  echo "On macOS, you can use colima (lightweight Docker):"
-  echo "  brew install colima"
-  echo "  colima start"
-  echo ""
-  echo "Or use podman:"
-  echo "  brew install podman"
-  echo "  podman machine init && podman machine start"
-  exit 1
-fi
-
 echo "✅ All dependencies found"
 echo ""
 
-# Start container runtime if using colima
-if [ "$CONTAINER_CMD" = "docker" ] && ! docker ps &> /dev/null; then
-  echo "🐳 Starting colima (Docker daemon)..."
-  if command -v colima &> /dev/null; then
-    colima start
-  fi
+echo "⏳ Running database migrations..."
+if [ -z "$DATABASE_URL" ]; then
+  export DATABASE_URL="sqlite://jakewray.db"
 fi
 
-# Try to use existing tools if possible, but no background service is needed for sqlite.
-echo ""
-echo "⏳ Running database migrations..."
+DB_FILE="${DATABASE_URL#sqlite://}"
+DB_FILE="${DB_FILE#sqlite:}"
+DB_FILE="${DB_FILE:-jakewray.db}"
+
 # create an empty sqlite database file if it doesn't exist
-touch sqlite.db
-chmod 600 sqlite.db
-if [ -z "$DATABASE_URL" ]; then
-  export DATABASE_URL="sqlite://sqlite.db"
-fi
+touch "$DB_FILE"
+chmod 600 "$DB_FILE"
 
 cargo sqlx migrate run -D "$DATABASE_URL" || true
 
@@ -93,7 +58,7 @@ if ! [[ "$SAFE_UUID" =~ ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F
 fi
 
 ESCAPED_HASH="${ADMIN_HASH//\'/\'\'}"
-sqlite3 sqlite.db <<EOF
+sqlite3 "$DB_FILE" <<EOF
 .param set @id '$SAFE_UUID'
 .param set @hash '$ESCAPED_HASH'
 INSERT INTO users (id, username, password_hash) VALUES (@id, 'admin', @hash) ON CONFLICT (username) DO NOTHING;
