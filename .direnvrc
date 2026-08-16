@@ -2,7 +2,7 @@
 # This file is auto-loaded by direnv in the project directory
 
 # Add local scripts to PATH
-PATH_add_relative scripts
+PATH_add scripts
 
 # Function to start dev services
 dev_services() {
