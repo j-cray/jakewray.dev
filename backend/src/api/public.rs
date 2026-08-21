@@ -1,5 +1,5 @@
-use axum::{extract::Query, extract::State, routing::get, Json, Router};
-use shared::{Article, BlogPost};
+use axum::{extract::Path, extract::Query, extract::State, routing::get, Json, Router};
+use shared::{Article, BlogPost, PageContent};
 use sqlx::SqlitePool;
 
 #[derive(serde::Deserialize)]
@@ -23,6 +23,10 @@ pub fn router(state: crate::state::AppState) -> Router<crate::state::AppState> {
     };
 
     let blog_governor_layer = tower_governor::GovernorLayer {
+        config: public_governor_config.clone(),
+    };
+
+    let pages_governor_layer = tower_governor::GovernorLayer {
         config: public_governor_config,
     };
 
@@ -36,11 +40,78 @@ pub fn router(state: crate::state::AppState) -> Router<crate::state::AppState> {
             "/api/blog",
             get(list_blog_posts).route_layer(blog_governor_layer),
         )
+        .route(
+            "/api/pages/:slug",
+            get(get_page_by_slug).route_layer(pages_governor_layer),
+        )
         .with_state(state)
 }
 
 async fn health_check() -> &'static str {
     "OK"
+}
+
+async fn get_page_by_slug(
+    State(pool): State<SqlitePool>,
+    Path(slug): Path<String>,
+) -> Result<Json<PageContent>, (axum::http::StatusCode, String)> {
+    let row = sqlx::query("SELECT id, slug, title, content, updated_at FROM pages WHERE slug = ?")
+        .bind(&slug)
+        .fetch_optional(&pool)
+        .await
+        .map_err(|e| {
+            tracing::error!("Failed to fetch page '{}': {}", slug, e);
+            (
+                axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+                "Database error".to_string(),
+            )
+        })?;
+
+    match row {
+        Some(row) => {
+            let id_str: String = row.try_get("id").map_err(|e| {
+                (
+                    axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+                    format!("Decode error: {}", e),
+                )
+            })?;
+            let id = id_str.parse::<uuid::Uuid>().map_err(|e| {
+                (
+                    axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+                    format!("UUID parse error: {}", e),
+                )
+            })?;
+            let updated_at_str: Option<String> = row.try_get("updated_at").ok();
+            let updated_at = updated_at_str.and_then(|s| parse_flexible_datetime(s).ok());
+
+            Ok(Json(PageContent {
+                id,
+                slug: row.try_get("slug").map_err(|e| {
+                    (
+                        axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+                        format!("Decode error: {}", e),
+                    )
+                })?,
+                title: row.try_get("title").map_err(|e| {
+                    (
+                        axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+                        format!("Decode error: {}", e),
+                    )
+                })?,
+                content: row.try_get("content").map_err(|e| {
+                    (
+                        axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+                        format!("Decode error: {}", e),
+                    )
+                })?,
+                updated_at,
+            }))
+        }
+        None => Err((
+            axum::http::StatusCode::NOT_FOUND,
+            "Page not found".to_string(),
+        )),
+    }
 }
 
 use sqlx::Row;

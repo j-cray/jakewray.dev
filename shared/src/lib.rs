@@ -169,3 +169,12 @@ pub struct Project {
 pub struct ModelCount {
     pub count: i64,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct PageContent {
+    pub id: Uuid,
+    pub slug: String,
+    pub title: String,
+    pub content: String,
+    pub updated_at: Option<DateTime<Utc>>,
+}
