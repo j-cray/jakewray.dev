@@ -163,7 +163,7 @@ pub fn AboutPage() -> impl IntoView {
                     }.into_any()
                 } else {
                     view! {
-                        <div class="container max-w-2xl bg-white p-8 rounded-lg shadow-sm border border-gray-100">
+                        <div class="about-container container max-w-2xl bg-white p-8 rounded-lg shadow-sm border border-gray-100">
                             {move || {
                                 is_admin.get().then(|| {
                                     let page_data = page_resource.get().and_then(|r| r.ok()).flatten();
@@ -204,7 +204,7 @@ pub fn AboutPage() -> impl IntoView {
                                                 view! {
                                                     <div>
                                                         <h1 class="text-4xl mb-6 font-bold text-gray-900 border-b border-gray-100 pb-4">{title}</h1>
-                                                        <div class="prose prose-lg text-gray-700 leading-relaxed" inner_html=content></div>
+                                                        <div class="about-content prose prose-lg text-gray-700 leading-relaxed" inner_html=content></div>
                                                     </div>
                                                 }.into_any()
                                             }

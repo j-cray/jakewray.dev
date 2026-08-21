@@ -186,7 +186,7 @@ h3 {
 }
 
 p {
-  color: var(--text-muted);
+  color: var(--text-color);
   margin-bottom: 1rem;
 }
 
@@ -244,6 +244,7 @@ a {
   max-width: 640px;
   margin: 0 auto;
   font-size: 1.125rem;
+  color: var(--text-muted);
 }
 
 .card-grid {
@@ -445,6 +446,122 @@ a {
   .wp-element-caption,
   .wp-element-caption * {
     color: var(--text-muted) !important;
+  }
+}
+
+.about-container {
+  color: var(--text-color);
+
+  &,
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  p,
+  li,
+  span,
+  font,
+  div,
+  blockquote,
+  strong,
+  em,
+  b,
+  i,
+  td,
+  th {
+    color: var(--text-color);
+  }
+
+  .about-content {
+    color: var(--text-color);
+
+    * {
+      color: var(--text-color);
+    }
+  }
+}
+
+.prose {
+  color: var(--text-color);
+  line-height: 1.75;
+
+  &,
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  p,
+  li,
+  span,
+  font,
+  div,
+  blockquote,
+  strong,
+  em,
+  b,
+  i,
+  td,
+  th {
+    color: var(--text-color);
+  }
+
+  p {
+    color: var(--text-color);
+    margin-top: 0;
+    margin-bottom: 1.25rem;
+    line-height: 1.75;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    color: var(--text-color);
+    font-family: var(--font-heading);
+    font-weight: 700;
+    margin-top: 1.75rem;
+    margin-bottom: 0.75rem;
+  }
+
+  strong,
+  b {
+    color: var(--text-color);
+    font-weight: 700;
+  }
+
+  a:not(.btn) {
+    color: var(--primary);
+    text-decoration: underline;
+
+    &:hover {
+      color: var(--primary-dark);
+    }
+  }
+
+  ul,
+  ol {
+    margin-left: 1.5rem;
+    margin-bottom: 1.25rem;
+    color: var(--text-color);
+  }
+
+  li {
+    color: var(--text-color);
+    margin-bottom: 0.5rem;
+  }
+
+  blockquote {
+    border-left: 4px solid var(--border-color);
+    padding-left: 1rem;
+    margin: 1.25rem 0;
+    color: var(--text-muted);
+    font-style: italic;
   }
 }
 
