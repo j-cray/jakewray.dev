@@ -19,12 +19,12 @@ echo ""
 
 echo "⏳ Running database migrations..."
 if [ -z "$DATABASE_URL" ]; then
-  export DATABASE_URL="sqlite://jakewray.db"
+  export DATABASE_URL="sqlite://sqlite.db"
 fi
 
 DB_FILE="${DATABASE_URL#sqlite://}"
 DB_FILE="${DB_FILE#sqlite:}"
-DB_FILE="${DB_FILE:-jakewray.db}"
+DB_FILE="${DB_FILE:-sqlite.db}"
 
 # create an empty sqlite database file if it doesn't exist
 touch "$DB_FILE"

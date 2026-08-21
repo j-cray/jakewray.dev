@@ -59,7 +59,7 @@
           shellHook = ''
             export RUST_SRC_PATH=${pkgs.rustPlatform.rustLibSrc}
             export RUST_LOG=info
-            export DATABASE_URL="sqlite://jakewray.db"
+            export DATABASE_URL="sqlite://sqlite.db"
             export JWT_SECRET="change-this-to-a-long-random-secret-in-production"
             
             echo "🚀 jakewray.dev development environment loaded"
