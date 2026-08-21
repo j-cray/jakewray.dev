@@ -357,7 +357,7 @@ pub fn JournalismPage() -> impl IntoView {
         <div class="container py-12">
             <h1 class="text-4xl mb-4">"Journalism"</h1>
             <p class="text-gray-700 mb-10 max-w-3xl">
-                "A collection of community news articles I have written, mostly for The Terrace Standard, but some articles are from my 2017 internship at The Spruce Grove Examiner and even earlier from my years studying journalism at Langara College."
+                "A collection of community news articles I have written, mostly for The Terrace Standard, but some articles are from my 2017 internship at The Spruce Grove Examiner and some are even older, from my years studying journalism at Langara College."
             </p>
 
             <Suspense fallback=move || view! { <p>"Loading articles..."</p> }>
