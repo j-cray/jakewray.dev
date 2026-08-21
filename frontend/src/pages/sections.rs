@@ -349,13 +349,60 @@ pub fn sort_articles_newest_first(articles: &mut [Article]) {
     });
 }
 
+pub const HIGHLIGHT_SLUGS: &[&str] = &[
+    "ksi-lisims-bc-hydros-north-coast-transmission-line-to-be-fast-tracked-pm",
+    "candidates-spar-over-healthcare-at-burns-lake-all-candidates-forum",
+    "foster-family-loses-home-to-fire",
+    "skeena-voices-the-culture-and-the-art-saved-my-life",
+];
+
+pub fn extract_highlight_articles(articles: &[Article], highlight_slugs: &[&str]) -> Vec<Article> {
+    highlight_slugs
+        .iter()
+        .filter_map(|slug| articles.iter().find(|a| a.slug == *slug).cloned())
+        .collect()
+}
+
+pub fn render_article_card(article: &Article) -> impl IntoView {
+    let slug = article.slug.clone();
+    let title = article.title.clone();
+    let preview_text =
+        extract_body_preview(&article.content_html).unwrap_or_else(|| article.excerpt.clone());
+    let image = article.images.first().cloned();
+    let date =
+        extract_printed_date(&article.content_html).unwrap_or_else(|| article.display_date.clone());
+    let date = format_cp_style(&date);
+
+    view! {
+        <A href=format!("/journalism/{}", slug) attr:class="journalism-card">
+            <div class="journalism-thumb">
+                {if let Some(ref img) = image {
+                    view! { <img src=img.clone() class="journalism-img" alt="article thumbnail"/> }.into_any()
+                } else {
+                    view! {
+                        <svg class="journalism-img" xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300">
+                            <rect width="400" height="300" fill="#e5e7eb"/>
+                            <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="#9ca3af" font-size="16" font-family="Inter, sans-serif">"Image coming soon"</text>
+                        </svg>
+                    }.into_any()
+                }}
+            </div>
+            <div class="journalism-body">
+                <p class="journalism-date">{date}</p>
+                <h3 class="journalism-title">{title}</h3>
+                <p class="journalism-excerpt">{preview_text}</p>
+                <div class="journalism-link">"Read more →"</div>
+            </div>
+        </A>
+    }
+}
+
 #[component]
 pub fn JournalismPage() -> impl IntoView {
     let articles_resource = Resource::new(|| (), |_| get_articles());
 
     view! {
         <div class="container py-12">
-            <h1 class="text-4xl mb-4">"Journalism"</h1>
             <p class="text-gray-700 mb-10 max-w-3xl">
                 "A collection of community news articles I have written, mostly for The Terrace Standard, but some articles are from my 2017 internship at The Spruce Grove Examiner and some are even older, from my years studying journalism at Langara College."
             </p>
@@ -365,43 +412,24 @@ pub fn JournalismPage() -> impl IntoView {
                     articles_resource.get().map(|res| {
                         match res {
                             Ok(mut articles) => {
+                                let highlight_articles = extract_highlight_articles(&articles, HIGHLIGHT_SLUGS);
                                 sort_articles_newest_first(&mut articles);
-                                view! {
-                                    <div class="journalism-grid">
-                                        {articles.into_iter().map(|article| {
-                                            let slug = article.slug.clone();
-                                            let title = article.title.clone();
-                                            let preview_text = extract_body_preview(&article.content_html)
-                                                .unwrap_or_else(|| article.excerpt.clone());
-                                            let image = article.images.first().cloned();
-                                            let date = extract_printed_date(&article.content_html)
-                                                .unwrap_or_else(|| article.display_date.clone());
-                                            let date = format_cp_style(&date);
 
-                                            view! {
-                                                <A href=format!("/journalism/{}", slug) attr:class="journalism-card">
-                                                    <div class="journalism-thumb">
-                                                        {if let Some(ref img) = image {
-                                                            view! { <img src=img.clone() class="journalism-img" alt="article thumbnail"/> }.into_any()
-                                                        } else {
-                                                            view! {
-                                                                <svg class="journalism-img" xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300">
-                                                                    <rect width="400" height="300" fill="#e5e7eb"/>
-                                                                    <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="#9ca3af" font-size="16" font-family="Inter, sans-serif">"Image coming soon"</text>
-                                                                </svg>
-                                                            }.into_any()
-                                                        }}
-                                                        // Removed duplicate placeholder div
-                                                    </div>
-                                                    <div class="journalism-body">
-                                                        <p class="journalism-date">{date}</p>
-                                                        <h3 class="journalism-title">{title}</h3>
-                                                        <p class="journalism-excerpt">{preview_text}</p>
-                                                        <div class="journalism-link">"Read more →"</div>
-                                                    </div>
-                                                </A>
-                                            }
-                                        }).collect_view()}
+                                view! {
+                                    <div>
+                                        <section class="mb-12">
+                                            <h2 class="text-3xl font-bold mb-6">"Highlights"</h2>
+                                            <div class="journalism-grid">
+                                                {highlight_articles.iter().map(render_article_card).collect_view()}
+                                            </div>
+                                        </section>
+
+                                        <section>
+                                            <h2 class="text-3xl font-bold mb-6">"All Articles"</h2>
+                                            <div class="journalism-grid">
+                                                {articles.iter().map(render_article_card).collect_view()}
+                                            </div>
+                                        </section>
                                     </div>
                                 }.into_any()
                             }
@@ -1072,5 +1100,56 @@ mod tests {
         assert_eq!(articles[0].slug, "old-article");
         assert_eq!(articles[1].slug, "new-article");
         assert_eq!(articles[2].slug, "mid-article");
+    }
+
+    #[test]
+    fn test_extract_highlight_articles() {
+        let articles = vec![
+            Article {
+                slug: "article-1".to_string(),
+                title: "Article 1".to_string(),
+                iso_date: "2025-01-01".to_string(),
+                display_date: "Jan 1, 2025".to_string(),
+                source_url: String::new(),
+                content_html: String::new(),
+                images: vec![],
+                captions: vec![],
+                excerpt: String::new(),
+                byline: None,
+                status: None,
+            },
+            Article {
+                slug: "article-2".to_string(),
+                title: "Article 2".to_string(),
+                iso_date: "2025-01-02".to_string(),
+                display_date: "Jan 2, 2025".to_string(),
+                source_url: String::new(),
+                content_html: String::new(),
+                images: vec![],
+                captions: vec![],
+                excerpt: String::new(),
+                byline: None,
+                status: None,
+            },
+            Article {
+                slug: "article-3".to_string(),
+                title: "Article 3".to_string(),
+                iso_date: "2025-01-03".to_string(),
+                display_date: "Jan 3, 2025".to_string(),
+                source_url: String::new(),
+                content_html: String::new(),
+                images: vec![],
+                captions: vec![],
+                excerpt: String::new(),
+                byline: None,
+                status: None,
+            },
+        ];
+
+        let highlights =
+            extract_highlight_articles(&articles, &["article-3", "article-1", "non-existent-slug"]);
+        assert_eq!(highlights.len(), 2);
+        assert_eq!(highlights[0].slug, "article-3");
+        assert_eq!(highlights[1].slug, "article-1");
     }
 }
