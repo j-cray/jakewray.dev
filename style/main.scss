@@ -545,6 +545,11 @@ a {
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-sm);
   color: var(--text-color);
+  padding: 2rem;
+
+  @media (max-width: 767px) {
+    padding: 1.25rem;
+  }
 
   &,
   h1,
@@ -1222,8 +1227,10 @@ textarea {
 .pb-2 { padding-bottom: 0.5rem; }
 .p-1 { padding: 0.25rem; }
 .p-2 { padding: 0.5rem; }
+.p-3 { padding: 0.75rem; }
 .p-4 { padding: 1rem; }
 .p-6 { padding: 1.5rem; }
+.p-8 { padding: 2rem; }
 .w-8 { width: 2rem; }
 .h-8 { height: 2rem; }
 .w-32 { width: 8rem; }
