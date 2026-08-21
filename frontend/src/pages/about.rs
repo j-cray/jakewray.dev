@@ -163,68 +163,85 @@ pub fn AboutPage() -> impl IntoView {
                     }.into_any()
                 } else {
                     view! {
-                        <div class="about-container container max-w-2xl bg-white p-8 rounded-lg shadow-sm border border-gray-100">
-                            {move || {
-                                is_admin.get().then(|| {
-                                    let page_data = page_resource.get().and_then(|r| r.ok()).flatten();
-                                    view! {
-                                        <div class="mb-6 p-4 bg-gray-50 border rounded-lg flex items-center justify-between">
-                                            <div class="flex items-center gap-2">
-                                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 border border-amber-200">
-                                                    "Admin Mode"
-                                                </span>
-                                                <span class="text-xs text-gray-500 font-medium">"You can edit the content on this page"</span>
-                                            </div>
-                                            <button
-                                                type="button"
-                                                class="btn btn-sm btn-primary flex items-center gap-1.5"
-                                                on:click=move |_| {
-                                                    if let Some(ref p) = page_data {
-                                                        turn_on_edit(p);
-                                                    }
-                                                }
-                                            >
-                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                                </svg>
-                                                "Edit About Me"
-                                            </button>
-                                        </div>
-                                    }
-                                })
-                            }}
-
-                            <Suspense fallback=move || view! { <p class="text-gray-500 py-8 text-center">"Loading..."</p> }>
+                        <div class="about-layout">
+                            <div class="about-photo-wrapper">
+                                <a
+                                    href="/jake-lsq-profile.jpg"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    class="about-photo-link"
+                                    aria-label="View full-size photo of Jake Wray in a new tab"
+                                >
+                                    <img
+                                        src="/jake-lsq-profile.jpg"
+                                        alt="Jake Wray"
+                                        class="about-profile-img"
+                                    />
+                                </a>
+                            </div>
+                            <div class="about-container bg-white p-8 rounded-lg shadow-sm border border-gray-100">
                                 {move || {
-                                    page_resource.get().map(|res| {
-                                        match res {
-                                            Ok(Some(page)) => {
-                                                let title = page.title.clone();
-                                                let content = page.content_html.clone();
-                                                view! {
-                                                    <div>
-                                                        <h1 class="text-4xl mb-6 font-bold text-gray-900 border-b border-gray-100 pb-4">{title}</h1>
-                                                        <div class="about-content prose prose-lg text-gray-700 leading-relaxed" inner_html=content></div>
-                                                    </div>
-                                                }.into_any()
-                                            }
-                                            Ok(None) => {
-                                                view! {
-                                                    <div class="text-center py-8">
-                                                        <h1 class="text-3xl font-bold mb-4">"About Me"</h1>
-                                                        <p class="text-gray-600">"Page content not found."</p>
-                                                    </div>
-                                                }.into_any()
-                                            }
-                                            Err(e) => {
-                                                view! {
-                                                    <p class="text-red-600 py-4">"Error loading page: " {e.to_string()}</p>
-                                                }.into_any()
-                                            }
+                                    is_admin.get().then(|| {
+                                        let page_data = page_resource.get().and_then(|r| r.ok()).flatten();
+                                        view! {
+                                            <div class="mb-6 p-4 bg-gray-50 border rounded-lg flex items-center justify-between">
+                                                <div class="flex items-center gap-2">
+                                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 border border-amber-200">
+                                                        "Admin Mode"
+                                                    </span>
+                                                    <span class="text-xs text-gray-500 font-medium">"You can edit the content on this page"</span>
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    class="btn btn-sm btn-primary flex items-center gap-1.5"
+                                                    on:click=move |_| {
+                                                        if let Some(ref p) = page_data {
+                                                            turn_on_edit(p);
+                                                        }
+                                                    }
+                                                >
+                                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                                    </svg>
+                                                    "Edit About Me"
+                                                </button>
+                                            </div>
                                         }
                                     })
                                 }}
-                            </Suspense>
+
+                                <Suspense fallback=move || view! { <p class="text-gray-500 py-8 text-center">"Loading..."</p> }>
+                                    {move || {
+                                        page_resource.get().map(|res| {
+                                            match res {
+                                                Ok(Some(page)) => {
+                                                    let title = page.title.clone();
+                                                    let content = page.content_html.clone();
+                                                    view! {
+                                                        <div>
+                                                            <h1 class="text-4xl mb-6 font-bold text-gray-900 border-b border-gray-100 pb-4">{title}</h1>
+                                                            <div class="about-content prose prose-lg text-gray-700 leading-relaxed" inner_html=content></div>
+                                                        </div>
+                                                    }.into_any()
+                                                }
+                                                Ok(None) => {
+                                                    view! {
+                                                        <div class="text-center py-8">
+                                                            <h1 class="text-3xl font-bold mb-4">"About Me"</h1>
+                                                            <p class="text-gray-600">"Page content not found."</p>
+                                                        </div>
+                                                    }.into_any()
+                                                }
+                                                Err(e) => {
+                                                    view! {
+                                                        <p class="text-red-600 py-4">"Error loading page: " {e.to_string()}</p>
+                                                    }.into_any()
+                                                }
+                                            }
+                                        })
+                                    }}
+                                </Suspense>
+                            </div>
                         </div>
                     }.into_any()
                 }
