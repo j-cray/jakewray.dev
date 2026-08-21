@@ -354,6 +354,8 @@ a {
 .journalism-excerpt {
   color: var(--text-muted);
   margin: 0;
+  margin-top: auto;
+  padding-top: 0.5rem;
   font-size: 0.95rem;
   line-height: 1.5;
   display: -webkit-box;
@@ -362,6 +364,13 @@ a {
   -webkit-box-orient: vertical;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.journalism-link {
+  margin-top: 0.5rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--primary);
 }
 
 .article-container {
@@ -716,13 +725,6 @@ a {
   font-size: 0.9rem;
   color: var(--text-muted) !important;
   text-align: left;
-}
-
-.journalism-link {
-  margin-top: auto;
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--primary);
 }
 
 .rounded-sm {
