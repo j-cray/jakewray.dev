@@ -83,9 +83,7 @@ fn extract_subhead(html: &str) -> Option<String> {
 }
 
 fn extract_printed_date(html: &str) -> Option<String> {
-    // Prefer the first <p> after the first </h4>, else the first <p>
-    let after_h4 = html.find("</h4>").map(|idx| idx + 5).unwrap_or(0);
-    let mut pos = after_h4;
+    let mut pos = 0;
     for _ in 0..5 {
         if let Some((p_inner, next)) = extract_between(html, "<p", "</p>", pos) {
             let open_end = p_inner.find('>').map(|i| i + 1).unwrap_or(0);
@@ -102,9 +100,7 @@ fn extract_printed_date(html: &str) -> Option<String> {
 }
 
 fn extract_body_preview(html: &str) -> Option<String> {
-    // Find paragraphs after the h4; skip date/byline; use the first body paragraph
-    let after_h4 = html.find("</h4>").map(|idx| idx + 5).unwrap_or(0);
-    let mut pos = after_h4;
+    let mut pos = 0;
     for _ in 0..12 {
         let (p_inner, next) = extract_between(html, "<p", "</p>", pos)?;
         let open_end = p_inner.find('>').map(|i| i + 1).unwrap_or(0);
@@ -119,9 +115,7 @@ fn extract_body_preview(html: &str) -> Option<String> {
 }
 
 fn replace_date_paragraph(html: &str, new_date: &str) -> String {
-    // Reuse extract logic to find the range, then replace it
-    let after_h4 = html.find("</h4>").map(|idx| idx + 5).unwrap_or(0);
-    let mut pos = after_h4;
+    let mut pos = 0;
     for _ in 0..5 {
         if let Some((p_inner, next)) = extract_between(html, "<p", "</p>", pos) {
             let open_end = p_inner.find('>').map(|i| i + 1).unwrap_or(0);
@@ -304,6 +298,12 @@ fn italicize_origin_line(html: &str) -> String {
         }
     }
     out
+}
+
+pub fn process_article_content(html: &str) -> String {
+    let s = italicize_origin_line(html);
+    let s = bold_byline(&s);
+    linkify_images(&s)
 }
 
 fn format_cp_style(date: &str) -> String {
@@ -621,18 +621,7 @@ pub fn JournalismArticlePage() -> impl IntoView {
                                     let article = article.clone(); // Clone for capture
                                     move || {
                                         let article = article.clone(); // Clone for execution
-                                        // Transformations for view logic (can move to a helper)
-                                        let content_html = {
-                                             let mut s = article.content_html.clone();
-                                             if let Some(start) = s.find("<h4") {
-                                                 if let Some(end) = s[start..].find("</h4>") {
-                                                     s.replace_range(start..start + end + 5, "");
-                                                 }
-                                             }
-                                             let s = italicize_origin_line(&s);
-                                             let s = bold_byline(&s);
-                                             linkify_images(&s)
-                                        };
+                                        let content_html = process_article_content(&article.content_html);
 
                                         view! {
                                             <div class="article-container">
@@ -1150,5 +1139,33 @@ mod tests {
         assert_eq!(highlights.len(), 2);
         assert_eq!(highlights[0].slug, "article-3");
         assert_eq!(highlights[1].slug, "article-1");
+    }
+
+    #[test]
+    fn test_process_article_content_preserves_initial_heading() {
+        let html = r#"<div class="entry-content"><h4 class="wp-block-heading">Mike Dangeli is a Tsimshian, Nisga’a and Tlingit artist and community leader.</h4><p>Next paragraph.</p></div>"#;
+        let processed = process_article_content(html);
+        assert!(processed.contains(
+            "Mike Dangeli is a Tsimshian, Nisga’a and Tlingit artist and community leader."
+        ));
+        assert!(processed.contains("<h4 class=\"wp-block-heading\">"));
+        assert!(processed.contains("<p>Next paragraph.</p>"));
+    }
+
+    #[test]
+    fn test_process_article_content_transforms() {
+        let html = r#"<div><p>By Jake Wray</p><p>This article originally appeared in The Terrace Standard.</p><img src="https://example.com/photo.jpg" /></div>"#;
+        let processed = process_article_content(html);
+        assert!(processed.contains("<strong>By Jake Wray</strong>"));
+        assert!(processed
+            .contains("<em>This article originally appeared in The Terrace Standard.</em>"));
+        assert!(processed.contains("article-image-link"));
+    }
+
+    #[test]
+    fn test_extract_body_preview_with_h4() {
+        let html = r#"<div><h4>Subheading</h4><p>Oct. 30, 2020</p><p>By Jake Wray</p><p>First body sentence of article.</p><p>Second paragraph.</p></div>"#;
+        let preview = extract_body_preview(html);
+        assert_eq!(preview, Some("First body sentence of article.".to_string()));
     }
 }
