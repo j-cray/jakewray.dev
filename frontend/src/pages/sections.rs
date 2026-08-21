@@ -403,10 +403,6 @@ pub fn JournalismPage() -> impl IntoView {
 
     view! {
         <div class="container py-12">
-            <p class="text-gray-700 mb-10 max-w-3xl">
-                "A collection of community news articles I have written, mostly for The Terrace Standard, but some articles are from my 2017 internship at The Spruce Grove Examiner and some are even older, from my years studying journalism at Langara College."
-            </p>
-
             <Suspense fallback=move || view! { <p>"Loading articles..."</p> }>
                 {move || {
                     articles_resource.get().map(|res| {
@@ -418,14 +414,17 @@ pub fn JournalismPage() -> impl IntoView {
                                 view! {
                                     <div>
                                         <section class="mb-12">
-                                            <h2 class="text-3xl font-bold mb-6">"Highlights"</h2>
+                                            <h2 class="text-3xl font-bold mb-6">"Journalism Highlights"</h2>
                                             <div class="journalism-grid">
                                                 {highlight_articles.iter().map(render_article_card).collect_view()}
                                             </div>
                                         </section>
 
                                         <section>
-                                            <h2 class="text-3xl font-bold mb-6">"All Articles"</h2>
+                                            <h2 class="text-3xl font-bold mb-4">"All Articles"</h2>
+                                            <p class="text-gray-700 mb-8 max-w-3xl">
+                                                "A collection of community news articles I have written, mostly for The Terrace Standard, but some articles are from my 2017 internship at The Spruce Grove Examiner and some are even older, from my years studying journalism at Langara College."
+                                            </p>
                                             <div class="journalism-grid">
                                                 {articles.iter().map(render_article_card).collect_view()}
                                             </div>
