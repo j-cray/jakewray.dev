@@ -1,158 +1,20 @@
-use argon2::{
-    password_hash::{rand_core::OsRng, PasswordHash, PasswordHasher, PasswordVerifier, SaltString},
-    Argon2,
+use crate::api::admin::auth::{
+    get_dummy_hash, hash_password, verify_password, ChangePasswordRequest, Claims, LoginRequest,
+    LoginResponse, UserRow,
 };
 use axum::body::to_bytes;
 use axum::body::Body;
-use axum::http::{header, Request};
-use axum::response::IntoResponse;
-use axum::response::Json;
-use axum::{
-    extract::State,
-    http::{HeaderMap, StatusCode},
-    routing::{get, post},
-    Router,
-};
+use axum::extract::State;
+use axum::http::{header, HeaderMap, Request, StatusCode};
+use axum::response::{IntoResponse, Json, Response};
 use chrono::{Duration, Utc};
 use jsonwebtoken::{encode, EncodingKey, Header};
-use serde::{Deserialize, Serialize};
 use sqlx::SqlitePool;
-use std::sync::OnceLock;
 
-pub fn init_dummy_hash() {
-    let _ = get_dummy_hash();
-}
-
-fn get_dummy_hash() -> &'static str {
-    static DUMMY_HASH: OnceLock<String> = OnceLock::new();
-    DUMMY_HASH.get_or_init(|| {
-        let password = "dummy-password-that-will-never-match";
-        let salt = SaltString::generate(&mut OsRng);
-        get_argon2()
-            .hash_password(password.as_bytes(), &salt)
-            .expect("Failed to generate dummy hash")
-            .to_string()
-    })
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct Claims {
-    sub: String,
-    exp: usize,
-}
-
-#[derive(Deserialize)]
-pub struct LoginRequest {
-    username: String,
-    password: String,
-}
-
-#[derive(Serialize)]
-pub struct LoginResponse {
-    token: String,
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct ChangePasswordRequest {
-    current_password: String,
-    new_password: String,
-}
-
-#[derive(sqlx::FromRow)]
-struct UserRow {
-    id: String,
-    password_hash: String,
-}
-
-fn get_argon2() -> &'static Argon2<'static> {
-    static ARGON2: OnceLock<Argon2<'static>> = OnceLock::new();
-    ARGON2.get_or_init(|| {
-        let params = argon2::Params::new(
-            shared::auth::ARGON2_M_COST,
-            shared::auth::ARGON2_T_COST,
-            shared::auth::ARGON2_P_COST,
-            Some(argon2::Params::DEFAULT_OUTPUT_LEN),
-        )
-        .expect("Valid Argon2 parameters");
-        Argon2::new(argon2::Algorithm::Argon2id, argon2::Version::V0x13, params)
-    })
-}
-
-fn hash_password(password: &str) -> Result<String, String> {
-    let salt = SaltString::generate(&mut OsRng);
-    get_argon2()
-        .hash_password(password.as_bytes(), &salt)
-        .map_err(|e| e.to_string())
-        .map(|hash| hash.to_string())
-}
-
-#[inline(never)]
-fn verify_password(password: &str, password_hash: &str) -> bool {
-    let parsed_hash = match PasswordHash::new(password_hash) {
-        Ok(h) => h,
-        Err(_) => {
-            tracing::error!("Failed to parse password hash!");
-            let dummy = get_dummy_hash();
-            let parsed_dummy = PasswordHash::new(dummy).unwrap();
-            let _ = get_argon2().verify_password(password.as_bytes(), &parsed_dummy);
-            return false;
-        }
-    };
-    get_argon2()
-        .verify_password(password.as_bytes(), &parsed_hash)
-        .is_ok()
-}
-
-pub fn router(state: crate::state::AppState) -> Router<crate::state::AppState> {
-    // KNOWN LIMITATION: tower_governor uses in-memory state. A server restart will reset all rate limit counters.
-    // Burst windows completely refresh across restarts. Therefore, the effective rate limiting
-    // window ONLY covers uptime, not absolute calendar time. An attacker who can trigger or observe
-    // restarts could reset their login throttle window. For a low-traffic personal site, this is an
-    // acceptable trade-off to avoid the complexity of a distributed rate limiter like Redis. It is REQUIRED
-    // to pair this with an OS-level fail2ban or log-based alerting to compensate for the login endpoint.
-    tracing::info!("Initializing rate limiters. Warning: In-memory rate limiter state resets on restart. Frequent restarts may bypass burst limits.");
-    let shared_auth_governor_config = std::sync::Arc::new(
-        tower_governor::governor::GovernorConfigBuilder::default()
-            .key_extractor(crate::api::TrustedProxyIpKeyExtractor)
-            .per_second(1)
-            .burst_size(1)
-            .finish()
-            .unwrap(),
-    );
-
-    let login_governor_layer = tower_governor::GovernorLayer {
-        config: shared_auth_governor_config.clone(),
-    };
-
-    let password_governor_layer = tower_governor::GovernorLayer {
-        config: shared_auth_governor_config,
-    };
-
-    let me_governor_layer = tower_governor::GovernorLayer {
-        config: std::sync::Arc::new(
-            tower_governor::governor::GovernorConfigBuilder::default()
-                .key_extractor(crate::api::TrustedProxyIpKeyExtractor)
-                .per_second(5)
-                .burst_size(10)
-                .finish()
-                .unwrap(),
-        ),
-    };
-
-    Router::new()
-        .route("/login", post(login).route_layer(login_governor_layer))
-        .route(
-            "/password",
-            post(change_password).route_layer(password_governor_layer),
-        )
-        .route("/me", get(me).route_layer(me_governor_layer))
-        .with_state(state)
-}
-
-async fn login(
+pub async fn login(
     State(pool): State<SqlitePool>,
     req: Request<Body>,
-) -> Result<axum::response::Response, (StatusCode, String)> {
+) -> Result<Response, (StatusCode, String)> {
     let (parts, body) = req.into_parts();
     let content_type = parts
         .headers
@@ -238,7 +100,7 @@ async fn login(
     Ok(Json(LoginResponse { token }).into_response())
 }
 
-async fn me(
+pub async fn me(
     headers: HeaderMap,
     connect_info: Option<axum::extract::ConnectInfo<std::net::SocketAddr>>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
@@ -264,8 +126,9 @@ async fn me(
             .map(|ci| ci.0.ip().to_string())
             .unwrap_or_else(|| "unknown".to_string());
 
-        let client_ip = crate::api::extract_client_ip(&headers, connect_info.map(|ci| ci.0.ip()))
-            .unwrap_or_else(|| proxy_ip.clone());
+        let client_ip =
+            crate::api::proxy::extract_client_ip(&headers, connect_info.map(|ci| ci.0.ip()))
+                .unwrap_or_else(|| proxy_ip.clone());
         let safe_client_ip = client_ip.replace(['\n', '\r'], " ");
 
         tracing::warn!(
@@ -282,7 +145,7 @@ async fn me(
     })))
 }
 
-async fn change_password(
+pub async fn change_password(
     State(pool): State<SqlitePool>,
     req: Request<Body>,
 ) -> Result<StatusCode, (StatusCode, String)> {

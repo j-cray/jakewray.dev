@@ -1,0 +1,98 @@
+/* Specific Media Picker Thumbnail Sizing */
+.media-picker {
+  .aspect-square {
+    display: block;
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    overflow: hidden;
+    position: relative;
+    border-radius: var(--radius-md);
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+  }
+}
+
+/* Media Manager Aspect Ratio Thumbnails & Multi-selection */
+.media-thumbnail {
+  position: relative;
+  width: 100%;
+  background-color: var(--bg-secondary);
+  border-radius: var(--radius-md);
+  border: 1.5px solid rgba(2, 132, 199, 0.22); /* Subtle sky blue border */
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 200ms ease, box-shadow 200ms ease, transform 200ms ease;
+
+  img,
+  video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+}
+
+.group:hover .media-thumbnail {
+  border-color: rgba(2, 132, 199, 0.5);
+}
+
+.relative.group.is-selected {
+  .media-thumbnail {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.35);
+  }
+}
+
+/* Custom Circle Checkbox Overlay */
+.selection-checkbox {
+  position: absolute;
+  top: 0.75rem;
+  left: 0.75rem;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: var(--radius-full);
+  border: 2px solid white;
+  background-color: rgba(0, 0, 0, 0.35);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 180ms ease;
+  z-index: 10;
+  opacity: 0;
+  transform: scale(0.9);
+
+  svg {
+    width: 0.85rem;
+    height: 0.85rem;
+    stroke: white;
+    stroke-width: 3.5;
+    fill: none;
+    opacity: 0;
+    transition: opacity 180ms ease;
+  }
+
+  &.is-selected {
+    background-color: var(--primary);
+    border-color: var(--primary);
+    opacity: 1 !important;
+    transform: scale(1) !important;
+
+    svg {
+      opacity: 1;
+    }
+  }
+}
+
+.group:hover .selection-checkbox {
+  opacity: 1;
+  transform: scale(1);
+}

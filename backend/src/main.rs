@@ -1,13 +1,8 @@
 #![recursion_limit = "256"]
-use axum::body::Body;
-use axum::http::Request;
-use axum::middleware::{self, Next};
-use axum::{extract::State, Router};
-use bytes::Bytes;
+use axum::middleware;
+use axum::Router;
 use dotenvy::dotenv;
 use frontend::{App, Shell};
-use futures_util::stream;
-use futures_util::StreamExt;
 use leptos::context::provide_context;
 use leptos::prelude::*;
 use leptos_axum::{generate_route_list, LeptosRoutes};
@@ -18,11 +13,11 @@ use tower::ServiceBuilder;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 mod api;
+mod server;
 mod state;
 
+use crate::server::{file_and_error_handler, inject_doctype};
 use crate::state::AppState;
-use axum::response::{IntoResponse, Response as AxumResponse};
-use tower::ServiceExt;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -215,79 +210,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     .await?;
 
     Ok(())
-}
-
-async fn inject_doctype(
-    req: Request<Body>,
-    next: Next,
-) -> Result<AxumResponse, axum::http::StatusCode> {
-    let res = next.run(req).await;
-
-    if let Some(content_type) = res.headers().get(axum::http::header::CONTENT_TYPE) {
-        if let Ok(ct_str) = content_type.to_str() {
-            if ct_str.contains("text/html") {
-                let (parts, body) = res.into_parts();
-                let prefix = stream::once(async {
-                    Ok::<Bytes, axum::Error>(Bytes::from_static(b"<!DOCTYPE html>"))
-                });
-                let new_body = Body::from_stream(prefix.chain(body.into_data_stream()));
-                let new_res = axum::http::Response::from_parts(parts, new_body);
-                return Ok(new_res.into_response());
-            }
-        }
-    }
-
-    Ok(res.into_response())
-}
-
-async fn file_and_error_handler(
-    State(state): State<AppState>,
-    uri: axum::http::Uri,
-    req: axum::extract::Request,
-) -> AxumResponse {
-    let root = state.leptos_options.site_root.clone();
-    let res = get_static_file(uri, &root).await;
-
-    if res.status() == axum::http::StatusCode::OK {
-        res.into_response()
-    } else {
-        let handler = leptos_axum::render_app_to_stream_with_context(
-            move || {
-                provide_context(state.leptos_options.clone());
-                provide_context(state.pool.clone());
-            },
-            Shell,
-        );
-        handler(req).await.into_response()
-    }
-}
-
-async fn get_static_file(uri: axum::http::Uri, root: &str) -> AxumResponse {
-    let uri_str = uri.to_string();
-    let req = axum::extract::Request::builder()
-        .uri(uri)
-        .body(axum::body::Body::empty())
-        .unwrap_or_else(|e| {
-            tracing::error!("Failed to build request for static file {}: {}", uri_str, e);
-            // Return a dummy request that will likely fail gracefully in ServeDir
-            axum::extract::Request::builder()
-                .uri("/")
-                .body(axum::body::Body::empty())
-                .unwrap()
-        });
-
-    // `ServeDir` implements `Service`
-    match tower_http::services::ServeDir::new(root).oneshot(req).await {
-        Ok(res) => res.into_response(),
-        Err(err) => {
-            tracing::error!("Error serving static file {}: {}", uri_str, err);
-            (
-                axum::http::StatusCode::INTERNAL_SERVER_ERROR,
-                format!("Something went wrong: {}", err),
-            )
-                .into_response()
-        }
-    }
 }
 
 #[cfg(test)]

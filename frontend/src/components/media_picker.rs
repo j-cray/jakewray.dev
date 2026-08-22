@@ -1,4 +1,4 @@
-use crate::api::articles::{list_media, upload_media, MediaItem};
+use crate::api::media::{list_media, upload_media, MediaItem};
 use leptos::ev;
 use leptos::prelude::*;
 use leptos::task::spawn_local;

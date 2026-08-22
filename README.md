@@ -52,9 +52,10 @@ cargo leptos watch
 - [x] **Dark Mode Support** - Automatic dark/light theme based on browser preference (`prefers-color-scheme`)
 - [x] **Article Navigation** - Next and previous article controls
 - [x] **Article Card Sorting** - Automatic newest-to-oldest ordering and date update sorting
-- [ ] **Admin features** - Post creation
+- [x] **Admin features** - Post creation, scheduling, and draft management
 - [x] **Media library** - Photo/video management
 - [x] **Password hashing** - Argon2 implementation
 - [x] **Rich Text Editor** - Modern, icon-based WYSIWYG editor toolbar for articles with active state tracking and signal synchronization
+- [x] **Modular Architecture** - Decomposed SCSS design system, frontend pages/components/utils, and backend routing
 
 - [ ] **Password reset** - Email-based recovery

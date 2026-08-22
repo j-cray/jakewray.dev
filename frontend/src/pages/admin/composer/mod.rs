@@ -1,86 +1,19 @@
+pub mod schedule_modal;
+pub mod types;
+
+pub use schedule_modal::ScheduleModal;
+pub use types::{
+    current_date_string, current_iso_datetime_local, get_current_time_string, ComposerDraftData,
+};
+
 use crate::api::articles::{get_article, save_article, Article};
 use crate::components::media_picker::MediaPicker;
 use crate::components::rich_editor::RichTextEditor;
+use crate::utils::slug::sanitize_slug;
 use leptos::prelude::*;
 use leptos::task::spawn_local;
 use leptos_router::hooks::{use_location, use_navigate};
-use serde::{Deserialize, Serialize};
 use std::sync::Arc;
-
-#[derive(Clone, Debug, Serialize, Deserialize)]
-#[allow(dead_code)]
-struct ComposerDraftData {
-    title: String,
-    slug: String,
-    images: Vec<String>,
-    caption: String,
-    display_date: String,
-    byline: String,
-    content: String,
-    updated_at: String,
-}
-
-fn current_date_string() -> String {
-    #[cfg(target_arch = "wasm32")]
-    {
-        let date = js_sys::Date::new_0();
-        let months = [
-            "January",
-            "February",
-            "March",
-            "April",
-            "May",
-            "June",
-            "July",
-            "August",
-            "September",
-            "October",
-            "November",
-            "December",
-        ];
-        let month = months[date.get_month() as usize % 12];
-        let day = date.get_date();
-        let year = date.get_full_year();
-        format!("{} {}, {}", month, day, year)
-    }
-    #[cfg(not(target_arch = "wasm32"))]
-    {
-        "July 27, 2026".to_string()
-    }
-}
-
-fn current_iso_datetime_local() -> String {
-    #[cfg(target_arch = "wasm32")]
-    {
-        let date = js_sys::Date::new_0();
-        let y = date.get_full_year();
-        let m = date.get_month() + 1;
-        let d = date.get_date();
-        let h = date.get_hours();
-        let min = date.get_minutes();
-        format!("{:04}-{:02}-{:02}T{:02}:{:02}", y, m, d, h, min)
-    }
-    #[cfg(not(target_arch = "wasm32"))]
-    {
-        "2026-07-28T18:00".to_string()
-    }
-}
-
-#[allow(dead_code)]
-fn get_current_time_string() -> String {
-    #[cfg(target_arch = "wasm32")]
-    {
-        let date = js_sys::Date::new_0();
-        let h = date.get_hours();
-        let m = date.get_minutes();
-        let s = date.get_seconds();
-        format!("{:02}:{:02}:{:02}", h, m, s)
-    }
-    #[cfg(not(target_arch = "wasm32"))]
-    {
-        "18:00:00".to_string()
-    }
-}
 
 #[component]
 pub fn AdminComposer() -> impl IntoView {
@@ -109,6 +42,7 @@ pub fn AdminComposer() -> impl IntoView {
 
     // Flag to prevent overwriting during initial load
     let (is_loaded, set_is_loaded) = signal(false);
+    let _ = &is_loaded;
 
     let _nav_auth = navigate.clone();
     Effect::new(move || {
@@ -149,30 +83,37 @@ pub fn AdminComposer() -> impl IntoView {
                         if let Some(st) = article.status {
                             set_post_status.set(st);
                         }
-                        set_autosave_status.set("Loaded article from server".to_string());
+                        set_is_loaded.set(true);
                     }
-                    set_is_loaded.set(true);
                 });
                 return;
             }
         }
 
-        // Restore from localStorage if present
+        // If no slug param, check for locally autosaved draft
         #[cfg(target_arch = "wasm32")]
         {
             if let Ok(Some(storage)) = web_sys::window().unwrap().local_storage() {
                 if let Ok(Some(draft_json)) = storage.get_item("composer_draft_data") {
                     if let Ok(draft) = serde_json::from_str::<ComposerDraftData>(&draft_json) {
-                        if !draft.title.is_empty() || !draft.content.is_empty() {
+                        if !draft.title.is_empty()
+                            || !draft.content.is_empty()
+                            || !draft.slug.is_empty()
+                        {
                             set_title.set(draft.title);
                             set_slug.set(draft.slug);
                             set_images.set(draft.images);
                             set_caption.set(draft.caption);
-                            set_display_date.set(draft.display_date);
-                            set_byline.set(draft.byline);
-                            set_content.set(draft.content);
-                            set_autosave_status
-                                .set(format!("Restored unsaved draft ({})", draft.updated_at));
+                            if !draft.display_date.is_empty() {
+                                set_display_date.set(draft.display_date);
+                            }
+                            if !draft.byline.is_empty() {
+                                set_byline.set(draft.byline);
+                            }
+                            if !draft.content.is_empty() {
+                                set_content.set(draft.content);
+                            }
+                            set_autosave_status.set(format!("Draft restored from local cache"));
                         }
                     }
                 }
@@ -181,38 +122,25 @@ pub fn AdminComposer() -> impl IntoView {
         set_is_loaded.set(true);
     });
 
-    // Continuous Autosave effect to localStorage
+    // Autosave to localStorage on changes after initial load
     Effect::new(move || {
-        let t = title.get();
-        let s = slug.get();
-        let imgs = images.get();
-        let cap = caption.get();
-        let d_date = display_date.get();
-        let b = byline.get();
-        let c = content.get();
-        let loaded = is_loaded.get();
-        let _ = (&t, &s, &imgs, &cap, &d_date, &b, &c);
+        #[cfg(target_arch = "wasm32")]
+        if is_loaded.get() {
+            let draft = ComposerDraftData {
+                title: title.get(),
+                slug: slug.get(),
+                images: images.get(),
+                caption: caption.get(),
+                display_date: display_date.get(),
+                byline: byline.get(),
+                content: content.get(),
+                updated_at: current_iso_datetime_local(),
+            };
 
-        if loaded {
-            #[cfg(target_arch = "wasm32")]
-            {
-                let now_str = get_current_time_string();
-                let draft = ComposerDraftData {
-                    title: t,
-                    slug: s,
-                    images: imgs,
-                    caption: cap,
-                    display_date: d_date,
-                    byline: b,
-                    content: c,
-                    updated_at: now_str.clone(),
-                };
-
-                if let Ok(draft_json) = serde_json::to_string(&draft) {
-                    if let Ok(Some(storage)) = web_sys::window().unwrap().local_storage() {
-                        let _ = storage.set_item("composer_draft_data", &draft_json);
-                        set_autosave_status.set(format!("Draft auto-saved locally at {}", now_str));
-                    }
+            if let Ok(json_str) = serde_json::to_string(&draft) {
+                if let Ok(Some(storage)) = web_sys::window().unwrap().local_storage() {
+                    let _ = storage.set_item("composer_draft_data", &json_str);
+                    set_autosave_status.set("Autosaved locally".to_string());
                 }
             }
         }
@@ -232,66 +160,60 @@ pub fn AdminComposer() -> impl IntoView {
         set_display_date.set(current_date_string());
         set_byline.set("By Jake Wray".to_string());
         set_content.set("<p>Start writing post...</p>".to_string());
-        set_autosave_status.set("Draft cleared".to_string());
+        set_autosave_status.set("Local draft cleared".to_string());
     };
 
     let save_post_with_status = Arc::new(
-        move |target_status: &'static str, custom_date: Option<String>| {
+        move |target_status: &'static str, scheduled_iso: Option<String>| {
             let t = token.get();
-            let title_val = title.get();
-            if title_val.trim().is_empty() {
-                set_save_status.set("Please enter a title for the post.".to_string());
+            if shared::auth::is_token_expired(&t) {
+                #[cfg(target_arch = "wasm32")]
+                if let Some(window) = web_sys::window() {
+                    if let Ok(Some(storage)) = window.local_storage() {
+                        let _ = storage.remove_item("admin_token");
+                    }
+                }
+                set_save_status.set("Session expired. Please log in again.".to_string());
                 return;
             }
 
+            let post_title = title.get();
+            if post_title.trim().is_empty() {
+                set_save_status.set("Please enter a headline before saving.".to_string());
+                return;
+            }
+
+            let mut final_slug = slug.get();
+            if final_slug.trim().is_empty() {
+                final_slug = sanitize_slug(&post_title);
+            } else {
+                final_slug = sanitize_slug(&final_slug);
+            }
+
             set_is_saving.set(true);
-            let status_label = match target_status {
-                "published" => "Publishing post...",
-                "scheduled" => "Scheduling post...",
-                _ => "Saving draft...",
-            };
-            set_save_status.set(status_label.to_string());
-
-            let images_vec = images.get();
-            let caption_val = caption.get();
-            let captions_vec = if caption_val.trim().is_empty() {
-                vec![]
-            } else {
-                vec![caption_val]
-            };
-
-            let generated_slug = title_val
-                .to_lowercase()
-                .chars()
-                .map(|c| if c.is_alphanumeric() { c } else { '-' })
-                .collect::<String>()
-                .split('-')
-                .filter(|s| !s.is_empty())
-                .collect::<Vec<_>>()
-                .join("-");
-
-            let article_slug = if slug.get().trim().is_empty() {
-                generated_slug
-            } else {
-                slug.get().trim().to_string()
-            };
-
-            let target_display_date = if let Some(ref cd) = custom_date {
-                cd.clone()
-            } else {
-                display_date.get()
-            };
+            set_save_status.set(format!("Saving as {}...", target_status));
 
             let nav = navigate.clone();
+            let final_display_date = display_date.get();
+            let date_for_db = if let Some(iso) = scheduled_iso {
+                iso
+            } else {
+                final_display_date.clone()
+            };
+
             let new_article = Article {
-                slug: article_slug,
-                title: title_val,
-                iso_date: custom_date.clone().unwrap_or_default(),
-                display_date: target_display_date,
+                slug: final_slug,
+                title: post_title,
+                iso_date: String::new(),
+                display_date: date_for_db,
                 source_url: String::new(),
                 content_html: content.get(),
-                images: images_vec,
-                captions: captions_vec,
+                images: images.get(),
+                captions: if caption.get().trim().is_empty() {
+                    vec![]
+                } else {
+                    vec![caption.get()]
+                },
                 excerpt: String::new(),
                 byline: if byline.get().trim().is_empty() {
                     None
@@ -481,66 +403,16 @@ pub fn AdminComposer() -> impl IntoView {
                         />
                     </div>
 
-                    // Schedule Date & Time Modal
-                    {
-                        let save_sched_modal = save_sched.clone();
-                        move || if show_schedule_modal.get() {
-                            let save_sched_inner = save_sched_modal.clone();
-                            Some(view! {
-                                <div class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-                                    <div class="bg-white rounded-xl shadow-2xl border max-w-md w-full p-6 animate-in fade-in zoom-in duration-200">
-                                        <h3 class="text-xl font-bold mb-3 text-gray-900 flex items-center gap-2">
-                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-sky-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                            </svg>
-                                            "Schedule Publication"
-                                        </h3>
-                                        <p class="text-sm text-gray-600 mb-4">
-                                            "Choose when this post should automatically become visible on your blog and portfolio."
-                                        </p>
-
-                                        <div class="mb-6">
-                                            <label class="block font-bold mb-2 text-gray-700 text-sm">"Publish Date & Time"</label>
-                                            <input
-                                                type="datetime-local"
-                                                class="w-full p-3 border rounded-lg text-gray-800 font-medium focus:ring-2 focus:ring-sky-500 focus:outline-none"
-                                                prop:value=scheduled_datetime.get()
-                                                on:input=move |ev| set_scheduled_datetime.set(event_target_value(&ev))
-                                            />
-                                        </div>
-
-                                        <div class="flex justify-end gap-3">
-                                            <button
-                                                type="button"
-                                                class="btn btn-secondary"
-                                                on:click=move |_| set_show_schedule_modal.set(false)
-                                            >
-                                                "Cancel"
-                                            </button>
-                                            <button
-                                                type="button"
-                                                class="btn btn-primary flex items-center gap-2"
-                                                on:click=move |_| {
-                                                    let dt = scheduled_datetime.get();
-                                                    if dt.trim().is_empty() {
-                                                        set_save_status.set("Please select a date and time for scheduling.".to_string());
-                                                        return;
-                                                    }
-                                                    set_show_schedule_modal.set(false);
-                                                    save_sched_inner("scheduled", Some(dt));
-                                                }
-                                            >
-                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                                                </svg>
-                                                "Confirm Schedule"
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            })
-                        } else { None }
-                    }
+                    <ScheduleModal
+                        show=show_schedule_modal.into()
+                        on_close=Callback::new(move |_| set_show_schedule_modal.set(false))
+                        scheduled_datetime=scheduled_datetime.into()
+                        set_scheduled_datetime=set_scheduled_datetime
+                        set_save_status=set_save_status
+                        on_confirm=Callback::new(move |(status, dt): (&'static str, Option<String>)| {
+                            save_sched(status, dt);
+                        })
+                    />
 
                     <div class="flex flex-wrap gap-3 items-center mt-8 pt-6 border-t">
                         <button

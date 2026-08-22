@@ -3,6 +3,7 @@ mod app;
 pub mod components;
 pub mod data;
 pub mod pages;
+pub mod utils;
 pub use app::*;
 
 #[cfg(target_arch = "wasm32")]

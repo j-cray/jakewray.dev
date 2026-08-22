@@ -1,6 +1,8 @@
 use leptos::prelude::*;
 use serde::{Deserialize, Serialize};
 
+pub use crate::utils::slug::sanitize_page_slug;
+
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct PageContent {
     pub slug: String,
@@ -17,20 +19,6 @@ pub fn default_about_content() -> PageContent {
         content_html: "<p class=\"mb-6\">I am a journalist, developer, and photographer based in Northern British Columbia. I have a passion for uncovering stories that matter and documenting the world around me through both words and images.</p><p class=\"mb-6\">Currently, I am expanding my horizons into software development, building tools and applications that bridge the gap between storytelling and technology. This website itself is a testament to that journey—a work in progress where I explore new ideas and showcase my evolving portfolio.</p><h3 class=\"text-2xl font-semibold mt-8 mb-4 text-gray-800\">Journalism</h3><p class=\"mb-4\">My reporting focuses on community issues, Indigenous culture, and public interest stories in the Terrace and Kitimat regions. I believe in the power of local journalism to inform communities and hold power to account.</p><h3 class=\"text-2xl font-semibold mt-8 mb-4 text-gray-800\">Development</h3><p class=\"mb-4\">As a developer, I am interested in Rust, web technologies, and building efficient, user-focused applications. I am currently working on several projects that integrate my diverse interests.</p>".to_string(),
         updated_at: None,
     }
-}
-
-pub fn sanitize_page_slug(slug: &str) -> String {
-    slug.trim()
-        .to_lowercase()
-        .chars()
-        .map(|c| {
-            if c.is_alphanumeric() || c == '-' || c == '_' {
-                c
-            } else {
-                '-'
-            }
-        })
-        .collect()
 }
 
 #[server(GetPage, "/api")]
@@ -78,7 +66,7 @@ pub async fn get_page(slug: String) -> Result<Option<PageContent>, ServerFnError
 pub async fn save_page(token: String, page: PageContent) -> Result<(), ServerFnError> {
     #[cfg(feature = "ssr")]
     {
-        use crate::api::articles::ssr_utils::verify_token;
+        use crate::api::auth::ssr_utils::verify_token;
         verify_token(&token)?; // Admin guard
 
         use sqlx::SqlitePool;
@@ -141,13 +129,6 @@ mod tests {
         assert!(about.content_html.contains("Journalism"));
         assert!(about.content_html.contains("Development"));
         assert!(about.content_html.contains("Northern British Columbia"));
-    }
-
-    #[test]
-    fn test_sanitize_page_slug() {
-        assert_eq!(sanitize_page_slug("About"), "about");
-        assert_eq!(sanitize_page_slug("  about-me  "), "about-me");
-        assert_eq!(sanitize_page_slug("About Me Page!"), "about-me-page-");
     }
 
     #[test]
