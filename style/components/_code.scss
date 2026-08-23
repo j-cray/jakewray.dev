@@ -1,0 +1,452 @@
+/* Code & Open Source Showcase Styles */
+
+.code-page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding-left: 1.5rem;
+  padding-right: 1.5rem;
+
+  .code-page-header {
+    margin-bottom: 2.5rem;
+
+    .page-title {
+      color: var(--text-color);
+      letter-spacing: -0.02em;
+    }
+  }
+}
+
+/* Section Header Utilities */
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 1.25rem;
+  gap: 1rem;
+
+  .section-title {
+    font-size: 1.35rem;
+    font-weight: 700;
+    color: var(--text-color);
+    margin: 0 0 0.25rem 0;
+  }
+
+  .section-subtitle {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    margin: 0;
+  }
+
+  .section-link {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--primary);
+    text-decoration: none;
+    white-space: nowrap;
+    transition: color 150ms ease, transform 150ms ease;
+
+    &:hover {
+      color: var(--primary-dark);
+      transform: translateX(2px);
+    }
+  }
+}
+
+/* Profile Header Card */
+.code-profile-header {
+  margin-bottom: 2.5rem;
+  padding: 1.75rem 2rem;
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  transition: border-color 200ms ease, box-shadow 200ms ease;
+
+  &:hover {
+    border-color: var(--primary);
+    box-shadow: var(--shadow-md);
+  }
+
+  .profile-header-content {
+    display: flex;
+    align-items: center;
+    gap: 1.75rem;
+    flex-wrap: wrap;
+  }
+
+  .profile-avatar-wrapper {
+    position: relative;
+    width: 84px;
+    height: 84px;
+    flex-shrink: 0;
+
+    .profile-avatar {
+      width: 100%;
+      height: 100%;
+      border-radius: var(--radius-full);
+      object-fit: cover;
+      border: 2px solid var(--primary);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .profile-status-indicator {
+      position: absolute;
+      bottom: 2px;
+      right: 2px;
+      width: 18px;
+      height: 18px;
+      background-color: var(--success);
+      border: 2px solid var(--card-bg);
+      border-radius: var(--radius-full);
+    }
+  }
+
+  .profile-info {
+    flex: 1;
+    min-width: 260px;
+
+    .profile-title-row {
+      display: flex;
+      align-items: baseline;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      margin-bottom: 0.25rem;
+
+      .profile-name {
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin: 0;
+        color: var(--text-color);
+      }
+
+      .profile-handle {
+        font-size: 1rem;
+        font-weight: 600;
+        color: var(--primary);
+        text-decoration: none;
+
+        &:hover {
+          text-decoration: underline;
+        }
+      }
+    }
+
+    .profile-bio {
+      font-size: 0.95rem;
+      color: var(--text-muted);
+      margin: 0 0 0.75rem 0;
+    }
+
+    .profile-badges {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+
+      .badge-subtle {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        font-size: 0.75rem;
+        font-weight: 500;
+        padding: 0.2rem 0.65rem;
+        border-radius: var(--radius-full);
+        background-color: var(--bg-secondary);
+        color: var(--text-muted);
+        border: 1px solid var(--border-color);
+
+        .icon-sm {
+          width: 14px;
+          height: 14px;
+        }
+      }
+    }
+  }
+
+  .profile-actions {
+    flex-shrink: 0;
+
+    .github-profile-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.65rem 1.25rem;
+      font-size: 0.9rem;
+      font-weight: 600;
+
+      .icon-github {
+        width: 18px;
+        height: 18px;
+      }
+    }
+  }
+
+  @media (max-width: 640px) {
+    padding: 1.25rem;
+
+    .profile-header-content {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 1.25rem;
+    }
+
+    .profile-actions {
+      width: 100%;
+
+      .github-profile-btn {
+        width: 100%;
+        justify-content: center;
+      }
+    }
+  }
+}
+
+/* Commit Graph Widget */
+.commit-graph-section {
+  margin-bottom: 2.5rem;
+  padding: 1.75rem 2rem;
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+
+  .commit-graph-container {
+    width: 100%;
+    overflow-x: auto;
+    padding: 1rem 0 0.5rem 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: var(--radius-md);
+
+    .commit-graph-img {
+      max-width: 100%;
+      height: auto;
+      min-height: 110px;
+      display: block;
+      filter: saturate(1.1);
+    }
+  }
+
+  @media (max-width: 640px) {
+    padding: 1.25rem;
+
+    .commit-graph-container {
+      justify-content: flex-start;
+    }
+  }
+}
+
+/* Pinned Repositories Grid */
+.pinned-repos-section {
+  margin-bottom: 2.5rem;
+
+  .repos-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 1.5rem;
+
+    @media (max-width: 640px) {
+      grid-template-columns: 1fr;
+    }
+  }
+}
+
+/* Single Repository Card */
+.repo-card {
+  display: flex;
+  flex-direction: column;
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  box-shadow: var(--shadow-sm);
+  transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-md);
+    border-color: var(--primary);
+  }
+
+  .repo-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+
+    .repo-title-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 1.1rem;
+      font-weight: 700;
+      min-width: 0;
+
+      .icon-repo {
+        width: 18px;
+        height: 18px;
+        flex-shrink: 0;
+        color: var(--primary);
+      }
+
+      .repo-name-link {
+        color: var(--text-color);
+        text-decoration: none;
+        word-break: break-word;
+        transition: color 150ms ease;
+
+        &:hover {
+          color: var(--primary);
+        }
+      }
+    }
+
+    .repo-badge-wrapper {
+      flex-shrink: 0;
+
+      .badge {
+        font-size: 0.7rem;
+        font-weight: 600;
+        padding: 0.15rem 0.5rem;
+        border-radius: var(--radius-full);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+
+        &.badge-public {
+          background-color: var(--bg-secondary);
+          color: var(--text-muted);
+          border: 1px solid var(--border-color);
+        }
+
+        &.badge-fork {
+          background-color: rgba(245, 158, 11, 0.15);
+          color: #d97706;
+          border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+      }
+    }
+  }
+
+  .repo-description {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    line-height: 1.5;
+    margin: 0 0 1.25rem 0;
+    flex: 1;
+  }
+
+  .repo-card-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border-color);
+    gap: 0.75rem;
+
+    .repo-meta-left {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+
+      .repo-language {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: var(--text-color);
+
+        .language-color-dot {
+          width: 10px;
+          height: 10px;
+          border-radius: var(--radius-full);
+          display: inline-block;
+        }
+      }
+
+      .repo-tags {
+        display: inline-flex;
+        gap: 0.35rem;
+        flex-wrap: wrap;
+
+        .tag-chip {
+          font-size: 0.7rem;
+          padding: 0.1rem 0.45rem;
+          border-radius: var(--radius-sm);
+          background-color: var(--bg-secondary);
+          color: var(--text-muted);
+        }
+      }
+    }
+
+    .repo-external-link {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+      border-radius: var(--radius-sm);
+      color: var(--text-muted);
+      transition: color 150ms ease, background-color 150ms ease;
+
+      .icon-sm {
+        width: 16px;
+        height: 16px;
+      }
+
+      &:hover {
+        color: var(--primary);
+        background-color: var(--bg-secondary);
+      }
+    }
+  }
+}
+
+/* GitHub Stats Section */
+.github-stats-section {
+  margin-bottom: 2.5rem;
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 1.5rem;
+    align-items: stretch;
+
+    .stats-card {
+      padding: 1.5rem;
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      transition: border-color 200ms ease, box-shadow 200ms ease;
+
+      &:hover {
+        border-color: var(--primary);
+        box-shadow: var(--shadow-md);
+      }
+
+      .stats-widget-img {
+        max-width: 100%;
+        height: auto;
+        display: block;
+      }
+
+      &.stats-card-wide {
+        grid-column: 1 / -1;
+
+        .streak-img {
+          max-width: 100%;
+          width: 100%;
+          max-height: 200px;
+          object-fit: contain;
+        }
+      }
+    }
+  }
+}
