@@ -15,7 +15,7 @@ pub fn ProgrammingPage() -> impl IntoView {
     view! {
         <div class="code-page container py-8">
             <div class="code-page-header mb-8">
-                <h1 class="page-title text-4xl font-bold mb-2">"Code & Open Source"</h1>
+                <h1 class="page-title text-4xl font-bold mb-2">"Code"</h1>
                 <p class="text-muted text-lg">
                     "A showcase of my software projects, systems tooling, and GitHub activity."
                 </p>
