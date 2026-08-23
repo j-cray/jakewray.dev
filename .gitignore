@@ -66,6 +66,7 @@ imports/
 
 # Sass
 .sass-cache/
+.sass-cache/**
 
 
 # Hgen
