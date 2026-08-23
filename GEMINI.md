@@ -19,7 +19,7 @@ The application is a modern, full-stack Rust web application utilizing Server-Si
 - `backend/`: Server-side Rust code. Houses the Axum server, API handlers, database connection pools, and Leptos app serving setup.
 - `frontend/`: Client-side Rust code. Contains Leptos components, routing, and UI logic.
 - `shared/`: Shared types, models, and utilities used by both frontend and backend.
-- `migrations/` & `migration/`: SQLx database migration files.
+- `migrations/`: SQLx database migration files.
 - `scripts/`: Automation scripts for local development database setup.
 - `style/`: SASS stylesheets.
 - `.github/workflows/`: CI/CD pipelines (Formatting, Linting, Testing, Security Audits, and AI reviews).

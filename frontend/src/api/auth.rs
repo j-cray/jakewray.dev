@@ -1,11 +1,6 @@
 #[cfg(feature = "ssr")]
 pub mod ssr_utils {
     use leptos::prelude::ServerFnError;
-    use std::path::PathBuf;
-
-    pub fn get_articles_dir() -> PathBuf {
-        PathBuf::from("data/articles")
-    }
 
     // Simple JWT verification helper
     pub fn verify_token(token: &str) -> Result<String, ServerFnError> {

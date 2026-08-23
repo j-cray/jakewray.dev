@@ -15,7 +15,6 @@ result-*
 
 # direnv
 .direnv/
-.direnv
 .direnvrc
 
 # IDE
@@ -25,10 +24,12 @@ result-*
 *.swo
 *~
 .DS_Store
+Thumbs.db
 
 # Environment
 .env
-.env.*.local
+.env.*
+*.env
 
 # Dependencies
 node_modules/
@@ -41,40 +42,24 @@ site/
 
 # Temporary files
 .tmp/
-.tmp
-
-# OS
-.DS_Store
-Thumbs.db
 
 # Database
 *.db
+*.db-wal
+*.db-shm
 *.sqlite
 
 # Logs
 *.log
 logs/
 
-# Docker
-docker-compose.override.yml
-
-# Imports
-imports/
-
-# Local Database
-.postgres_local/
-
 # Sass
-.sass-cache
 .sass-cache/
 *.scssc
-
 
 # Hgen
 hgen/target/
 
-.env
-*.db-wal
-*.db-shm
-
+# Local media scratch
 articleImages/
+
