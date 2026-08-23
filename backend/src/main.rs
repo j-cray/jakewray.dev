@@ -229,5 +229,6 @@ mod tests {
         assert!(!frontend::api::articles::DeleteMedia::PATH.is_empty());
         assert!(!frontend::api::pages::GetPage::PATH.is_empty());
         assert!(!frontend::api::pages::SavePage::PATH.is_empty());
+        assert!(!frontend::api::blog::GetRecentBlogPosts::PATH.is_empty());
     }
 }

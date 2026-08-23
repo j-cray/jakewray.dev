@@ -58,5 +58,6 @@ cargo leptos watch
 - [x] **Rich Text Editor** - Modern, icon-based WYSIWYG editor toolbar for articles with active state tracking and signal synchronization
 - [x] **Modular Architecture** - Decomposed SCSS design system, frontend pages/components/utils, and backend routing
 - [x] **Code & GitHub Showcase** - Interactive GitHub profile integration, custom pinned repository cards, and emerald contribution graph
+- [x] **Home Multi-Column Layout** - Dynamic 3-column layout showcasing pinned GitHub repositories, latest blog posts (with coming-soon fallback), and highlighted journalism articles
 
 - [ ] **Password reset** - Email-based recovery
