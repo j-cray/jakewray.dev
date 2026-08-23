@@ -4,7 +4,7 @@ pub mod types;
 #[cfg(test)]
 pub mod tests;
 
-use components::{CommitGraphWidget, PinnedReposGrid, ProfileHeader, StatsSection};
+use components::{CommitGraphWidget, PinnedReposGrid, ProfileHeader};
 use leptos::prelude::*;
 use types::get_pinned_repos;
 
@@ -26,8 +26,6 @@ pub fn ProgrammingPage() -> impl IntoView {
             <CommitGraphWidget />
 
             <PinnedReposGrid repos=pinned_repos />
-
-            <StatsSection />
         </div>
     }
 }

@@ -57,6 +57,6 @@ cargo leptos watch
 - [x] **Password hashing** - Argon2 implementation
 - [x] **Rich Text Editor** - Modern, icon-based WYSIWYG editor toolbar for articles with active state tracking and signal synchronization
 - [x] **Modular Architecture** - Decomposed SCSS design system, frontend pages/components/utils, and backend routing
-- [x] **Code & GitHub Showcase** - Interactive GitHub profile integration, custom pinned repository cards, emerald contribution graph, and stats widgets
+- [x] **Code & GitHub Showcase** - Interactive GitHub profile integration, custom pinned repository cards, and emerald contribution graph
 
 - [ ] **Password reset** - Email-based recovery
