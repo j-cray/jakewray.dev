@@ -65,6 +65,7 @@ imports/
 .postgres_local/
 
 # Sass
+.sass-cache
 .sass-cache/
 *.scssc
 
