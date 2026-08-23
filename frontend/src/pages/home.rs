@@ -70,7 +70,7 @@ pub fn HomePage() -> impl IntoView {
             <header class="hero">
                 <h1 class="hero-title">"Jake Wray"</h1>
                 <p class="hero-subtitle">
-                    "A work in progress (me and the website)"
+                    "A work in progress (the website and me)"
                 </p>
             </header>
 
