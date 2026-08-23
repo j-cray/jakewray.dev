@@ -34,7 +34,7 @@ pub fn PersonalBlogPage() -> impl IntoView {
                     }
                 }}
             </div>
-            <p class="text-muted">"Personal thoughts and musings."</p>
+            <p class="text-muted">"Coming soon."</p>
         </div>
     }
 }
