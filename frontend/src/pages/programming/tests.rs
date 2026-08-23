@@ -56,3 +56,26 @@ fn test_repo_tags_not_empty() {
         );
     }
 }
+
+#[test]
+fn test_pinned_repos_details() {
+    let repos = get_pinned_repos();
+    let carapace = repos.iter().find(|r| r.name == "carapace").unwrap();
+    assert_eq!(carapace.language, "Rust");
+    assert!(carapace.tags.contains(&"ai-assistant".to_string()));
+
+    let news_journal = repos.iter().find(|r| r.name == "NewsJournal").unwrap();
+    assert_eq!(news_journal.language, "Rust");
+    assert!(news_journal.tags.contains(&"journalism".to_string()));
+
+    let piotr = repos.iter().find(|r| r.name == "piotr").unwrap();
+    assert_eq!(piotr.language, "Rust");
+    assert!(piotr.tags.contains(&"signal".to_string()));
+
+    let mastermind = repos
+        .iter()
+        .find(|r| r.name == "mastermind-obsidian")
+        .unwrap();
+    assert_eq!(mastermind.language, "TypeScript");
+    assert!(mastermind.tags.contains(&"vertex-ai".to_string()));
+}
