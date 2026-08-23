@@ -65,9 +65,8 @@ imports/
 .postgres_local/
 
 # Sass
-.sass-cache/*
 .sass-cache/
-.sass-cache
+
 
 # Hgen
 hgen/target/
