@@ -50,7 +50,7 @@
     gap: 1.75rem;
 
     .about-photo-wrapper {
-      width: 200px;
+      width: 240px;
       max-width: 100%;
     }
 
@@ -62,6 +62,10 @@
 }
 
 .about-photo-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+
   .about-photo-link {
     display: block;
     width: 100%;
@@ -85,6 +89,58 @@
       cursor: pointer;
       border-color: var(--primary);
       box-shadow: var(--shadow-md);
+    }
+  }
+
+  .about-pills {
+    display: flex;
+    flex-direction: column;
+    gap: 0.625rem;
+    margin-top: 1rem;
+    width: 100%;
+
+    .about-pill {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      padding: 0.55rem 0.85rem;
+      font-size: 0.825rem;
+      font-weight: 500;
+      color: var(--text-color);
+      background-color: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-full);
+      box-shadow: var(--shadow-sm);
+      text-decoration: none;
+      transition: all 0.2s ease-in-out;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+
+      .about-pill-icon {
+        width: 16px;
+        height: 16px;
+        flex-shrink: 0;
+        color: var(--text-muted);
+        transition: color 0.2s ease-in-out;
+      }
+
+      &:hover {
+        border-color: var(--primary);
+        color: var(--text-color);
+        background-color: var(--bg-secondary);
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-md);
+
+        .about-pill-icon {
+          color: var(--primary);
+        }
+      }
+
+      &:active {
+        transform: translateY(0);
+      }
     }
   }
 }
