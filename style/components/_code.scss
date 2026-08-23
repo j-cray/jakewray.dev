@@ -203,7 +203,7 @@
 /* Commit Graph Widget */
 .commit-graph-section {
   margin-bottom: 2.5rem;
-  padding: 1.75rem 2rem;
+  padding: 1.25rem 1.5rem;
   background: var(--card-bg);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
@@ -212,26 +212,30 @@
   .commit-graph-container {
     width: 100%;
     overflow-x: auto;
-    padding: 1rem 0 0.5rem 0;
+    padding: 0;
     display: flex;
     justify-content: center;
     align-items: center;
     border-radius: var(--radius-md);
 
     .commit-graph-img {
+      width: 100%;
       max-width: 100%;
       height: auto;
-      min-height: 110px;
       display: block;
       filter: saturate(1.1);
     }
   }
 
   @media (max-width: 640px) {
-    padding: 1.25rem;
+    padding: 0.875rem 1rem;
 
     .commit-graph-container {
       justify-content: flex-start;
+
+      .commit-graph-img {
+        min-width: 600px;
+      }
     }
   }
 }

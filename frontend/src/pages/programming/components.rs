@@ -67,20 +67,6 @@ pub fn ProfileHeader() -> impl IntoView {
 pub fn CommitGraphWidget() -> impl IntoView {
     view! {
         <section class="commit-graph-section card">
-            <div class="section-header">
-                <div>
-                    <h3 class="section-title">"Contribution Calendar"</h3>
-                    <p class="section-subtitle">"Annual commit and activity heatmap on GitHub"</p>
-                </div>
-                <a
-                    href="https://github.com/j-cray"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    class="section-link"
-                >
-                    "GitHub Profile →"
-                </a>
-            </div>
             <div class="commit-graph-container">
                 <img
                     src="https://ghchart.rshah.org/059669/j-cray"
