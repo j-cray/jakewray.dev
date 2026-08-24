@@ -143,22 +143,6 @@ pub fn get_default_contextual_action(pathname: &str) -> Option<AdminAction> {
             on_click: None,
             is_active: false,
         })
-    } else if pathname == "/admin/dashboard" {
-        Some(AdminAction {
-            label: "Compose Post".to_string(),
-            icon: AdminActionIcon::Compose,
-            href: Some("/admin/compose".to_string()),
-            on_click: None,
-            is_active: false,
-        })
-    } else if pathname == "/admin/compose" {
-        Some(AdminAction {
-            label: "Admin Dashboard".to_string(),
-            icon: AdminActionIcon::Dashboard,
-            href: Some("/admin/dashboard".to_string()),
-            on_click: None,
-            is_active: false,
-        })
     } else {
         None
     }
@@ -174,6 +158,15 @@ mod tests {
         assert_eq!(action.label, "Compose Blog Post");
         assert_eq!(action.icon, AdminActionIcon::Compose);
         assert_eq!(action.href, Some("/admin/compose".to_string()));
+    }
+
+    #[test]
+    fn test_default_contextual_action_admin_pages() {
+        let dashboard_action = get_default_contextual_action("/admin/dashboard");
+        assert_eq!(dashboard_action, None);
+
+        let compose_action = get_default_contextual_action("/admin/compose");
+        assert_eq!(compose_action, None);
     }
 
     #[test]
