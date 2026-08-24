@@ -135,16 +135,8 @@ pub fn use_admin_context() -> AdminContext {
 
 /// Fallback contextual action resolver when no custom page action has been dynamically registered.
 pub fn get_default_contextual_action(pathname: &str) -> Option<AdminAction> {
-    if pathname.starts_with("/journalism/") && pathname.len() > "/journalism/".len() {
+    if pathname.starts_with("/journalism") {
         None
-    } else if pathname == "/journalism" || pathname == "/journalism/" {
-        Some(AdminAction {
-            label: "Compose Article".to_string(),
-            icon: AdminActionIcon::Compose,
-            href: Some("/admin/compose".to_string()),
-            on_click: None,
-            is_active: false,
-        })
     } else if pathname.starts_with("/blog") {
         Some(AdminAction {
             label: "Compose Blog Post".to_string(),
@@ -208,11 +200,11 @@ mod tests {
 
     #[test]
     fn test_default_contextual_action_journalism_list() {
-        let action =
-            get_default_contextual_action("/journalism").expect("Expected action for /journalism");
-        assert_eq!(action.label, "Compose Article");
-        assert_eq!(action.icon, AdminActionIcon::Compose);
-        assert_eq!(action.href, Some("/admin/compose".to_string()));
+        let action = get_default_contextual_action("/journalism");
+        assert_eq!(action, None);
+
+        let action_trailing = get_default_contextual_action("/journalism/");
+        assert_eq!(action_trailing, None);
     }
 
     #[test]
