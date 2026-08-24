@@ -1,6 +1,7 @@
 use crate::api::articles::{delete_article, get_article, get_articles, save_article, Article};
 use crate::components::media_picker::MediaPicker;
 use crate::components::rich_editor::RichTextEditor;
+use crate::context::{use_admin_context, AdminAction, AdminActionIcon};
 use crate::utils::html::{
     extract_printed_date, format_cp_style, process_article_content, replace_date_paragraph,
 };
@@ -20,41 +21,7 @@ pub fn JournalismArticlePage() -> impl IntoView {
 
     let article_resource = Resource::new(slug, get_article);
     let articles_resource = Resource::new(|| (), |_| get_articles());
-
-    // Auth State
-    let (is_admin, _set_is_admin) = signal(false);
-    let (token, _set_token) = signal(String::new());
-
-    Effect::new(move || {
-        #[cfg(target_arch = "wasm32")]
-        {
-            #[cfg(debug_assertions)]
-            web_sys::console::log_1(&"Checking auth token...".into());
-            if let Ok(Some(storage)) = web_sys::window().unwrap().local_storage() {
-                if let Ok(Some(t)) = storage.get_item("admin_token") {
-                    #[cfg(debug_assertions)]
-                    web_sys::console::log_1(&format!("Found token: {}", t).into());
-                    if !t.is_empty() {
-                        if shared::auth::is_token_expired(&t) {
-                            let _ = storage.remove_item("admin_token");
-                            _set_is_admin.set(false);
-                            _set_token.set(String::new());
-                            #[cfg(debug_assertions)]
-                            web_sys::console::log_1(&"Expired token cleared from storage".into());
-                        } else {
-                            _set_token.set(t);
-                            _set_is_admin.set(true);
-                            #[cfg(debug_assertions)]
-                            web_sys::console::log_1(&"Admin mode enabled".into());
-                        }
-                    }
-                } else {
-                    #[cfg(debug_assertions)]
-                    web_sys::console::log_1(&"No token found in localStorage".into());
-                }
-            }
-        }
-    });
+    let admin_ctx = use_admin_context();
 
     // Edit State
     let (is_editing, set_is_editing) = signal(false);
@@ -79,8 +46,41 @@ pub fn JournalismArticlePage() -> impl IntoView {
         set_is_editing.set(true);
     };
 
+    // Register contextual action with the persistent AdminBar
+    Effect::new(move || {
+        if admin_ctx.is_admin.get() {
+            if is_editing.get() {
+                admin_ctx.set_action(AdminAction {
+                    label: "Exit Edit Mode".to_string(),
+                    icon: AdminActionIcon::Close,
+                    href: None,
+                    on_click: Some(Callback::new(move |_| {
+                        set_is_editing.set(false);
+                    })),
+                    is_active: true,
+                });
+            } else {
+                admin_ctx.set_action(AdminAction {
+                    label: "Edit Article".to_string(),
+                    icon: AdminActionIcon::Edit,
+                    href: None,
+                    on_click: Some(Callback::new(move |_| {
+                        if let Some(Ok(Some(ref article))) = article_resource.get() {
+                            turn_on_edit(article);
+                        }
+                    })),
+                    is_active: false,
+                });
+            }
+        }
+    });
+
+    on_cleanup(move || {
+        admin_ctx.clear_action();
+    });
+
     let on_save = move |original_article: Article| {
-        let t = token.get();
+        let t = admin_ctx.token.get();
         spawn_local(async move {
             set_save_status.set("Saving...".to_string());
             let mut new_article = original_article.clone();
@@ -107,14 +107,7 @@ pub fn JournalismArticlePage() -> impl IntoView {
                 Err(e) => {
                     let err_str = e.to_string();
                     if err_str.contains("Invalid token") || err_str.contains("ExpiredSignature") {
-                        #[cfg(target_arch = "wasm32")]
-                        if let Some(window) = web_sys::window() {
-                            if let Ok(Some(storage)) = window.local_storage() {
-                                let _ = storage.remove_item("admin_token");
-                            }
-                        }
-                        _set_is_admin.set(false);
-                        _set_token.set(String::new());
+                        admin_ctx.logout();
                         set_save_status
                             .set("Save failed: Session expired. Please log in again.".to_string());
                     } else {
@@ -137,7 +130,7 @@ pub fn JournalismArticlePage() -> impl IntoView {
             }
         }
 
-        let t = token.get();
+        let t = admin_ctx.token.get();
         spawn_local(async move {
             match delete_article(t, slug).await {
                 Ok(_) => {
@@ -147,14 +140,7 @@ pub fn JournalismArticlePage() -> impl IntoView {
                 Err(e) => {
                     let err_str = e.to_string();
                     if err_str.contains("Invalid token") || err_str.contains("ExpiredSignature") {
-                        #[cfg(target_arch = "wasm32")]
-                        if let Some(window) = web_sys::window() {
-                            if let Ok(Some(storage)) = window.local_storage() {
-                                let _ = storage.remove_item("admin_token");
-                            }
-                        }
-                        _set_is_admin.set(false);
-                        _set_token.set(String::new());
+                        admin_ctx.logout();
                     }
                     #[cfg(target_arch = "wasm32")]
                     let _ = web_sys::window()
@@ -192,11 +178,11 @@ pub fn JournalismArticlePage() -> impl IntoView {
 
                                         view! {
                                             <div class="article-container">
-                                                {
+                                                 {
                                                     let admin_article = article.clone();
                                                     move || {
                                                         let a = admin_article.clone();
-                                                        is_admin.get().then(move || {
+                                                        admin_ctx.is_admin.get().then(move || {
                                                             view! {
                                                                 <div class="mb-4 p-4 bg-gray-100 border rounded flex gap-2">
                                                                     <span class="font-bold text-gray-500">"Admin Mode"</span>
@@ -346,7 +332,7 @@ pub fn JournalismArticlePage() -> impl IntoView {
                                                             Some(view! {
                                                                 <div class="mt-4 border rounded p-4 bg-gray-50">
                                                                     <MediaPicker
-                                                                        token=token.into()
+                                                                        token=admin_ctx.token.into()
                                                                         current_image=current
                                                                         on_select=move |url| {
                                                                             set_edit_images.set(vec![url]);

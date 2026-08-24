@@ -14,6 +14,7 @@ pub fn MediaPicker<F>(
 where
     F: Fn(String) + 'static + Send + Sync + Clone,
 {
+    let admin_ctx = crate::context::use_admin_context();
     let (items, set_items) = signal(Vec::<MediaItem>::new());
     let (loading, set_loading) = signal(true);
     let (uploading, set_uploading) = signal(false);
@@ -23,12 +24,7 @@ where
         set_loading.set(true);
         let t = token.get();
         if shared::auth::is_token_expired(&t) {
-            #[cfg(target_arch = "wasm32")]
-            if let Some(window) = web_sys::window() {
-                if let Ok(Some(storage)) = window.local_storage() {
-                    let _ = storage.remove_item("admin_token");
-                }
-            }
+            admin_ctx.logout();
             set_error_msg.set(
                 "Session expired (Expired or missing token). Please log in again to upload media."
                     .to_string(),
@@ -43,12 +39,7 @@ where
                 Err(e) => {
                     let err_str = e.to_string();
                     if err_str.contains("Invalid token") || err_str.contains("ExpiredSignature") {
-                        #[cfg(target_arch = "wasm32")]
-                        if let Some(window) = web_sys::window() {
-                            if let Ok(Some(storage)) = window.local_storage() {
-                                let _ = storage.remove_item("admin_token");
-                            }
-                        }
+                        admin_ctx.logout();
                         set_error_msg.set(
                             "Session expired. Please log in again to manage media.".to_string(),
                         );
@@ -73,12 +64,7 @@ where
             if let Some(file) = files.get(0) {
                 let t = token.get();
                 if shared::auth::is_token_expired(&t) {
-                    #[cfg(target_arch = "wasm32")]
-                    if let Some(window) = web_sys::window() {
-                        if let Ok(Some(storage)) = window.local_storage() {
-                            let _ = storage.remove_item("admin_token");
-                        }
-                    }
+                    admin_ctx.logout();
                     set_error_msg
                         .set("Upload failed: Session expired. Please log in again.".to_string());
                     return;
@@ -105,12 +91,7 @@ where
                                     if err_str.contains("Invalid token")
                                         || err_str.contains("ExpiredSignature")
                                     {
-                                        #[cfg(target_arch = "wasm32")]
-                                        if let Some(window) = web_sys::window() {
-                                            if let Ok(Some(storage)) = window.local_storage() {
-                                                let _ = storage.remove_item("admin_token");
-                                            }
-                                        }
+                                        admin_ctx.logout();
                                         set_error_msg.set(
                                             "Upload failed: Session expired. Please log in again."
                                                 .to_string(),

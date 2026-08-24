@@ -19,8 +19,7 @@ use std::sync::Arc;
 pub fn AdminComposer() -> impl IntoView {
     let navigate = use_navigate();
     let location = use_location();
-    let (token, set_token) = signal(String::new());
-    let _ = &set_token;
+    let admin_ctx = crate::context::use_admin_context();
 
     let (title, set_title) = signal(String::new());
     let (slug, set_slug) = signal(String::new());
@@ -48,16 +47,8 @@ pub fn AdminComposer() -> impl IntoView {
     Effect::new(move || {
         #[cfg(target_arch = "wasm32")]
         {
-            if let Ok(Some(storage)) = web_sys::window().unwrap().local_storage() {
-                if let Ok(Some(t)) = storage.get_item("admin_token") {
-                    if !t.is_empty() && !shared::auth::is_token_expired(&t) {
-                        set_token.set(t);
-                    } else {
-                        _nav_auth("/admin/login", Default::default());
-                    }
-                } else {
-                    _nav_auth("/admin/login", Default::default());
-                }
+            if !admin_ctx.is_admin.get() {
+                _nav_auth("/admin/login", Default::default());
             }
         }
     });
@@ -165,14 +156,9 @@ pub fn AdminComposer() -> impl IntoView {
 
     let save_post_with_status = Arc::new(
         move |target_status: &'static str, scheduled_iso: Option<String>| {
-            let t = token.get();
+            let t = admin_ctx.token.get();
             if shared::auth::is_token_expired(&t) {
-                #[cfg(target_arch = "wasm32")]
-                if let Some(window) = web_sys::window() {
-                    if let Ok(Some(storage)) = window.local_storage() {
-                        let _ = storage.remove_item("admin_token");
-                    }
-                }
+                admin_ctx.logout();
                 set_save_status.set("Session expired. Please log in again.".to_string());
                 return;
             }
@@ -358,7 +344,7 @@ pub fn AdminComposer() -> impl IntoView {
                             Some(view! {
                                 <div class="mt-4 border rounded p-4 bg-gray-50">
                                     <MediaPicker
-                                        token=token.into()
+                                        token=admin_ctx.token.into()
                                         current_image=current
                                         on_select=move |url| {
                                             set_images.set(vec![url]);

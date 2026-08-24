@@ -8,8 +8,7 @@ use leptos_router::hooks::*;
 pub fn AdminDashboard() -> impl IntoView {
     #[cfg(target_arch = "wasm32")]
     let navigate = use_navigate();
-    let (token, set_token) = signal(String::new());
-    let _ = &set_token;
+    let admin_ctx = crate::context::use_admin_context();
     let (refresh_counter, set_refresh_counter) = signal(0);
     let (action_message, set_action_message) = signal(String::new());
 
@@ -18,25 +17,14 @@ pub fn AdminDashboard() -> impl IntoView {
     Effect::new(move || {
         #[cfg(target_arch = "wasm32")]
         {
-            let window = web_sys::window().unwrap();
-            let local_storage = window.local_storage().unwrap().unwrap();
-            let tok = local_storage.get_item("admin_token").unwrap_or(None);
-
-            if let Some(ref t) = tok {
-                if shared::auth::is_token_expired(t) {
-                    let _ = local_storage.remove_item("admin_token");
-                    nav_auth("/admin/login", Default::default());
-                } else {
-                    set_token.set(t.clone());
-                }
-            } else {
+            if !admin_ctx.is_admin.get() {
                 nav_auth("/admin/login", Default::default());
             }
         }
     });
 
     let drafts_resource = Resource::new(
-        move || (token.get(), refresh_counter.get()),
+        move || (admin_ctx.token.get(), refresh_counter.get()),
         |(t, _)| async move {
             if t.is_empty() {
                 Ok(Vec::<Article>::new())
@@ -48,9 +36,7 @@ pub fn AdminDashboard() -> impl IntoView {
 
     #[cfg(target_arch = "wasm32")]
     let logout = move |_| {
-        let window = web_sys::window().unwrap();
-        let local_storage = window.local_storage().unwrap().unwrap();
-        let _ = local_storage.remove_item("admin_token");
+        admin_ctx.logout();
         navigate("/admin/login", Default::default());
     };
 
@@ -58,7 +44,7 @@ pub fn AdminDashboard() -> impl IntoView {
     let logout = move |_| {};
 
     let publish_now = move |mut article: Article| {
-        let tok = token.get();
+        let tok = admin_ctx.token.get();
         if tok.is_empty() {
             return;
         }
@@ -78,7 +64,7 @@ pub fn AdminDashboard() -> impl IntoView {
     };
 
     let delete_draft = move |slug: String| {
-        let tok = token.get();
+        let tok = admin_ctx.token.get();
         if tok.is_empty() {
             return;
         }

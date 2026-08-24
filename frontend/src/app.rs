@@ -1,5 +1,7 @@
+use crate::components::admin_bar::AdminBar;
 use crate::components::footer::Footer;
 use crate::components::navbar::Navbar;
+use crate::context::provide_admin_context;
 use crate::pages::about::AboutPage;
 use crate::pages::admin::composer::AdminComposer;
 use crate::pages::admin::dashboard::AdminDashboard;
@@ -48,7 +50,13 @@ pub fn Shell() -> impl IntoView {
 
 #[component]
 fn MainLayout() -> impl IntoView {
+    let admin_ctx = provide_admin_context();
     let location = use_location();
+
+    Effect::new(move || {
+        admin_ctx.init_from_storage();
+    });
+
     let theme_class = move || {
         let path = location.pathname.get();
         if path.starts_with("/code") {
@@ -65,7 +73,10 @@ fn MainLayout() -> impl IntoView {
     };
 
     view! {
-        <div class=move || format!("min-h-screen flex flex-col bg-gray-50/50 {}", theme_class())>
+        <div class=move || {
+            let admin_extra = if admin_ctx.is_admin.get() { " has-admin-bar" } else { "" };
+            format!("min-h-screen flex flex-col bg-gray-50/50 {}{}", theme_class(), admin_extra)
+        }>
             <Navbar/>
             <main class="flex-grow p-4">
                 <Routes fallback=|| view! { <NotFound/> }>
@@ -87,6 +98,7 @@ fn MainLayout() -> impl IntoView {
                 </Routes>
             </main>
             <Footer/>
+            <AdminBar/>
         </div>
     }
 }

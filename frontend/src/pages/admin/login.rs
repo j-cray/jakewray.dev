@@ -21,6 +21,8 @@ struct LoginResponse {
 
 #[component]
 pub fn AdminLoginPage() -> impl IntoView {
+    let admin_ctx = crate::context::use_admin_context();
+    let _ = &admin_ctx;
     let (_username, _set_username) = signal("".to_string());
     let (_password, _set_password) = signal("".to_string());
     let (error, set_error) = signal("".to_string());
@@ -102,13 +104,11 @@ pub fn AdminLoginPage() -> impl IntoView {
 
                     #[cfg(debug_assertions)]
                     web_sys::console::log_1(
-                        &"[Login] Token received, storing in localStorage".into(),
+                        &"[Login] Token received, updating AdminContext".into(),
                     );
 
-                    // Store token in localStorage
-                    let window = web_sys::window().unwrap();
-                    let local_storage = window.local_storage().unwrap().unwrap();
-                    let _ = local_storage.set_item("admin_token", &data.token);
+                    // Update AdminContext and localStorage
+                    admin_ctx.login(data.token);
 
                     Ok(())
                 }

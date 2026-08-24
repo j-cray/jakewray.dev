@@ -1,5 +1,6 @@
 use crate::api::pages::{get_page, save_page, PageContent};
 use crate::components::rich_editor::RichTextEditor;
+use crate::context::{use_admin_context, AdminAction, AdminActionIcon};
 use leptos::prelude::*;
 use leptos::task::spawn_local;
 
@@ -10,30 +11,7 @@ pub const ABOUT_GITHUB_LABEL: &str = "github.com/j-cray";
 #[component]
 pub fn AboutPage() -> impl IntoView {
     let page_resource = Resource::new(|| (), |_| get_page("about".to_string()));
-
-    // Auth State
-    let (is_admin, set_is_admin) = signal(false);
-    let (token, set_token) = signal(String::new());
-
-    Effect::new(move || {
-        #[cfg(target_arch = "wasm32")]
-        {
-            if let Ok(Some(storage)) = web_sys::window().unwrap().local_storage() {
-                if let Ok(Some(t)) = storage.get_item("admin_token") {
-                    if !t.is_empty() {
-                        if shared::auth::is_token_expired(&t) {
-                            let _ = storage.remove_item("admin_token");
-                            set_is_admin.set(false);
-                            set_token.set(String::new());
-                        } else {
-                            set_token.set(t);
-                            set_is_admin.set(true);
-                        }
-                    }
-                }
-            }
-        }
-    });
+    let admin_ctx = use_admin_context();
 
     // Edit State
     let (is_editing, set_is_editing) = signal(false);
@@ -49,8 +27,41 @@ pub fn AboutPage() -> impl IntoView {
         set_is_editing.set(true);
     };
 
+    // Register contextual action with the persistent AdminBar
+    Effect::new(move || {
+        if admin_ctx.is_admin.get() {
+            if is_editing.get() {
+                admin_ctx.set_action(AdminAction {
+                    label: "Exit Edit Mode".to_string(),
+                    icon: AdminActionIcon::Close,
+                    href: None,
+                    on_click: Some(Callback::new(move |_| {
+                        set_is_editing.set(false);
+                    })),
+                    is_active: true,
+                });
+            } else {
+                admin_ctx.set_action(AdminAction {
+                    label: "Edit About Me".to_string(),
+                    icon: AdminActionIcon::Edit,
+                    href: None,
+                    on_click: Some(Callback::new(move |_| {
+                        if let Some(Ok(Some(ref page))) = page_resource.get() {
+                            turn_on_edit(page);
+                        }
+                    })),
+                    is_active: false,
+                });
+            }
+        }
+    });
+
+    on_cleanup(move || {
+        admin_ctx.clear_action();
+    });
+
     let on_save = move || {
-        let t = token.get();
+        let t = admin_ctx.token.get();
         let new_title = edit_title.get();
         let new_content = edit_content.get();
 
@@ -81,14 +92,7 @@ pub fn AboutPage() -> impl IntoView {
                     set_is_saving.set(false);
                     let err_str = e.to_string();
                     if err_str.contains("Invalid token") || err_str.contains("ExpiredSignature") {
-                        #[cfg(target_arch = "wasm32")]
-                        if let Some(window) = web_sys::window() {
-                            if let Ok(Some(storage)) = window.local_storage() {
-                                let _ = storage.remove_item("admin_token");
-                            }
-                        }
-                        set_is_admin.set(false);
-                        set_token.set(String::new());
+                        admin_ctx.logout();
                         set_save_status
                             .set("Save failed: Session expired. Please log in again.".to_string());
                     } else {
@@ -219,7 +223,7 @@ pub fn AboutPage() -> impl IntoView {
                             </div>
                             <div class="about-container bg-white p-8 rounded-lg shadow-sm border border-gray-100">
                                 {move || {
-                                    is_admin.get().then(|| {
+                                    admin_ctx.is_admin.get().then(|| {
                                         let page_data = page_resource.get().and_then(|r| r.ok()).flatten();
                                         view! {
                                             <div class="mb-6 p-4 bg-gray-50 border rounded-lg flex items-center justify-between">

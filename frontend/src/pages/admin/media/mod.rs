@@ -12,8 +12,7 @@ use web_sys::{FileList, HtmlInputElement};
 
 #[component]
 pub fn AdminMedia() -> impl IntoView {
-    let (token, set_token) = signal(String::new());
-    let _ = &set_token;
+    let admin_ctx = crate::context::use_admin_context();
     let (items, set_items) = signal(Vec::<MediaItem>::new());
     let (loading, set_loading) = signal(true);
     let (uploading, set_uploading) = signal(false);
@@ -31,25 +30,16 @@ pub fn AdminMedia() -> impl IntoView {
     Effect::new(move || {
         #[cfg(target_arch = "wasm32")]
         {
-            if let Ok(Some(storage)) = web_sys::window().unwrap().local_storage() {
-                if let Ok(Some(t)) = storage.get_item("admin_token") {
-                    if !t.is_empty() && !shared::auth::is_token_expired(&t) {
-                        set_token.set(t);
-                    } else {
-                        let navigate = leptos_router::hooks::use_navigate();
-                        navigate("/admin/login", Default::default());
-                    }
-                } else {
-                    let navigate = leptos_router::hooks::use_navigate();
-                    navigate("/admin/login", Default::default());
-                }
+            if !admin_ctx.is_admin.get() {
+                let navigate = leptos_router::hooks::use_navigate();
+                navigate("/admin/login", Default::default());
             }
         }
     });
 
     let fetch_media = move || {
         set_loading.set(true);
-        let t = token.get();
+        let t = admin_ctx.token.get();
         if t.is_empty() {
             set_loading.set(false);
             return;
@@ -72,7 +62,7 @@ pub fn AdminMedia() -> impl IntoView {
 
     // Trigger initial fetch when token is set
     Effect::new(move || {
-        if !token.get().is_empty() {
+        if !admin_ctx.token.get().is_empty() {
             fetch_media();
         }
     });
@@ -86,7 +76,7 @@ pub fn AdminMedia() -> impl IntoView {
                 return;
             }
 
-            let t = token.get();
+            let t = admin_ctx.token.get();
             set_uploading.set(true);
             set_upload_status.set(format!("Uploading {} item(s)...", count));
 
@@ -180,7 +170,7 @@ pub fn AdminMedia() -> impl IntoView {
         }
 
         set_is_deleting.set(true);
-        let t = token.get();
+        let t = admin_ctx.token.get();
 
         spawn_local(async move {
             let mut failed = 0;

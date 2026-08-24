@@ -14,6 +14,8 @@ struct ChangePasswordRequest {
 
 #[component]
 pub fn AdminPasswordChange() -> impl IntoView {
+    let admin_ctx = crate::context::use_admin_context();
+    let _ = &admin_ctx;
     let (current_password, set_current_password) = signal("".to_string());
     let (new_password, set_new_password) = signal("".to_string());
     let (confirm_password, set_confirm_password) = signal("".to_string());
@@ -51,20 +53,13 @@ pub fn AdminPasswordChange() -> impl IntoView {
 
             let navigate = navigate.clone();
             spawn_local(async move {
-                let window = web_sys::window().unwrap();
-                let local_storage = window.local_storage().unwrap().unwrap();
-                let token = local_storage.get_item("admin_token").unwrap_or(None);
+                let token = admin_ctx.token.get();
 
-                if token.is_none()
-                    || token
-                        .as_ref()
-                        .map_or(true, |t| shared::auth::is_token_expired(t))
-                {
-                    let _ = local_storage.remove_item("admin_token");
+                if token.is_empty() || shared::auth::is_token_expired(&token) {
+                    admin_ctx.logout();
                     navigate("/admin/login", Default::default());
                     return;
                 }
-                let token = token.unwrap();
 
                 let req = ChangePasswordRequest {
                     current_password: current,
