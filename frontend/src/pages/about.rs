@@ -12,6 +12,7 @@ pub const ABOUT_GITHUB_LABEL: &str = "github.com/j-cray";
 pub fn AboutPage() -> impl IntoView {
     let page_resource = Resource::new(|| (), |_| get_page("about".to_string()));
     let admin_ctx = use_admin_context();
+    let (current_page, set_current_page) = signal(None::<PageContent>);
 
     // Edit State
     let (is_editing, set_is_editing) = signal(false);
@@ -26,6 +27,12 @@ pub fn AboutPage() -> impl IntoView {
         set_save_status.set(String::new());
         set_is_editing.set(true);
     };
+
+    Effect::new(move || {
+        if let Some(Ok(Some(p))) = page_resource.get() {
+            set_current_page.set(Some(p));
+        }
+    });
 
     // Register contextual action with the persistent AdminBar
     Effect::new(move || {
@@ -46,18 +53,19 @@ pub fn AboutPage() -> impl IntoView {
                     icon: AdminActionIcon::Edit,
                     href: None,
                     on_click: Some(Callback::new(move |_| {
-                        if let Some(Ok(Some(ref page))) = page_resource.get() {
+                        if let Some(ref page) = current_page.get() {
                             turn_on_edit(page);
+                        } else if let Some(Ok(Some(ref page))) = page_resource.get() {
+                            turn_on_edit(page);
+                        } else {
+                            let default_p = crate::api::pages::default_about_content();
+                            turn_on_edit(&default_p);
                         }
                     })),
                     is_active: false,
                 });
             }
         }
-    });
-
-    on_cleanup(move || {
-        admin_ctx.clear_action();
     });
 
     let on_save = move || {

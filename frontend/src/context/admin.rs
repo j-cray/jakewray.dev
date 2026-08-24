@@ -136,13 +136,7 @@ pub fn use_admin_context() -> AdminContext {
 /// Fallback contextual action resolver when no custom page action has been dynamically registered.
 pub fn get_default_contextual_action(pathname: &str) -> Option<AdminAction> {
     if pathname.starts_with("/journalism/") && pathname.len() > "/journalism/".len() {
-        Some(AdminAction {
-            label: "Edit Article".to_string(),
-            icon: AdminActionIcon::Edit,
-            href: None,
-            on_click: None,
-            is_active: false,
-        })
+        None
     } else if pathname == "/journalism" || pathname == "/journalism/" {
         Some(AdminAction {
             label: "Compose Article".to_string(),
@@ -160,13 +154,7 @@ pub fn get_default_contextual_action(pathname: &str) -> Option<AdminAction> {
             is_active: false,
         })
     } else if pathname.starts_with("/about") {
-        Some(AdminAction {
-            label: "Edit About Me".to_string(),
-            icon: AdminActionIcon::Edit,
-            href: None,
-            on_click: None,
-            is_active: false,
-        })
+        None
     } else if pathname == "/admin/dashboard" {
         Some(AdminAction {
             label: "Compose Post".to_string(),
@@ -208,17 +196,14 @@ mod tests {
 
     #[test]
     fn test_default_contextual_action_about() {
-        let action = get_default_contextual_action("/about").expect("Expected action for /about");
-        assert_eq!(action.label, "Edit About Me");
-        assert_eq!(action.icon, AdminActionIcon::Edit);
+        let action = get_default_contextual_action("/about");
+        assert_eq!(action, None);
     }
 
     #[test]
     fn test_default_contextual_action_article() {
-        let action = get_default_contextual_action("/journalism/city-council-2026")
-            .expect("Expected action for article");
-        assert_eq!(action.label, "Edit Article");
-        assert_eq!(action.icon, AdminActionIcon::Edit);
+        let action = get_default_contextual_action("/journalism/city-council-2026");
+        assert_eq!(action, None);
     }
 
     #[test]

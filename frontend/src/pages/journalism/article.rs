@@ -22,6 +22,7 @@ pub fn JournalismArticlePage() -> impl IntoView {
     let article_resource = Resource::new(slug, get_article);
     let articles_resource = Resource::new(|| (), |_| get_articles());
     let admin_ctx = use_admin_context();
+    let (current_article, set_current_article) = signal(None::<Article>);
 
     // Edit State
     let (is_editing, set_is_editing) = signal(false);
@@ -46,10 +47,19 @@ pub fn JournalismArticlePage() -> impl IntoView {
         set_is_editing.set(true);
     };
 
+    Effect::new(move || {
+        if let Some(Ok(Some(a))) = article_resource.get() {
+            set_current_article.set(Some(a));
+        }
+    });
+
     // Register contextual action with the persistent AdminBar
     Effect::new(move || {
-        if admin_ctx.is_admin.get() {
-            if is_editing.get() {
+        let is_adm = admin_ctx.is_admin.get();
+        let is_edit = is_editing.get();
+        let cur_slug = slug();
+        if is_adm {
+            if is_edit {
                 admin_ctx.set_action(AdminAction {
                     label: "Exit Edit Mode".to_string(),
                     icon: AdminActionIcon::Close,
@@ -65,18 +75,19 @@ pub fn JournalismArticlePage() -> impl IntoView {
                     icon: AdminActionIcon::Edit,
                     href: None,
                     on_click: Some(Callback::new(move |_| {
-                        if let Some(Ok(Some(ref article))) = article_resource.get() {
+                        if let Some(ref article) = current_article.get() {
                             turn_on_edit(article);
+                        } else if let Some(Ok(Some(ref article))) = article_resource.get() {
+                            turn_on_edit(article);
+                        } else {
+                            set_edit_title.set(cur_slug.clone());
+                            set_is_editing.set(true);
                         }
                     })),
                     is_active: false,
                 });
             }
         }
-    });
-
-    on_cleanup(move || {
-        admin_ctx.clear_action();
     });
 
     let on_save = move |original_article: Article| {

@@ -57,6 +57,11 @@ fn MainLayout() -> impl IntoView {
         admin_ctx.init_from_storage();
     });
 
+    Effect::new(move || {
+        let _path = location.pathname.get();
+        admin_ctx.clear_action();
+    });
+
     let theme_class = move || {
         let path = location.pathname.get();
         if path.starts_with("/code") {
