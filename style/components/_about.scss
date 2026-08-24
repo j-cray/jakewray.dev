@@ -180,10 +180,60 @@
   }
 
   .about-content {
-    color: var(--text-color);
+    color: var(--text-color) !important;
 
+    &,
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6,
+    p,
+    li,
+    span,
+    font,
+    div,
+    blockquote,
+    strong,
+    em,
+    b,
+    i,
+    td,
+    th,
     * {
-      color: var(--text-color);
+      color: var(--text-color) !important;
+    }
+
+    strong,
+    b {
+      font-weight: 700;
+      color: var(--text-color) !important;
+    }
+
+    a:not(.btn) {
+      color: var(--primary) !important;
+      text-decoration: underline;
+
+      &:hover {
+        color: var(--primary-dark) !important;
+      }
     }
   }
+
+  .btn-primary,
+  .btn-primary * {
+    color: white !important;
+  }
+
+  .btn-secondary,
+  .btn-secondary * {
+    color: var(--text-color) !important;
+  }
+
+  .btn-danger,
+  .btn-danger * {
+    color: white !important;
+  }
 }
+
