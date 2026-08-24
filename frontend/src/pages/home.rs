@@ -68,7 +68,7 @@ pub fn HomePage() -> impl IntoView {
     view! {
         <div class="container home-hero">
             <header class="hero">
-                <h1 class="hero-title">"Jake Wray"</h1>
+                <h1 class="hero-title">"Jake Wray - Portfolio"</h1>
                 <p class="hero-subtitle">
                     "A work in progress (the website and me)"
                 </p>
