@@ -69,9 +69,6 @@ pub fn HomePage() -> impl IntoView {
         <div class="container home-hero">
             <header class="hero">
                 <h1 class="hero-title">"Jake Wray - Portfolio"</h1>
-                <p class="hero-subtitle">
-                    "A work in progress (the website and me)"
-                </p>
             </header>
 
             <div class="home-columns">
