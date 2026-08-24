@@ -135,9 +135,7 @@ pub fn use_admin_context() -> AdminContext {
 
 /// Fallback contextual action resolver when no custom page action has been dynamically registered.
 pub fn get_default_contextual_action(pathname: &str) -> Option<AdminAction> {
-    if pathname.starts_with("/journalism") {
-        None
-    } else if pathname.starts_with("/blog") {
+    if pathname.starts_with("/blog") {
         Some(AdminAction {
             label: "Compose Blog Post".to_string(),
             icon: AdminActionIcon::Compose,
@@ -145,8 +143,6 @@ pub fn get_default_contextual_action(pathname: &str) -> Option<AdminAction> {
             on_click: None,
             is_active: false,
         })
-    } else if pathname.starts_with("/about") {
-        None
     } else if pathname == "/admin/dashboard" {
         Some(AdminAction {
             label: "Compose Post".to_string(),
@@ -164,13 +160,7 @@ pub fn get_default_contextual_action(pathname: &str) -> Option<AdminAction> {
             is_active: false,
         })
     } else {
-        Some(AdminAction {
-            label: "Compose Post".to_string(),
-            icon: AdminActionIcon::Compose,
-            href: Some("/admin/compose".to_string()),
-            on_click: None,
-            is_active: false,
-        })
+        None
     }
 }
 
@@ -209,12 +199,11 @@ mod tests {
 
     #[test]
     fn test_default_contextual_action_code_and_home() {
-        let home_action = get_default_contextual_action("/").expect("Expected action for home");
-        assert_eq!(home_action.label, "Compose Post");
+        let home_action = get_default_contextual_action("/");
+        assert_eq!(home_action, None);
 
-        let code_action =
-            get_default_contextual_action("/code").expect("Expected action for /code");
-        assert_eq!(code_action.label, "Compose Post");
+        let code_action = get_default_contextual_action("/code");
+        assert_eq!(code_action, None);
     }
 
     #[test]
