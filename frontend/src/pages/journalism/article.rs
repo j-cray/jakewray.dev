@@ -178,21 +178,6 @@ pub fn JournalismArticlePage() -> impl IntoView {
 
                                         view! {
                                             <div class="article-container">
-                                                 {
-                                                    let admin_article = article.clone();
-                                                    move || {
-                                                        let a = admin_article.clone();
-                                                        admin_ctx.is_admin.get().then(move || {
-                                                            view! {
-                                                                <div class="mb-4 p-4 bg-gray-100 border rounded flex gap-2">
-                                                                    <span class="font-bold text-gray-500">"Admin Mode"</span>
-                                                                    <button class="btn btn-sm btn-primary" on:click=move |_| turn_on_edit(&a)>"Edit Article"</button>
-                                                                </div>
-                                                            }
-                                                        })
-                                                    }
-                                                }
-
                                                 <h1 class="mb-4 text-4xl font-bold text-black">{title.clone()}</h1>
 
                                                 // Image Logic
