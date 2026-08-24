@@ -33,6 +33,26 @@ pub fn Shell() -> impl IntoView {
     provide_meta_context();
     let options =
         use_context::<leptos::config::LeptosOptions>().expect("LeptosOptions not found in Shell");
+
+    #[cfg(feature = "ssr")]
+    let ga_config = {
+        let is_prod = std::env::var("ENVIRONMENT").as_deref() == Ok("production");
+        let ga_id = std::env::var("GA_MEASUREMENT_ID").unwrap_or_default();
+        if is_prod && !ga_id.is_empty() {
+            let script_src = format!("https://www.googletagmanager.com/gtag/js?id={}", ga_id);
+            let inline_script = format!(
+                "window.dataLayer = window.dataLayer || [];\n\
+                 function gtag(){{dataLayer.push(arguments);}}\n\
+                 gtag('js', new Date());\n\
+                 gtag('config', '{}', {{ 'send_page_view': false }});",
+                ga_id
+            );
+            Some((script_src, inline_script))
+        } else {
+            None
+        }
+    };
+
     view! {
         <html lang="en">
             <head>
@@ -42,6 +62,23 @@ pub fn Shell() -> impl IntoView {
                 <Title text="Jake Wray"/>
                 <Stylesheet id="leptos" href="/pkg/jakewray_ca.css"/>
                 <MetaTags/>
+                {
+                    #[cfg(feature = "ssr")]
+                    {
+                        if let Some((src, inline_js)) = ga_config {
+                            view! {
+                                <script async src=src></script>
+                                <script>{inline_js}</script>
+                            }.into_any()
+                        } else {
+                            view! { <span class="hidden" /> }.into_any()
+                        }
+                    }
+                    #[cfg(not(feature = "ssr"))]
+                    {
+                        view! { <span class="hidden" /> }.into_any()
+                    }
+                }
             </head>
             <body><App/><HydrationScripts options=options/></body>
         </html>
@@ -60,6 +97,22 @@ fn MainLayout() -> impl IntoView {
     Effect::new(move || {
         let _path = location.pathname.get();
         admin_ctx.clear_action();
+    });
+
+    Effect::new(move || {
+        let path = location.pathname.get();
+        let is_admin = admin_ctx.is_admin.get();
+
+        #[cfg(target_arch = "wasm32")]
+        let title = web_sys::window()
+            .and_then(|w| w.document())
+            .and_then(|d| js_sys::Reflect::get(&d, &wasm_bindgen::JsValue::from_str("title")).ok())
+            .and_then(|t| t.as_string())
+            .unwrap_or_else(|| "Jake Wray".to_string());
+        #[cfg(not(target_arch = "wasm32"))]
+        let title = "Jake Wray".to_string();
+
+        crate::utils::analytics::track_page_view(&path, &title, is_admin);
     });
 
     let theme_class = move || {

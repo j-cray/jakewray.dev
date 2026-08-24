@@ -49,6 +49,8 @@ pub fn JournalismArticlePage() -> impl IntoView {
 
     Effect::new(move || {
         if let Some(Ok(Some(a))) = article_resource.get() {
+            let is_admin = admin_ctx.is_admin.get();
+            crate::utils::analytics::track_article_view(&a.slug, &a.title, is_admin);
             set_current_article.set(Some(a));
         }
     });
